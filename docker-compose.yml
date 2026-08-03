@@ -1,0 +1,13 @@
+services:
+  # Runs the full offline test suite — the SPEC §13 acceptance criterion.
+  test:
+    build:
+      context: .
+      target: test
+    network_mode: "none"   # proof: green with zero network access
+
+  # Minimal runtime with the library installed; runs the quickstart demo.
+  demo:
+    build:
+      context: .
+      target: runtime

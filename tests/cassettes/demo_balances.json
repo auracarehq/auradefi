@@ -1,0 +1,40 @@
+{
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.demo.invalid/v1/balances?address=0xd8da6bf26964af9d7eed9e03e53415d37aa96045&chain=eip155:1"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "address": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+          "chain": "eip155:1",
+          "balances": [
+            { "caip19": "eip155:1/slip44:60", "raw": "1234567890123456789", "decimals": 18 },
+            {
+              "caip19": "eip155:1/erc20:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "raw": "250000000",
+              "decimals": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.demo.invalid/v1/health"
+      },
+      "response": { "status": 503, "json": { "status": "degraded" } }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.demo.invalid/v1/health"
+      },
+      "response": { "status": 200, "json": { "status": "ok" } }
+    }
+  ]
+}

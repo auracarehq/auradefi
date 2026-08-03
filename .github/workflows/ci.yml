@@ -1,0 +1,63 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      - name: Test suite (offline, no API keys — SPEC §13)
+        run: pytest
+      - name: Style gates
+        run: pytest tests/style -v
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Release check (build, twine, fresh-venv smoke)
+        run: bash scripts/release_check.sh
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build test image and run suite in a network-less container
+        run: |
+          docker build --target test -t auradefi:ci-test .
+          docker run --rm --network none auradefi:ci-test
+      - name: Build runtime image and run the quickstart demo
+        run: |
+          docker build -t auradefi:ci .
+          docker run --rm --network none auradefi:ci
+
+  notebooks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      - name: Execute PyBooks headlessly so docs cannot rot
+        run: |
+          shopt -s nullglob
+          for nb in docs/books/*.ipynb; do
+            python -m nbclient.cli --execute "$nb" || exit 1
+          done
