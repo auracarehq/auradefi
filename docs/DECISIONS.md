@@ -22,6 +22,6 @@ These are wire-format contracts (SPEC rule #3). Changing any of them is a
 breaking change to persisted data, guarded by golden vectors in tests.
 
 - **Quantity wire form**: `{"raw": "<decimal int string>", "decimals": <int>, "numeric": "<exact decimal string>", "float": <lossy float>}`. `raw` is a JSON **string**. `numeric` never uses scientific notation.
-- **Asset id**: `"ast_" + sha256("\n".join(sorted(canonical_caip19s))).hexdigest()[:16]`. Canonical CAIP-19 lowercases EVM addresses; Solana references keep base58 case.
+- **Asset id**: `"ast_" + sha256("\n".join(sorted(deduplicated(canonical_caip19s)))).hexdigest()[:16]` — the hash runs over the sorted, deduplicated canonical CAIP-19 set; empty input is rejected. Canonical CAIP-19 lowercases EVM addresses; Solana references keep base58 case.
 - **Transaction id**: `"txn_" + sha256(f"{chain_id}|{tx_hash}|{account_id}").hexdigest()[:16]` (SPEC §4.4: hash over chain, tx hash, account).
 - **Cursor token**: opaque to callers; internally a backend-monotonic last-modified sequence serialised as `f"{seq:020d}"` so lexicographic order equals numeric order.

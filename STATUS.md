@@ -5,15 +5,16 @@ harsh-reviewer → devops-docs, per SPEC §11 phase). Newest first.
 
 ## Currently
 
-- **In flight:** scaffold (wave 0) — foundation modules, style gates,
-  cassette harness, packaging, Docker, CI.
+- **In flight:** Phase 1 build waves (sources/evm/etherscan, prices
+  inquirer + DefiLlama oracle, portfolio holdings assembly) + Phase 0
+  PyBooks docs.
 
 ## Phase gates
 
 | Phase | Gate | State |
 |---|---|---|
-| 0 | pytest green on fresh clone, no API keys | in flight |
-| 1 | known-rich address → sane USD total (cassettes) | pending |
+| 0 | pytest green on fresh clone, no API keys | **DONE** — 664 tests green offline; 6 work orders built test-first by the agent loop (36 agents), all 14 harsh-review findings fixed and re-pinned (incl. mutation-proof resurrection/reorg-atomicity tests, strict wire grammar, bool-poisoning guards, asset-id dedup) |
+| 1 | known-rich address → sane USD total (cassettes) | in flight |
 | 2 | cross-tenant isolation test that tries to leak | pending |
 | 3 | reorg fixture → removed + re-added | pending |
 | 4 | projection invariant holds | pending |

@@ -9,7 +9,8 @@ export const meta = {
   ],
 }
 
-const phaseNo = args?.phase
+const input = typeof args === 'string' ? JSON.parse(args) : args
+const phaseNo = input?.phase
 if (phaseNo === undefined || phaseNo === null) throw new Error('args.phase is required')
 
 const PLAN_SCHEMA = {
@@ -76,11 +77,16 @@ const VERDICT_SCHEMA = {
   },
 }
 
-let plan = args?.plan
+// Role definitions live in .claude/agents/*.md; agents load them as their
+// first act (mid-session registry snapshots make agentType unreliable).
+const ROLE = (name) =>
+  `First: Read the file .claude/agents/${name}.md in the current working directory and adopt its body as your role instructions (ignore the frontmatter). Obey its ownership limits exactly.`
+
+let plan = input?.plan
 if (!plan) {
   plan = await agent(
-    `Decompose auradefi SPEC phase ${phaseNo} into work orders per your output contract. Work from the repository in the current working directory.`,
-    { agentType: 'spec-interpreter', label: `interpret:phase-${phaseNo}`, phase: 'Interpret', schema: PLAN_SCHEMA },
+    `${ROLE('spec-interpreter')}\n\nDecompose auradefi SPEC phase ${phaseNo} into work orders per that output contract. Work from the repository in the current working directory.`,
+    { label: `interpret:phase-${phaseNo}`, phase: 'Interpret', schema: PLAN_SCHEMA },
   )
   if (!plan) throw new Error('spec-interpreter returned nothing')
 }
@@ -98,29 +104,42 @@ async function buildOrder(order) {
   const spec = JSON.stringify(order, null, 2)
 
   const testReport = await agent(
-    `${COMMON}\n\nYou are the test-author. Your work order:\n${spec}`,
-    { agentType: 'test-author', label: `tests:${order.id}`, phase: 'Build' },
+    `${ROLE('test-author')}\n\n${COMMON}\n\nYou are the test-author. Your work order:\n${spec}`,
+    { label: `tests:${order.id}`, phase: 'Build' },
   )
   if (testReport === null) return { order: order.id, skipped: 'test-author died' }
 
   let implReport = await agent(
-    `${COMMON}\n\nYou are the implementer. Stubs and red tests are in place. Your work order:\n${spec}\n\nTest-author report:\n${testReport}`,
-    { agentType: 'implementer', label: `impl:${order.id}`, phase: 'Build' },
+    `${ROLE('implementer')}\n\n${COMMON}\n\nYou are the implementer. Stubs and red tests are in place. Your work order:\n${spec}\n\nTest-author report:\n${testReport}`,
+    { label: `impl:${order.id}`, phase: 'Build' },
   )
 
   let verdict = null
   for (let round = 1; round <= 3; round++) {
     verdict = await agent(
-      `${COMMON}\n\nReview round ${round} for this work order:\n${spec}\n\nImplementer report:\n${implReport}`,
-      { agentType: 'harsh-reviewer', label: `review:${order.id}#${round}`, phase: 'Review', schema: VERDICT_SCHEMA },
+      `${ROLE('harsh-reviewer')}\n\n${COMMON}\n\nReview round ${round} for this work order:\n${spec}\n\nImplementer report:\n${implReport}`,
+      { label: `review:${order.id}#${round}`, phase: 'Review', schema: VERDICT_SCHEMA },
     )
     if (!verdict || verdict.verdict === 'approve') break
     const mustFix = verdict.findings.filter(f => f.severity !== 'minor')
     if (!mustFix.length || round === 3) break
-    implReport = await agent(
-      `${COMMON}\n\nYou are the implementer, fixing review findings on your work order:\n${spec}\n\nAddress every blocker/major below; if you dispute one, say so in your report with evidence:\n${JSON.stringify(mustFix, null, 2)}`,
-      { agentType: 'implementer', label: `fix:${order.id}#${round}`, phase: 'Review' },
-    )
+    // Route by category: test-quality findings go to a test-author (the
+    // implementer is ownership-blocked on test files), the rest to the
+    // implementer. Both may run in the same round.
+    const testFix = mustFix.filter(f => (f.category || '').includes('test'))
+    const codeFix = mustFix.filter(f => !(f.category || '').includes('test'))
+    if (testFix.length) {
+      await agent(
+        `${ROLE('test-author')}\n\n${COMMON}\n\nYou are the test-author, closing test-quality review findings on your work order:\n${spec}\n\nAdd ONLY the missing pinning tests described below. Never weaken or delete an existing test. Verify each pinned behavior against the CURRENT source first; if the source is actually wrong, report it instead of pinning the bug:\n${JSON.stringify(testFix, null, 2)}`,
+        { label: `testfix:${order.id}#${round}`, phase: 'Review' },
+      )
+    }
+    if (codeFix.length) {
+      implReport = await agent(
+        `${ROLE('implementer')}\n\n${COMMON}\n\nYou are the implementer, fixing review findings on your work order:\n${spec}\n\nAddress every blocker/major below; if you dispute one, say so in your report with evidence:\n${JSON.stringify(codeFix, null, 2)}`,
+        { label: `fix:${order.id}#${round}`, phase: 'Review' },
+      )
+    }
   }
   return { order: order.id, verdict, implReport }
 }

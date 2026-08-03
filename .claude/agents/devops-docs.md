@@ -23,8 +23,8 @@ git. Version numbers change only when the orchestrator says so.
    - Markdown cells explain WHY (quote SPEC §numbers); code cells show the
      real public API with real asserted outputs — a notebook is a test.
    - Build notebooks as JSON with `nbformat` via a small Python script,
-     then EXECUTE headlessly: `.venv/bin/python -m nbclient.cli --execute <nb>`
-     (or jupyter execute). An unexecuted notebook is undelivered work.
+     then EXECUTE headlessly: `.venv/bin/jupyter execute <nb>`. An
+     unexecuted notebook is undelivered work.
 2. **quickstart.py**: extend to demo the new phase's capability, still
    green offline against the installed wheel.
 3. **README**: capability table updated — what works TODAY, phase by
