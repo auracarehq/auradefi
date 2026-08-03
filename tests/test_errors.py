@@ -11,12 +11,16 @@ import pytest
 from auradefi import errors
 from auradefi.errors import (
     AuradefiError,
+    AuthError,
     CassetteError,
     CassetteMissError,
     ConflictError,
     CursorError,
     LedgerError,
+    ScopeError,
     TenantIsolationError,
+    TokenExpiredError,
+    TokenRevokedError,
 )
 
 SRC = Path(__file__).resolve().parent.parent / "src" / "auradefi"
@@ -41,6 +45,9 @@ def test_hierarchy_relationships():
     assert issubclass(CassetteMissError, CassetteError)
     assert issubclass(CursorError, LedgerError)
     assert issubclass(TenantIsolationError, LedgerError)
+    assert issubclass(TokenExpiredError, AuthError)
+    assert issubclass(TokenRevokedError, AuthError)
+    assert issubclass(ScopeError, AuthError)
 
 
 def test_conflict_error_carries_existing_id():

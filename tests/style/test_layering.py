@@ -36,6 +36,7 @@ ALLOWED_IMPORTS: dict[str, set[str]] = {
     "prices": {"money", "chains", "assets", "sources"},
     "decode": {"money", "chains", "assets", "sources", "prices"},
     "positions": {"money", "chains", "assets", "sources", "prices"},
+    "portfolio": {"money", "chains", "assets", "sources", "prices"},
     "ledger": {"money", "chains", "assets", "decode", "positions"},
     "accounting": {"money", "chains", "assets", "ledger"},
     "tenancy": {"money", "chains"},

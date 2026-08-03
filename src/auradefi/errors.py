@@ -61,6 +61,15 @@ class SourceError(AuradefiError):
     """A chain, explorer, or price source failed or returned malformed data."""
 
 
+class DecodeError(AuradefiError):
+    """Raw records for one transaction are mutually inconsistent or do not
+    involve the account being decoded.
+
+    Distinct from SourceError: the explorer's shape was fine; the content
+    cannot be decoded coherently.
+    """
+
+
 class QuotaExceededError(AuradefiError):
     """A tenant exhausted its quota window."""
 
@@ -79,6 +88,27 @@ class ConflictError(AuradefiError):
     def __init__(self, message: str, existing_id: str | None = None) -> None:
         super().__init__(message)
         self.existing_id = existing_id
+
+
+class AuthError(AuradefiError):
+    """Credential or token failed authentication.
+
+    Deliberately one class for bad secret, bad signature, malformed token,
+    and revoked key — probing callers must not be able to distinguish
+    failure modes (SPEC §7.2).
+    """
+
+
+class TokenExpiredError(AuthError):
+    """A JWT's exp (ms epoch) is in the past."""
+
+
+class TokenRevokedError(AuthError):
+    """A JWT's jti is in the revocation set (SPEC §7.2)."""
+
+
+class ScopeError(AuthError):
+    """The credential lacks the scope this operation requires."""
 
 
 class CassetteError(AuradefiError):

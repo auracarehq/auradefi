@@ -1,0 +1,220 @@
+{
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address=0x1111111111111111111111111111111111111111&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "2000000000000000000" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x1111111111111111111111111111111111111111&startblock=0&endblock=99999999&page=1&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "status": "1",
+          "message": "OK",
+          "result": [
+            {
+              "blockNumber": "17000001",
+              "timeStamp": "1690000001",
+              "hash": "0x0101010101010101010101010101010101010101010101010101010101010101",
+              "from": "0x9999999999999999999999999999999999999999",
+              "contractAddress": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "to": "0x1111111111111111111111111111111111111111",
+              "value": "5000000000000000000",
+              "tokenName": "AAA Token",
+              "tokenSymbol": "AAA",
+              "tokenDecimal": "18",
+              "confirmations": "900000"
+            },
+            {
+              "blockNumber": "17000002",
+              "timeStamp": "1690000002",
+              "hash": "0x0202020202020202020202020202020202020202020202020202020202020202",
+              "from": "0x9999999999999999999999999999999999999999",
+              "contractAddress": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "to": "0x1111111111111111111111111111111111111111",
+              "value": "12345678",
+              "tokenName": "BBB Token",
+              "tokenSymbol": "BBB",
+              "tokenDecimal": "6",
+              "confirmations": "900000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x1111111111111111111111111111111111111111&startblock=0&endblock=99999999&page=2&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "status": "1",
+          "message": "OK",
+          "result": [
+            {
+              "blockNumber": "17000003",
+              "timeStamp": "1690000003",
+              "hash": "0x0303030303030303030303030303030303030303030303030303030303030303",
+              "from": "0x9999999999999999999999999999999999999999",
+              "contractAddress": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "to": "0x1111111111111111111111111111111111111111",
+              "value": "1000000",
+              "tokenName": "BBB Token",
+              "tokenSymbol": "BBB",
+              "tokenDecimal": "6",
+              "confirmations": "900000"
+            },
+            {
+              "blockNumber": "17000004",
+              "timeStamp": "1690000004",
+              "hash": "0x0404040404040404040404040404040404040404040404040404040404040404",
+              "from": "0x9999999999999999999999999999999999999999",
+              "contractAddress": "0xcccccccccccccccccccccccccccccccccccccccc",
+              "to": "0x1111111111111111111111111111111111111111",
+              "value": "700000000",
+              "tokenName": "CCC Token",
+              "tokenSymbol": "CCC",
+              "tokenDecimal": "8",
+              "confirmations": "900000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x1111111111111111111111111111111111111111&startblock=0&endblock=99999999&page=3&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "status": "1",
+          "message": "OK",
+          "result": [
+            {
+              "blockNumber": "17000005",
+              "timeStamp": "1690000005",
+              "hash": "0x0505050505050505050505050505050505050505050505050505050505050505",
+              "from": "0x9999999999999999999999999999999999999999",
+              "contractAddress": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "to": "0x1111111111111111111111111111111111111111",
+              "value": "1000000000000000000",
+              "tokenName": "AAA Token",
+              "tokenSymbol": "AAA",
+              "tokenDecimal": "18",
+              "confirmations": "900000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokenbalance&contractaddress=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&address=0x1111111111111111111111111111111111111111&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "5000000000000000000" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokenbalance&contractaddress=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&address=0x1111111111111111111111111111111111111111&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "12345678" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokenbalance&contractaddress=0xcccccccccccccccccccccccccccccccccccccccc&address=0x1111111111111111111111111111111111111111&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "0" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address=0x2222222222222222222222222222222222222222&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "0" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x2222222222222222222222222222222222222222&startblock=0&endblock=99999999&page=1&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "status": "0",
+          "message": "NOTOK",
+          "result": "Max calls per sec rate limit reached, please use API Key for higher rate limit"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address=0x3333333333333333333333333333333333333333&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "7000000000000000000" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x3333333333333333333333333333333333333333&startblock=0&endblock=99999999&page=1&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "0", "message": "No transactions found", "result": [] }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address=0x4444444444444444444444444444444444444444&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 502,
+        "headers": { "content-type": "text/plain" },
+        "text": "Bad Gateway"
+      }
+    }
+  ]
+}

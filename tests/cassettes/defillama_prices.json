@@ -1,0 +1,35 @@
+{
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/current/coingecko:ethereum,ethereum:0x6b175474e89094c44da98b954eedeac495271d0f"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "coins": {
+            "coingecko:ethereum": {
+              "price": 3584.17,
+              "symbol": "ETH",
+              "timestamp": 1754089200,
+              "confidence": 0.99
+            }
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/current/ethereum:0x0000000000000000000000000000000000000bad"
+      },
+      "response": {
+        "status": 500,
+        "headers": { "content-type": "text/plain" },
+        "text": "Internal Server Error"
+      }
+    }
+  ]
+}

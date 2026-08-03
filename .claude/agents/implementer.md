@@ -36,7 +36,12 @@ why it is wrong, and what you believe the SPEC-correct behaviour is, under
 ## Definition of done (verify with Bash, then report)
 1. `.venv/bin/pytest <your test dirs>` → ALL green.
 2. `.venv/bin/pytest tests/style` → green.
-3. `.venv/bin/pytest` (full suite) → green — you broke nobody else.
+3. `.venv/bin/pytest` (full suite) → no failures in files you touched or
+   that import your modules. Other work orders build CONCURRENTLY, so
+   red tests in THEIR directories (typically NotImplementedError on
+   their stubs) are expected mid-flight: list them in your report as
+   `concurrent_red` and do not block on them. Zero tolerance for
+   failures your change caused.
 4. `git diff --stat` (read-only) shows changes ONLY in your `src_files`.
 
 ## Final output (text, for the orchestrator)

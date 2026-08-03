@@ -1,0 +1,109 @@
+{
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x1111111111111111111111111111111111111111&startblock=0&endblock=99999999&page=1&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "status": "1",
+          "message": "OK",
+          "result": [
+            {
+              "blockNumber": "100",
+              "timeStamp": "1700000000",
+              "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "from": "0x9999999999999999999999999999999999999999",
+              "to": "0x1111111111111111111111111111111111111111",
+              "value": "1000000000000000000",
+              "gasUsed": "21000",
+              "gasPrice": "10000000000",
+              "isError": "0"
+            },
+            {
+              "blockNumber": "101",
+              "timeStamp": "1700000100",
+              "hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "from": "0x1111111111111111111111111111111111111111",
+              "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "value": "0",
+              "gasUsed": "50000",
+              "gasPrice": "10000000000",
+              "isError": "0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x1111111111111111111111111111111111111111&startblock=0&endblock=99999999&page=2&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "status": "1",
+          "message": "OK",
+          "result": [
+            {
+              "blockNumber": "102",
+              "timeStamp": "1700000200",
+              "hash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "from": "0x1111111111111111111111111111111111111111",
+              "to": "0x4444444444444444444444444444444444444444",
+              "value": "1000000000000000000",
+              "gasUsed": "120000",
+              "gasPrice": "10000000000",
+              "isError": "0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0x1111111111111111111111111111111111111111&startblock=0&endblock=99999999&page=1&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "status": "1",
+          "message": "OK",
+          "result": [
+            {
+              "blockNumber": "101",
+              "timeStamp": "1700000100",
+              "hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "from": "0x1111111111111111111111111111111111111111",
+              "to": "0x3333333333333333333333333333333333333333",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+              "value": "25000000",
+              "tokenDecimal": "6",
+              "tokenSymbol": "USDC",
+              "gasUsed": "50000",
+              "gasPrice": "10000000000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=0x2222222222222222222222222222222222222222&startblock=0&endblock=99999999&page=1&offset=2&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "0", "message": "No transactions found", "result": [] }
+      }
+    }
+  ]
+}

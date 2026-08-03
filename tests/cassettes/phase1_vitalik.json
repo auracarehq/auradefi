@@ -1,0 +1,139 @@
+{
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address=0xd8da6bf26964af9d7eed9e03e53415d37aa96045&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "4878123456789012345678" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&address=0xd8da6bf26964af9d7eed9e03e53415d37aa96045&startblock=0&endblock=99999999&page=1&offset=1000&sort=asc&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "status": "1",
+          "message": "OK",
+          "result": [
+            {
+              "blockNumber": "18904215",
+              "timeStamp": "1704067211",
+              "hash": "0x9a31f5e2c7b8d4a6e1f0c3b2a5d8e7f6c9b0a1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+              "from": "0x28c6c06298d514db089934071355e5743bf21d60",
+              "contractAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "to": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+              "value": "500000000000",
+              "tokenName": "USD Coin",
+              "tokenSymbol": "USDC",
+              "tokenDecimal": "6",
+              "confirmations": "1834000"
+            },
+            {
+              "blockNumber": "19112480",
+              "timeStamp": "1706601600",
+              "hash": "0x1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+              "from": "0x60594a405d53811d3bc4766596efd80fd545a270",
+              "contractAddress": "0x6b175474e89094c44da98b954eedeac495271d0f",
+              "to": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+              "value": "255000000000000000000000",
+              "tokenName": "Dai Stablecoin",
+              "tokenSymbol": "DAI",
+              "tokenDecimal": "18",
+              "confirmations": "1626000"
+            },
+            {
+              "blockNumber": "20455301",
+              "timeStamp": "1722816000",
+              "hash": "0x7f8e9d0c1b2a3f4e5d6c7b8a9f0e1d2c3b4a5f6e7d8c9b0a1f2e3d4c5b6a7f8e",
+              "from": "0x5041ed759dd4afc3a72b8192c143f72f4724081a",
+              "contractAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+              "to": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+              "value": "750000750000",
+              "tokenName": "USD Coin",
+              "tokenSymbol": "USDC",
+              "tokenDecimal": "6",
+              "confirmations": "283000"
+            },
+            {
+              "blockNumber": "21033872",
+              "timeStamp": "1729790400",
+              "hash": "0x3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b",
+              "from": "0x0000000000000000000000000000000000000000",
+              "contractAddress": "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+              "to": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+              "value": "88888888888888888888888888",
+              "tokenName": "! Visit rewards-eth.xyz to claim",
+              "tokenSymbol": "AIRDROP",
+              "tokenDecimal": "",
+              "confirmations": "111000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokenbalance&contractaddress=0x6b175474e89094c44da98b954eedeac495271d0f&address=0xd8da6bf26964af9d7eed9e03e53415d37aa96045&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "255000000000000000000000" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokenbalance&contractaddress=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&address=0xd8da6bf26964af9d7eed9e03e53415d37aa96045&tag=latest&apikey=TESTKEY"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "status": "1", "message": "OK", "result": "1250000750000" }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/current/coingecko:ethereum,ethereum:0x6b175474e89094c44da98b954eedeac495271d0f,ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+      },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "coins": {
+            "coingecko:ethereum": {
+              "price": 3584.17,
+              "symbol": "ETH",
+              "timestamp": 1754089200,
+              "confidence": 0.99
+            },
+            "ethereum:0x6b175474e89094c44da98b954eedeac495271d0f": {
+              "decimals": 18,
+              "symbol": "DAI",
+              "price": 0.99985,
+              "timestamp": 1754089200,
+              "confidence": 0.99
+            },
+            "ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+              "decimals": 6,
+              "symbol": "USDC",
+              "price": 0.999839,
+              "timestamp": 1754089200,
+              "confidence": 0.99
+            }
+          }
+        }
+      }
+    }
+  ]
+}

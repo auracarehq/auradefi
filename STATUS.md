@@ -5,9 +5,11 @@ harsh-reviewer → devops-docs, per SPEC §11 phase). Newest first.
 
 ## Currently
 
-- **In flight:** Phase 1 build waves (sources/evm/etherscan, prices
-  inquirer + DefiLlama oracle, portfolio holdings assembly) + Phase 0
-  PyBooks docs.
+- **In flight, concurrently:** Phase 1 (EVM balances→holdings), Phase 2
+  (tenancy), Phase 3 (transaction decode + reorg gate), Phase 4
+  (positions: UniV2/V3, Aave, liquid staking) — four phase-build
+  workflows over disjoint file sets. Phase 0 PyBooks delivered
+  (docs/books/01–04, executed in CI).
 
 ## Phase gates
 

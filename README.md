@@ -26,6 +26,23 @@ git clone https://github.com/auracarehq/auradefi
 cd auradefi && bash scripts/bootstrap.sh
 ```
 
+## What works today
+
+Coverage published as data, not prose optimism (SPEC rule #10). Everything
+marked **works** has an executable walkthrough under
+[`docs/books/`](docs/books) that runs offline and asserts its own outputs.
+
+| Capability | Phase | Status |
+|---|---|---|
+| `Quantity`/`Money`: exact at 10^77, four-field wire form, `raw` always a JSON string, strict wire grammar | 0 | **works** — [`02_money`](docs/books/02_money.ipynb) |
+| CAIP-2/CAIP-19 parse + canonicalize, deterministic `ast_…` ids, both-ways asset registry | 0 | **works** — 5 seed chains (Ethereum, Polygon, Base, Bitcoin, Solana); [`03_assets_chains`](docs/books/03_assets_chains.ipynb) |
+| Asset groups (decimals-equality law, `single` fallback) + additive spam scoring (score + numbers, caller threshold) | 0 | **works** — [`03_assets_chains`](docs/books/03_assets_chains.ipynb) |
+| Ledger port + in-memory backend: idempotent upsert, cursor sync with `has_more` paging, reorg = `removed` + re-`added`, tenant isolation | 0 | **works** — memory backend only, SQL backend is Phase 5; [`04_ledger`](docs/books/04_ledger.ipynb) |
+| Cassette replay harness (`CassetteMissError` offline guarantee) | 0 | **works** — [`01_foundation`](docs/books/01_foundation.ipynb) |
+| Style gates: size, structure, placement, layering (`tests/style`) | 0 | **works** — no allowlist |
+| EVM balances → holdings (Etherscan V2 + DefiLlama prices) | 1 | **in flight** — under construction, not usable yet |
+| Tenancy, transaction decode, positions, embedding surface, Bitcoin/xpub, Solana, HTTP API, accounting | 2–9 | not started |
+
 ## The rules the code lives by
 
 - Money is a tagged decimal string; a raw amount is **never** a JSON integer.
