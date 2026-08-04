@@ -15,6 +15,7 @@ import ast
 import base64
 import dataclasses
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -72,7 +73,7 @@ PINNED_HEADERS = {
 
 
 class _Sink:
-    """A trivial structural WebhookSink — six methods, no state, no I/O."""
+    """A trivial structural WebhookSink — seven methods, no state, no I/O."""
 
     def __init__(self) -> None:
         self.calls: list[str] = []
@@ -97,6 +98,9 @@ class _Sink:
 
     def get_delivery(self, project_id, delivery_id):  # noqa: ANN001
         self.calls.append("get_delivery")
+
+    def get_event(self, project_id, event_id):  # noqa: ANN001
+        self.calls.append("get_event")
 
 
 class _Holdings:
@@ -729,3 +733,37 @@ def test_an_empty_string_secret_is_absent_not_a_live_key():
         assert type(caught.value) is AuthError, label
         assert str(caught.value) == baseline, label
         assert getattr(request.state, "project_id", None) is None, label
+
+
+def test_webhook_sink_protocol_declares_everything_the_routes_call():
+    """The seam must promise every method its consumer uses.
+
+    ``admin.py`` reads ``event_name`` back through ``sink.get_event`` —
+    a stored delivery holds only ``event_id``. When ``get_event`` was
+    absent from this Protocol, the real WebhookStore still worked, so
+    nothing failed; but a host binding a minimal conforming sink would
+    have hit ``AttributeError`` at request time. Pin the whole surface.
+    """
+    import inspect
+
+    from auradefi.api import deps as deps_module
+    from auradefi.webhooks.deliver import WebhookStore
+
+    declared = {
+        name
+        for name in vars(WebhookSink)
+        if not name.startswith("__") and callable(getattr(WebhookSink, name, None))
+    }
+    assert "get_event" in declared
+
+    # every declared method really exists on the shipped implementation
+    for name in declared:
+        assert hasattr(WebhookStore, name), name
+
+    # and every sink attribute the api package touches is declared
+    source = "\n".join(
+        p.read_text()
+        for p in (Path(deps_module.__file__).parent.rglob("*.py"))
+    )
+    used = set(re.findall(r"(?:sink|webhooks)\.([a-z_]+)\(", source))
+    assert used <= declared | {"emit"}, sorted(used - declared)

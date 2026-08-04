@@ -102,6 +102,18 @@ class WebhookSink(Protocol):
         """One delivery inside this project's scope."""
         raise NotImplementedError
 
+    def get_event(self, project_id: str, event_id: str) -> object:
+        """The event a delivery carries, inside this project's scope.
+
+        Declared because the delivery wire exposes ``event_name`` while a
+        stored delivery holds only ``event_id`` — so the admin routes MUST
+        read the event back. Leaving it off the Protocol while calling it
+        anyway would make a conforming custom sink fail with
+        ``AttributeError`` at request time; a seam has to promise
+        everything its consumer actually uses.
+        """
+        raise NotImplementedError
+
 
 @runtime_checkable
 class HoldingsProvider(Protocol):
