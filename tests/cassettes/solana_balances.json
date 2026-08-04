@@ -1,0 +1,76 @@
+{
+  "interactions": [
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "jsonrpc": "2.0", "id": 1, "result": { "context": { "apiVersion": "1.18.22", "slot": 250000260 }, "value": 3500000000 } }
+      }
+    },
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": {
+            "context": { "apiVersion": "1.18.22", "slot": 250000260 },
+            "value": [
+              { "pubkey": "UsdcAcctA1", "account": { "data": { "parsed": { "info": { "isNative": false, "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "owner": "9wFFyRfZBsuAha4YcuxcXLKwMxJR43S7fPfQLXMFxbAF", "state": "initialized", "tokenAmount": { "amount": "250000000", "decimals": 6, "uiAmount": 250.0, "uiAmountString": "250" } }, "type": "account" }, "program": "spl-token", "space": 165 }, "executable": false, "lamports": 2039280, "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "rentEpoch": 361 } },
+              { "pubkey": "UsdcAcctB2", "account": { "data": { "parsed": { "info": { "isNative": false, "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "owner": "9wFFyRfZBsuAha4YcuxcXLKwMxJR43S7fPfQLXMFxbAF", "state": "initialized", "tokenAmount": { "amount": "750000000", "decimals": 6, "uiAmount": 750.0, "uiAmountString": "750" } }, "type": "account" }, "program": "spl-token", "space": 165 }, "executable": false, "lamports": 2039280, "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "rentEpoch": 361 } }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": {
+            "context": { "apiVersion": "1.18.22", "slot": 250000260 },
+            "value": [
+              { "pubkey": "T22AcctC3", "account": { "data": { "parsed": { "info": { "extensions": [ { "extension": "scaledUiAmountConfig", "state": { "authority": "9wFFyRfZBsuAha4YcuxcXLKwMxJR43S7fPfQLXMFxbAF", "multiplier": "2", "newMultiplier": "2", "newMultiplierEffectiveTimestamp": 1753900000 } } ], "isNative": false, "mint": "ScaLedUiAmountMint22222222222222222222222222", "owner": "9wFFyRfZBsuAha4YcuxcXLKwMxJR43S7fPfQLXMFxbAF", "state": "initialized", "tokenAmount": { "amount": "1000000000", "decimals": 9, "uiAmount": 2.0, "uiAmountString": "2" } }, "type": "account" }, "program": "spl-token-2022", "space": 182 }, "executable": false, "lamports": 2157600, "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb", "rentEpoch": 361 } }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": [
+            { "blockTime": 1754000000, "confirmationStatus": "finalized", "err": null, "memo": null, "signature": "SigNewest1", "slot": 250000200 },
+            { "blockTime": 1753999000, "confirmationStatus": "finalized", "err": { "InstructionError": [0, "Custom"] }, "memo": null, "signature": "SigErr2", "slot": 250000100 }
+          ]
+        }
+      }
+    },
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": [
+            { "blockTime": null, "confirmationStatus": "finalized", "err": null, "memo": null, "signature": "SigLast3", "slot": 250000000 }
+          ]
+        }
+      }
+    }
+  ]
+}

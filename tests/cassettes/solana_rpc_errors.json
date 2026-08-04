@@ -1,0 +1,36 @@
+{
+  "interactions": [
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "jsonrpc": "2.0", "id": 1, "error": { "code": -32602, "message": "Invalid params: unable to parse pubkey" } }
+      }
+    },
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 429,
+        "headers": { "content-type": "application/json" },
+        "json": { "jsonrpc": "2.0", "id": 1, "error": { "code": 429, "message": "Too many requests" } }
+      }
+    },
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "text/html" },
+        "text": "<html>502 Bad Gateway</html>"
+      }
+    },
+    {
+      "request": { "method": "POST", "url": "https://api.mainnet-beta.solana.com/" },
+      "response": {
+        "status": 200,
+        "headers": { "content-type": "application/json" },
+        "json": { "jsonrpc": "2.0", "id": 1 }
+      }
+    }
+  ]
+}

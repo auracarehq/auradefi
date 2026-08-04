@@ -5,11 +5,12 @@ harsh-reviewer → devops-docs, per SPEC §11 phase). Newest first.
 
 ## Currently
 
-- **In flight, concurrently:** Phase 1 (EVM balances→holdings), Phase 2
-  (tenancy), Phase 3 (transaction decode + reorg gate), Phase 4
-  (positions: UniV2/V3, Aave, liquid staking) — four phase-build
-  workflows over disjoint file sets. Phase 0 PyBooks delivered
-  (docs/books/01–04, executed in CI).
+- **In flight, concurrently:** Phases 4 (positions), 5 (embedding), 6
+  (Bitcoin/xpub), 7 (Solana), 9 (accounting) — five phase-build
+  workflows over disjoint file sets; Phase 8 (API+webhooks) decomposition
+  computing. Phases 0–3 committed green. Note: a usage-limit window
+  interrupted phases 4/5/6 overnight (~04:00); all three were resumed
+  from workflow cache at ~10:20 with zero loss of completed agents.
 
 ## Phase gates
 
@@ -19,7 +20,7 @@ harsh-reviewer → devops-docs, per SPEC §11 phase). Newest first.
 | 1 | known-rich address → sane USD total (cassettes) | in flight |
 | 2 | cross-tenant isolation test that tries to leak | pending |
 | 3 | reorg fixture → removed + re-added | pending |
-| 4 | projection invariant holds | pending |
+| 4 | projection invariant holds | **DONE** — 6 orders; UniV2/V3 (canonical TickMath), Aave, liquid staking with block-20450000 goldens; synthetic Holdings sum to net worth exactly |
 | 5 | host binds own session, syncs on own tick | pending |
 | 6 | one xpub → full derived balance set | pending |
 | 7 | SPL balances offline | pending |
