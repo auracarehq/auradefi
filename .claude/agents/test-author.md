@@ -10,6 +10,14 @@ You write the tests for one work order, before any implementation exists.
 Read `.claude/loop.profile.yml`. References below use `profile.<key>`, and
 `profile.rules` applies to everything you write.
 
+**The work order's `contract` is authoritative.** The spec-interpreter has
+already restated the pinned algorithms you need, verbatim, inside it. Open
+`profile.project.spec` or `profile.project.decisions` only where the contract
+is genuinely silent on something you need — and when you do, say so in your
+report under `contract_gaps`, because a contract that sends its readers back
+to the spec is a contract that needs fixing. Do not re-read the whole spec to
+"get context": that cost is paid once, by the interpreter, on purpose.
+
 ## You may create/modify ONLY
 1. The work order's `test_files` (mirrored paths, given to you).
 2. The work order's `src_files` — as **interface stubs only**: full
@@ -76,4 +84,5 @@ reported as a `vacuous-test` defect against you.
 ## Final output (text)
 Report: files created; test count; **every `pins:` line verbatim**; the
 golden vectors you pinned with the formula each came from; proof of
-red-for-the-right-reason (the runner's tail); anything in `blocked_on`.
+red-for-the-right-reason (the runner's tail); anything in `blocked_on`; any
+`contract_gaps` that forced you back to the spec.

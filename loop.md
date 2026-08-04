@@ -283,11 +283,70 @@ Stated plainly, so you do not over-trust it.
 
 ## Cost
 
-The added stages cost roughly 15–25% on top of a v1 build. For calibration:
-the adversarial pass that found v1's fifteen defects after the fact ran 55
-agents and ~4.2M tokens in 45 minutes, against a build that took far longer
-than that. Verification is cheap relative to building; the expensive thing is
-shipping a defect and finding it in production.
+The added stages cost roughly 15–25% on top of a v1 build. Run stages 4–6 on
+every phase — they are the only stages that can tell you the other stages
+lied, so they are the worst possible place to economise.
 
-Run stages 4–6 on every phase. They are not the place to economise — they
-are the only stages that can tell you the other stages lied.
+Economise here instead. These numbers are measured, not estimated: the
+adversarial pass that found v1's fifteen defects ran 55 agents and 4,240,334
+tokens in 45 minutes.
+
+| phase | agents | tokens | share |
+|---|---|---|---|
+| Verify | 46 | 2,264,757 | **53.4%** |
+| Find | 6 | 1,513,598 | 35.7% |
+| Sweep | 1 | 338,244 | 8.0% |
+| Synthesize | 1 | 77,436 | 1.8% |
+| Scope | 1 | 46,299 | 1.1% |
+
+**Verification dominates, and roughly a third of it was duplicated work.**
+That run verified 43 findings which collapsed to ~30 distinct defects — the
+merge happened at synthesis, *after* paying for it. A further ~15 verified
+findings were then discarded by the report cap.
+
+The four economies that follow, all of which preserve detection exactly:
+
+1. **Cluster by root cause before verifying, not after.** Verify one
+   representative per cause and propagate the verdict. Same merge, ahead of
+   the money.
+2. **Carry the finder's reproduction into the verifier.** A verifier averaged
+   49k tokens and 11 tool calls rebuilding a scenario the finder had already
+   reproduced. Hand it the repro and ask it to *refute*, not rediscover.
+3. **Rank before verifying** so a report cap never discards work already paid
+   for — and log what went unverified, because a silent cap reads as "we
+   looked at everything".
+4. **Give every finder a shared module map.** Six finders each independently
+   read the same 262 files; the scope stage had already walked the tree.
+
+`.claude/workflows/code-review-lean.js` implements all four against the
+built-in review workflow. In this loop, the equivalents are: delta reviews in
+rounds ≥2 (`reviewMode: delta` — adjudicate the fixes, not the module again),
+`effort: 'medium'` on the stages where the judgement was spent upstream
+(`pattern-sweeper`, `devops-docs`), and the rule that the work order's
+`contract` is authoritative so `test-author` and `implementer` never re-read
+the spec.
+
+**Never tier down `mutation-gate` or `seam-auditor`.** Choosing a mutant that
+violates exactly one pin, and telling a real interface lie from a
+coincidence, are judgement. That is where v1's defects lived.
+
+## Recovering a killed run
+
+A workflow that dies — usage limits, a killed session — does not have to be
+rebuilt. Every invocation persists its script and returns a `runId`:
+
+```
+Workflow({ scriptPath: "<returned path>", resumeFromRunId: "<returned runId>" })
+```
+
+Agents whose `(prompt, opts)` are unchanged replay from cache at **zero
+token cost**; the first changed call and everything after it runs live. Same
+script, same args → 100% cache hit. This also makes iterating on the script
+cheap: edit it, resume, and only the edited stage re-runs.
+
+Before diagnosing an empty or surprising result, read
+`<transcriptDir>/journal.jsonl` — one line per agent with its actual return
+value. Do not assume a cached result was non-empty.
+
+During the v1 build I hit roughly a dozen usage-limit windows and re-ran
+phases from scratch rather than resuming. That was avoidable and expensive.

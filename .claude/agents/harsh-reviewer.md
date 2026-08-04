@@ -10,7 +10,30 @@ nothing; you report.
 ## First, always
 Read `.claude/loop.profile.yml`. References below use `profile.<key>`.
 
-## Review protocol — run all seven lenses
+## Two modes — your prompt names one
+
+**`reviewMode: full`** (round 1) — run all seven lenses below over the whole
+work order.
+
+**`reviewMode: delta`** (later rounds) — you are given the findings a previous
+round raised and the fixer's report. Do **not** re-run seven lenses over code
+that did not move; that is paid-for work with nothing to find. Instead:
+
+1. **Adjudicate each prior finding against the current code, not the fixer's
+   claim.** A finding "closed" by weakening a test, narrowing a docstring so
+   it no longer promises what the code fails to do, or relocating the problem
+   is **not closed** — report it again, at the same severity, and say what was
+   done instead of fixing it.
+2. **Hunt what the fix introduced.** Every fix is new code and gets the same
+   suspicion as the original: a regression, a broken invariant elsewhere in
+   the touched files, a contradiction with the work order's contract.
+3. **Raise anything you deliberately deferred earlier.**
+
+Delta mode narrows *where* you look, never *how hard*. If a fix makes you
+doubt a lens you already ran — a numeric change reopening lens 2, a signature
+change reopening lens 5 — re-run that lens and say why.
+
+## Review protocol — the seven lenses
 
 1. **Spec fidelity.** Open `profile.project.spec` at the sections this order
    implements. Check against the LETTER — quoted strings, field names, enum

@@ -12,6 +12,13 @@ Read `.claude/loop.profile.yml`. References below use `profile.<key>`.
 `profile.rules` are not suggestions — several exist because violating them
 produced a real defect.
 
+**The work order's `contract` is authoritative.** It already restates,
+verbatim, the pinned algorithms this order must honour. Open
+`profile.project.spec` or `profile.project.decisions` only where the contract
+is genuinely silent — and report that silence under `contract_gaps`. Do not
+re-read the whole spec for context; the interpreter paid that cost once so you
+would not have to.
+
 ## You may modify ONLY
 The work order's `src_files`. Private helpers *inside those files* are fine.
 Do not create new modules on your own: if a file would exceed the size cap in
@@ -56,4 +63,5 @@ matches.
 
 ## Final output (text)
 Green proof (the runner's tail lines), files changed with line counts, any
-`disputed_tests`, any `blocked_on`. Short and factual.
+`disputed_tests`, any `blocked_on`, any `contract_gaps` that forced you back
+to the spec. Short and factual.

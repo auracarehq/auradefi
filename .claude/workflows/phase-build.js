@@ -243,24 +243,32 @@ async function buildOrder(order) {
 
   let verdict = null
   const allFindings = []
+  let priorMustFix = null
+  let fixerReport = null
   for (let round = 1; round <= MAX_FIX_ROUNDS; round++) {
-    verdict = await agent(
-      `${ROLE('harsh-reviewer')}\n\n${CONTEXT}\n\nReview round ${round} for this work order:\n${spec}\n\nImplementer report:\n${implReport}`,
-      { label: `review:${order.id}#${round}`, phase: 'Build', schema: VERDICT_SCHEMA },
-    )
+    // Round 1 is a full seven-lens review. Later rounds adjudicate only what
+    // changed — re-running every lens over a module whose unreviewed parts did
+    // not move is the largest avoidable cost in this loop. The delta reviewer
+    // still owns regressions: a fix that breaks something is its finding.
+    const prompt = round === 1
+      ? `${ROLE('harsh-reviewer')}\n\n${CONTEXT}\n\nreviewMode: full — run all seven lenses.\n\nWork order:\n${spec}\n\nImplementer report:\n${implReport}`
+      : `${ROLE('harsh-reviewer')}\n\n${CONTEXT}\n\nreviewMode: delta — round ${round}.\n\nA previous round of this review raised the findings below and they have since been fixed. Do NOT re-run all seven lenses over the whole work order; adjudicate the delta:\n\n1. For EACH prior finding: is it genuinely closed? Read the current code, not the fixer's claim. A finding "closed" by weakening a test, narrowing a docstring, or moving the problem is NOT closed.\n2. Did the fixes introduce anything new — a regression, a broken invariant elsewhere in the files they touched, a contradiction with the contract?\n3. Anything you deliberately deferred in an earlier round.\n\nPrior findings:\n${brief(priorMustFix)}\n\nWork order:\n${spec}\n\nFixer report:\n${fixerReport ?? '(none)'}`
+    verdict = await agent(prompt, { label: `review:${order.id}#${round}`, phase: 'Build', schema: VERDICT_SCHEMA })
     if (!verdict) break
     allFindings.push(...verdict.findings)
     if (verdict.verdict === 'approve') break
     const mustFix = verdict.findings.filter(isMustFix)
     if (!mustFix.length || round === MAX_FIX_ROUNDS) break
+    priorMustFix = mustFix
 
     // Route by category. Test-quality findings go to a test-author (the
     // implementer is ownership-blocked on test files); everything else to
     // the implementer. Both may run in the same round.
     const testFix = mustFix.filter(f => (f.category || '').includes('test'))
     const codeFix = mustFix.filter(f => !(f.category || '').includes('test'))
+    let testFixReport = null
     if (testFix.length) {
-      await agent(
+      testFixReport = await agent(
         `${ROLE('test-author')}\n\n${CONTEXT}\n\nClose these test-quality findings on your work order:\n${spec}\n\nAdd ONLY the missing pinning tests, each with its \`pins:\` line. Never weaken or delete an existing test. Verify each behaviour against the CURRENT source first — if the source is actually wrong, report that instead of pinning the bug:\n${brief(testFix)}`,
         { label: `testfix:${order.id}#${round}`, phase: 'Build' },
       )
@@ -271,6 +279,10 @@ async function buildOrder(order) {
         { label: `fix:${order.id}#${round}`, phase: 'Build' },
       )
     }
+    fixerReport = [
+      testFixReport ? `test-author:\n${testFixReport}` : null,
+      codeFix.length ? `implementer:\n${implReport}` : null,
+    ].filter(Boolean).join('\n\n') || null
   }
   return { order: order.id, verdict, findings: allFindings, implReport, spec }
 }
@@ -383,7 +395,9 @@ if (patterns.size) {
   for (const [, finding] of patterns) {
     const sweep = await agent(
       `${ROLE('pattern-sweeper')}\n\n${CONTEXT}\n\nGeneralise this confirmed finding into a defect CLASS and search the whole tree for other instances:\n${brief(finding)}`,
-      { label: `sweep:${(finding.category || 'finding').slice(0, 20)}`, phase: 'Sweep', schema: SWEEP_SCHEMA },
+      // Searching for a stated class and triaging hits against it is
+      // mechanical; the judgement was spent naming the class upstream.
+      { label: `sweep:${(finding.category || 'finding').slice(0, 20)}`, phase: 'Sweep', schema: SWEEP_SCHEMA, effort: 'medium' },
     )
     if (sweep) sweeps.push(sweep)
   }
@@ -394,7 +408,10 @@ if (patterns.size) {
 phase('Ship')
 const shipReport = await agent(
   `${ROLE('devops-docs')}\n\n${CONTEXT}\n\nPhase ${phaseNo} is built, reviewed, mutation-proven and seam-audited. Make it shippable and documented, then run every gate in profile.commands and report each with its literal output.\n\nPhase gate: ${plan.gate}\n\nWhat shipped:\n${brief(results.map(r => ({ id: r.order, title: r.spec ? JSON.parse(r.spec).title : r.order })))}\n\nUnresolved findings that must be recorded honestly in the status file:\n${brief(collectUnresolved())}`,
-  { label: `ship:phase-${phaseNo}`, phase: 'Ship' },
+  // Running gates and reporting their output faithfully is mechanical. Every
+  // other stage keeps the session tier: choosing a mutant that violates
+  // exactly one pin, or auditing a seam, is judgement and is not tiered down.
+  { label: `ship:phase-${phaseNo}`, phase: 'Ship', effort: 'medium' },
 )
 
 // ------------------------------------------------------------------ report
