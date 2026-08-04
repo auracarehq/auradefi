@@ -1,0 +1,180 @@
+{
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://blockstream.info/api/address/tb0x0"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "chain_stats": {
+            "funded_txo_sum": 5000,
+            "spent_txo_sum": 1000,
+            "tx_count": 2
+          },
+          "mempool_stats": {
+            "funded_txo_sum": 999,
+            "spent_txo_sum": 0,
+            "tx_count": 1
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://blockstream.info/api/address/tb0x1"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "chain_stats": {
+            "funded_txo_sum": 0,
+            "spent_txo_sum": 0,
+            "tx_count": 0
+          },
+          "mempool_stats": {
+            "funded_txo_sum": 0,
+            "spent_txo_sum": 0,
+            "tx_count": 0
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://blockstream.info/api/address/tb0x2"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "chain_stats": {
+            "funded_txo_sum": 0,
+            "spent_txo_sum": 0,
+            "tx_count": 0
+          },
+          "mempool_stats": {
+            "funded_txo_sum": 0,
+            "spent_txo_sum": 0,
+            "tx_count": 0
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://blockstream.info/api/address/tb1x0"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "chain_stats": {
+            "funded_txo_sum": 0,
+            "spent_txo_sum": 0,
+            "tx_count": 0
+          },
+          "mempool_stats": {
+            "funded_txo_sum": 0,
+            "spent_txo_sum": 0,
+            "tx_count": 0
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://blockstream.info/api/address/tb1x1"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "chain_stats": {
+            "funded_txo_sum": 0,
+            "spent_txo_sum": 0,
+            "tx_count": 0
+          },
+          "mempool_stats": {
+            "funded_txo_sum": 0,
+            "spent_txo_sum": 0,
+            "tx_count": 0
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://blockstream.info/api/address/tb0x0/utxo"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": [
+          {
+            "txid": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+            "vout": 0,
+            "value": 4000,
+            "status": {
+              "confirmed": true
+            }
+          },
+          {
+            "txid": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+            "vout": 1,
+            "value": 250,
+            "status": {
+              "confirmed": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://blockstream.info/api/address/err500"
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-type": "text/plain"
+        },
+        "text": "oops"
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://blockstream.info/api/address/badjson"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/plain"
+        },
+        "text": "not json"
+      }
+    }
+  ]
+}

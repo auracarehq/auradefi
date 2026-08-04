@@ -40,7 +40,11 @@ ALLOWED_IMPORTS: dict[str, set[str]] = {
     "ledger": {"money", "chains", "assets", "decode", "positions"},
     "accounting": {"money", "chains", "assets", "ledger"},
     "tenancy": {"money", "chains"},
-    "project": {"money", "chains", "assets", "decode", "positions", "ledger", "accounting"},
+    "project": {"money", "chains", "assets", "decode", "positions", "portfolio", "ledger", "accounting"},
+    "embed": {
+        "money", "chains", "assets", "sources", "prices", "decode",
+        "positions", "portfolio", "ledger", "project",
+    },
     "webhooks": {"money", "tenancy", "ledger"},
     "jobs": {
         "money", "chains", "assets", "sources", "prices", "decode",
@@ -54,6 +58,11 @@ ALLOWED_IMPORTS: dict[str, set[str]] = {
 
 # domains allowed to touch an HTTP client (project/ stays pure by omission)
 IO_DOMAINS = {"sources", "prices", "testing", "api", "jobs", "webhooks"}
+
+# The root __init__ may lazily export these domains' public entry points
+# (SPEC §8 "import, don't call" — `from auradefi import Auradefi`). Every
+# other foundation→domain edge stays a violation.
+FOUNDATION_LAZY_EXPORTS = {"embed"}
 
 
 def _domain_of(path: Path) -> str:
@@ -139,6 +148,8 @@ def test_internal_imports_respect_the_layer_contract():
         if target_domain == "" or source_domain == target_domain:
             continue
         if source_domain == "":
+            if path.name == "__init__.py" and target_domain in FOUNDATION_LAZY_EXPORTS:
+                continue
             violations.append(
                 f"{path.relative_to(REPO)}: foundation module imports domain "
                 f"'{target_domain}' — foundation imports nothing"

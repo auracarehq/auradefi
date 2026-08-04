@@ -8,3 +8,15 @@ See docs/SPEC.md for the full design contract.
 """
 
 __version__ = "0.1.0"
+
+__all__ = ["Auradefi", "__version__"]
+
+
+def __getattr__(name: str):
+    # Lazy so `import auradefi` stays dependency-light (SPEC §8:
+    # import, don't call — the facade is the embedding entry point).
+    if name == "Auradefi":
+        from auradefi.embed.facade import Auradefi
+
+        return Auradefi
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
