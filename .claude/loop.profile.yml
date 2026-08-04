@@ -1,0 +1,52 @@
+# The ONLY project-specific file in the loop. See loop.md.
+# Every agent reads this first. If something an agent needs is not here,
+# it stops and reports blocked_on rather than guessing.
+
+project:
+  name: auradefi
+  spec: docs/SPEC.md
+  decisions: docs/DECISIONS.md
+  status: STATUS.md
+
+layout:
+  source_root: src/auradefi
+  test_root: tests
+  style_gates: tests/style
+  seam_tests: tests/seams
+  mirror: "{source_root}/a/b.py <-> {test_root}/a/test_b.py"
+  errors_module: src/auradefi/errors.py
+
+commands:
+  test: ".venv/bin/pytest"
+  test_path: ".venv/bin/pytest {path}"
+  collect: ".venv/bin/pytest {path} --collect-only -q"
+  style: ".venv/bin/pytest tests/style"
+  release: "bash scripts/release_check.sh"
+
+language:
+  unimplemented: "raise NotImplementedError"
+  mutation_style: >
+    Edit the smallest expression that implements the pin — a comparison
+    operator, a guard condition, a dict key, a boundary offset. Never delete
+    a whole function (that produces an import error, not a behaviour
+    difference, and any test would "catch" it).
+
+# How to inventory boundaries. seam-auditor runs these and builds its
+# worklist from the union. Add patterns as the project grows.
+seam_patterns:
+  interfaces: "grep -rn 'runtime_checkable\\|Protocol)\\|@abstractmethod' {source_root}"
+  derivations: "grep -rnE 'def (derive_|make_)|def [a-z_]*_id\\(' {source_root}"
+  wire_formats: "grep -rn '_wire\\|_envelope\\|to_json\\|from_json' {source_root}"
+  currency_units: "grep -rn 'Money(\\|Quantity(\\|currency' {source_root}"
+
+# Project non-negotiables, quoted to every agent verbatim.
+rules:
+  - "Money and amounts use Decimal/int. A float equality on money is a defect."
+  - "A raw on-chain amount is a JSON string, never a JSON integer."
+  - "All timestamps are millisecond-epoch integers."
+  - "Only exception classes declared in errors_module may be raised."
+  - "Domain __init__.py files are docstring-only; never add exports to them."
+  - "Files target 300 lines, 400 hard, with no allowlist — split the module."
+  - "No new third-party dependencies. stdlib first, always."
+  - "Incomplete data is DECLARED (data_quality), never defaulted to zero."
+  - "The suite runs offline: no network, no API keys, recorded fixtures only."
