@@ -11,3 +11,14 @@ services:
     build:
       context: .
       target: runtime
+    network_mode: "none"   # the quickstart replays cassettes; it needs no net
+
+  # Executes every PyBook headlessly, so the docs cannot rot.
+  books:
+    build:
+      context: .
+      target: test
+    network_mode: "none"
+    command: >
+      bash -c 'for nb in docs/books/*.ipynb; do
+        echo "== $$nb"; jupyter execute "$$nb" || exit 1; done'

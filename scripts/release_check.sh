@@ -10,6 +10,22 @@ if [ -x ".venv/bin/python" ]; then PY=".venv/bin/python"; fi
 
 run_pip() { "$1" -m pip "${@:2}"; }
 
+echo "==> version agreement (pyproject vs __init__)"
+VERSION="$("$PY" - <<'EOF'
+import pathlib, re, tomllib
+declared = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"]
+source = pathlib.Path("src/auradefi/__init__.py").read_text()
+match = re.search(r'__version__\s*=\s*"([^"]+)"', source)
+assert match, "__version__ not found in src/auradefi/__init__.py"
+assert match.group(1) == declared, (
+    f"half-bumped release: pyproject says {declared!r}, "
+    f"__init__ says {match.group(1)!r}"
+)
+print(declared)
+EOF
+)"
+echo "    $VERSION (pyproject == __init__)"
+
 echo "==> building sdist + wheel"
 rm -rf dist
 "$PY" -m build --outdir dist
@@ -19,7 +35,7 @@ echo "==> twine check"
 
 echo "==> wheel contents sanity"
 "$PY" - <<'EOF'
-import glob, sys, zipfile
+import glob, zipfile
 wheel = glob.glob("dist/*.whl")[0]
 names = zipfile.ZipFile(wheel).namelist()
 assert any(n.endswith("auradefi/py.typed") for n in names), "py.typed missing from wheel"
@@ -37,14 +53,18 @@ else
   "$PY" -m venv "$SMOKE"
   run_pip "$SMOKE/bin/python" install --quiet dist/*.whl
 fi
-"$SMOKE/bin/python" - <<'EOF'
+AURADEFI_EXPECTED_VERSION="$VERSION" "$SMOKE/bin/python" - <<'EOF'
+import os
 import auradefi
-assert auradefi.__version__ == "0.1.0", auradefi.__version__
+expected = os.environ["AURADEFI_EXPECTED_VERSION"]
+assert auradefi.__version__ == expected, (auradefi.__version__, expected)
 print(f"    import auradefi {auradefi.__version__} ok (wheel, fresh venv)")
 EOF
 if [ -f docs/examples/quickstart.py ]; then
+  # The fresh venv has CORE dependencies only, so this also proves the
+  # quickstart degrades gracefully without the [sql] and [api] extras.
   "$SMOKE/bin/python" docs/examples/quickstart.py >/dev/null
-  echo "    quickstart.py ran green against the installed wheel"
+  echo "    quickstart.py ran green against the installed wheel (core deps only)"
 fi
 
 echo "==> release check PASSED"

@@ -22,6 +22,8 @@ jobs:
         run: pytest
       - name: Style gates
         run: pytest tests/style -v
+      - name: Quickstart (every phase, end to end)
+        run: python docs/examples/quickstart.py
 
   package:
     runs-on: ubuntu-latest
@@ -30,14 +32,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Release check (build, twine, fresh-venv smoke)
+      - name: Release check (build, twine, wheel contents, fresh-venv smoke)
         run: bash scripts/release_check.sh
 
   docker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build test image and run suite in a network-less container
+      - name: Build test image and run the suite in a network-less container
         run: |
           docker build --target test -t auradefi:ci-test .
           docker run --rm --network none auradefi:ci-test
@@ -45,6 +47,10 @@ jobs:
         run: |
           docker build -t auradefi:ci .
           docker run --rm --network none auradefi:ci
+      - name: Execute every PyBook inside the network-less container
+        run: |
+          docker run --rm --network none auradefi:ci-test \
+            bash -c 'for nb in docs/books/*.ipynb; do echo "== $nb"; jupyter execute "$nb" || exit 1; done'
 
   notebooks:
     runs-on: ubuntu-latest
@@ -55,9 +61,5 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: python -m pip install -e ".[dev]"
-      - name: Execute PyBooks headlessly so docs cannot rot
-        run: |
-          shopt -s nullglob
-          for nb in docs/books/*.ipynb; do
-            jupyter execute "$nb" || exit 1
-          done
+      - name: Execute PyBooks headlessly so the docs cannot rot
+        run: bash scripts/run_books.sh

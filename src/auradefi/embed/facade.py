@@ -309,9 +309,11 @@ class UserHandle:
            (lowercased) address is what gets stored.
         2. The connection id is DERIVED
            (``embed.models.derive_connection_id``), so a re-connect of
-           the same (chain, address) — in any letter case — raises
-           ``auradefi.errors.ConflictError`` carrying ``existing_id``
-           with ZERO requests made.
+           the same (chain, address) — in any letter case in the 40 hex
+           DIGITS — raises ``auradefi.errors.ConflictError`` carrying
+           ``existing_id`` with ZERO requests made. The ``0x`` prefix is
+           NOT case-insensitive: ``0X…`` never reaches this step,
+           because step 1's ``normalize_address`` rejects it first.
         3. A liveness probe: EXACTLY one request. Its
            ``auradefi.errors.SourceError`` propagates and NOTHING is
            stored; an EMPTY result is a valid fresh address.
