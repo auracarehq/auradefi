@@ -1,50 +1,87 @@
-"""Incremental PnL over the lot ledger — the arbitrary-date engine (SPEC §9).
+"""Incremental PnL over the lot ledger — the replay engine (SPEC §9).
 
-Zerion pre-computes PnL at fixed marks and errors out when more than 3,000
-transactions sit between a requested date and the nearest one, so
+Zerion pre-computes PnL at fixed marks and errors out when more than
+3,000 transactions sit between a requested date and the nearest one, so
 arbitrary-date PnL is effectively unavailable on an active wallet.
-:func:`pnl_at` answers it by REPLAY: one pass over the events at or before
-the cutoff, then a report — nothing pre-computed, no clock read, a date is
-merely where the replay stops. :data:`METHODS` is the pluggability;
-:func:`process` is incremental and snapshotable.
+:func:`pnl_at` answers it by REPLAY instead: one pass over the events at
+or before the cutoff, then a report. Nothing is pre-computed, no clock is
+read, and a date is merely where the replay stops — which is why any
+instant costs the same as any other.
 
-FIFO/LIFO/HIFO cost from the pieces the selector consumed; ACB costs from
-the per-asset :class:`AcbPool`, an overlay over lots that remain ground
-truth for open-lot reporting (DECISIONS "ACB pooling"). Outrunning the
-units held never raises (DECISIONS "Shortfall semantics") and unknowns
-propagate rather than becoming zero (DECISIONS "None-propagation (PnL)").
+This module is the ADVANCING half of the engine; the projection that
+turns its state into an answer lives in
+:mod:`auradefi.accounting.report`, and the dependency runs one way only.
+What is here:
 
-Pure: ``auradefi.money``, ``auradefi.accounting`` and the standard library.
+* :data:`METHODS` — the pluggability. SPEC §9 names four costing
+  methods, and indexing this table with anything else raises
+  ``ValidationError`` rather than leaking a ``KeyError``.
+* :class:`PnLState` / :func:`process` — incremental and snapshotable.
+  Replaying head then tail into one state must report identically to
+  replaying head + tail in a single pass, which is what makes a long
+  history reportable at many cutoffs without re-reading it each time.
+* :class:`DisposalRecord` — one disposal's realised outcome, flagged.
+* ``_ReplayLedger`` — the optimisation that keeps the whole thing inside
+  the phase 9 budget (SPEC §11).
+
+Two pins govern the numbers. FIFO/LIFO/HIFO take cost from the pieces the
+selector actually consumed; ACB takes it from the per-asset
+:class:`~auradefi.accounting.acb.AcbPool`, an overlay whose average is
+what that method costs with, while lots remain ground truth for open-lot
+reporting (DECISIONS "ACB pooling"). And outrunning the units held never
+raises — pre-history is a data-quality fact, booked as a zero-cost
+synthetic and flagged (DECISIONS "Shortfall semantics") — while an
+unknown propagates as ``None`` rather than becoming a zero (DECISIONS
+"None-propagation (PnL)").
+
+Pure: ``auradefi.money``, ``auradefi.accounting`` and the standard
+library. No I/O, no clock — an event's time comes from the transaction
+that produced it.
+
+:func:`report`, :class:`PnLReport` and :data:`DEFAULT_CURRENCY` are
+imported from the sibling module and re-exported here: they are part of
+this module's own signatures, and callers established before the split
+import them from this path.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from decimal import Decimal
 from fractions import Fraction
-from types import MappingProxyType
 
 from auradefi.accounting import acb, fifo, hifo, lifo
 from auradefi.accounting.acb import AcbPool
 from auradefi.accounting.lots import (
-    AccountingEvent, AcquisitionEvent, ConsumedPiece, DisposalEvent, Lot,
-    LotLedger, LotSelector, exact_mul, fraction_to_money,
+    AccountingEvent, AcquisitionEvent, DisposalEvent, Lot, LotLedger,
+    LotSelector, fraction_to_money,
 )
+from auradefi.accounting.report import DEFAULT_CURRENCY, PnLReport, report
 from auradefi.errors import CurrencyMismatchError, DecimalsMismatchError, ValidationError
 from auradefi.money.fiat import Money
 from auradefi.money.quantity import Quantity
 
-#: Currency a report falls back to when nothing in the stream was priced.
-DEFAULT_CURRENCY = "USD"
-
-#: Plaid's ``position_type`` for a held lot; SHORT is reserved (SPEC §6.2).
-POSITION_LONG = "LONG"
+__all__ = [
+    "DEFAULT_CURRENCY",
+    "METHODS",
+    "DisposalRecord",
+    "PnLReport",
+    "PnLState",
+    "pnl_at",
+    "process",
+    "report",
+]
 
 
 class _MethodTable(dict[str, LotSelector]):
-    """:data:`METHODS`'s type: an unknown name raises ``ValidationError``,
-    never a bare ``KeyError`` escaping the ``auradefi.errors`` taxonomy."""
+    """:data:`METHODS`'s type: a mapping whose miss is a domain error.
+
+    A bare ``KeyError`` escaping into a caller would be the one exception
+    this package raises that is not part of the ``auradefi.errors``
+    taxonomy, so a typo'd method name would surface as an unhandled
+    builtin rather than as the ``ValidationError`` every other bad input
+    produces.
+    """
 
     def __missing__(self, method: str) -> LotSelector:
         """Raise ``ValidationError`` naming the methods that do exist."""
@@ -54,8 +91,10 @@ class _MethodTable(dict[str, LotSelector]):
         )
 
 
-#: The four costing methods SPEC §9 names, mapped to their selectors.
-#: Indexing with anything else raises ``ValidationError``.
+#: The four costing methods SPEC §9 names, mapped to the selector
+#: functions themselves — the methods live in sibling modules and are
+#: plugged in here, never imported by one another. Indexing with any
+#: other name raises ``ValidationError``.
 METHODS: Mapping[str, LotSelector] = _MethodTable(
     {"fifo": fifo.select, "lifo": lifo.select, "hifo": hifo.select, "acb": acb.select}
 )
@@ -63,10 +102,28 @@ METHODS: Mapping[str, LotSelector] = _MethodTable(
 
 @dataclass(frozen=True, slots=True)
 class DisposalRecord:
-    """One disposal's realised outcome. ``cost_basis`` crosses the
-    Fraction->Money boundary, flagging ``"rounded_basis"`` when that
-    rounded; ``realized`` is ``proceeds - cost_basis`` only when BOTH are
-    known, else ``None`` with ``"missing_proceeds"``/``"missing_cost"``."""
+    """One disposal's realised outcome, as the engine booked it.
+
+    ``cost_basis`` is where the exact rational basis crosses the
+    ``Fraction`` -> ``Money`` boundary; when that conversion had to round,
+    ``flags`` carries ``"rounded_basis"`` (DECISIONS "Fraction->Money
+    boundary"). It is ``None`` — flagged ``"missing_cost"`` — when a
+    consumed lot was unpriced.
+
+    ``realized`` is ``proceeds - cost_basis`` only when BOTH are known,
+    and ``None`` otherwise, flagged ``"missing_proceeds"`` and/or
+    ``"missing_cost"``: an unknown outcome is never reported as a zero
+    gain (DECISIONS "None-propagation (PnL)").
+
+    ``missing_basis`` is the separate, orthogonal fact that the disposal
+    outran the units held — the uncovered remainder was booked at zero
+    cost and flagged ``"missing_basis"`` (DECISIONS "Shortfall
+    semantics"). A shortfall does NOT make ``realized`` unknown; it makes
+    it optimistic, and says so.
+
+    ``flags`` is ordered as the facts land: shortfall, rounding, unknown
+    cost, unknown proceeds.
+    """
 
     at_ms: int
     asset_id: str
@@ -78,57 +135,27 @@ class DisposalRecord:
     flags: tuple[str, ...]
 
 
-@dataclass(frozen=True, slots=True)
-class AssetPnL:
-    """One asset's slice of a report; ``unrealized`` is ``None`` when held
-    without a mark or complete basis, and an exact zero when flat."""
-
-    realized: Money
-    unrealized: Money | None
-    quantity_held: Quantity
-
-
-@dataclass(frozen=True, slots=True)
-class TaxLot:
-    """An open lot in Plaid's ``tax_lots[]`` shape (DECISIONS "Plaid TaxLot
-    mapping", SPEC §6.2). ``quantity``, ``cost_basis`` and
-    ``current_value`` describe what is LEFT; ``purchase_price`` is
-    ``cost_total / quantity_original``, a fact of the acquisition that
-    does not move as the lot is drawn down."""
-
-    institution_lot_id: str
-    original_purchase_datetime: int
-    quantity: Decimal
-    purchase_price: Money | None
-    cost_basis: Money | None
-    current_value: Money | None
-    position_type: str = POSITION_LONG
-
-
-@dataclass(frozen=True, slots=True)
-class PnLReport:
-    """PnL as of one instant, under one method. ``realized`` sums the
-    disposals whose outcome is KNOWN, ``missing_realized_count`` counts
-    those left out, and ``open_lots`` sorts by
-    ``(asset_id, opened_at_ms, lot_id)``."""
-
-    as_of_ms: int
-    method: str
-    realized: Money
-    missing_realized_count: int
-    unrealized: Money | None
-    per_asset: Mapping[str, AssetPnL]
-    open_lots: tuple[TaxLot, ...]
-
-
 @dataclass(slots=True)
 class PnLState:
-    """Replay state — MUTABLE by the deviation ``Lot`` and ``AcbPool``
-    make: an accumulator :func:`process` advances in place. ``currency``
-    is ``None`` until the first priced ``Money`` fixes it, after which
-    every priced value must agree. ``pools`` fills only under ``"acb"``;
-    ``scales`` remembers each asset's ``decimals``, so an asset sold to
-    nothing still reports zero at its own scale."""
+    """Replay state — the accumulator :func:`process` advances in place.
+
+    MUTABLE by the same deliberate deviation from the frozen-value house
+    style that :class:`~auradefi.accounting.lots.Lot` and
+    :class:`~auradefi.accounting.acb.AcbPool` make: replay decrements
+    lots, and a state that copied itself per event would rebuild the
+    whole ledger 50,000 times. Everything a caller receives OUT of the
+    engine — :class:`DisposalRecord`, and everything in
+    :mod:`auradefi.accounting.report` — is frozen.
+
+    ``currency`` is ``None`` until the first priced ``Money`` fixes it,
+    after which every priced value in the stream must agree
+    (``CurrencyMismatchError`` otherwise); a stream that was never priced
+    reports in :data:`DEFAULT_CURRENCY`. ``last_at_ms`` is the monotonic
+    watermark that lets a snapshot be resumed safely. ``pools`` fills
+    only under ``"acb"``. ``scales`` remembers each asset's ``decimals``,
+    so an asset sold down to nothing still reports zero at its own scale
+    rather than at scale 0.
+    """
 
     method: str
     currency: str | None = None
@@ -139,7 +166,9 @@ class PnLState:
     scales: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        """``ValidationError`` unless ``method`` is one of :data:`METHODS`."""
+        """``ValidationError`` unless ``method`` is one of :data:`METHODS`
+        — a state built for a method that does not exist would fail much
+        later, mid-replay, with lots already consumed."""
         METHODS[self.method]  # the lookup IS the validation
 
 
@@ -147,19 +176,35 @@ class _ReplayLedger(LotLedger):
     """A ``LotLedger`` that drops exhausted lots from its working set.
 
     Same lot ids, same proration, same exception types as the base class,
-    but a disposal costs O(open lots) rather than O(lots ever opened): the
-    base rescans the whole history twice per disposal, which is quadratic
-    over a replay — three times slower at 50,000 events, and over the
-    phase 9 budget. History is not retained (``lots`` == ``open_lots``);
-    lot ids stay stable, their counters being a separate dict.
+    but a disposal costs O(open lots) rather than O(lots ever opened).
+    The base class rescans the whole history twice per disposal — once to
+    build ``open_lots`` for the selector, once to build the budget dict —
+    which is quadratic over a replay: three times slower at 50,000
+    events, and over the phase 9 budget (SPEC §11). The perf gate exists
+    precisely because a quadratic engine passes every golden vector while
+    missing the point of SPEC §9.
+
+    The trade is that history is NOT retained: ``lots`` equals
+    ``open_lots``, so this ledger cannot report on closed lots. Nothing
+    in the reporting projection needs them. Lot ids stay stable
+    regardless, their per-transaction counters living in a separate dict
+    that is never pruned, so an id is never reused.
     """
 
     def _plan(
         self, needed: Quantity, selector: LotSelector
     ) -> list[tuple[Lot, Quantity]]:
-        """Drop spent lots, then validate the selector's plan in full.
-        Membership is checked by asset and remaining units rather than
-        against a dict of every lot."""
+        """Drop spent lots, then validate the selector's plan IN FULL
+        before anything is decremented — a half-applied plan would
+        corrupt basis silently.
+
+        Membership is checked by asset identity and remaining units
+        rather than against a dict built from every lot ever opened,
+        which is what removes the second full scan. The validation is
+        otherwise identical to the base class: a take must be a
+        ``Quantity`` at the disposal's scale, within its lot's remaining
+        units, and the plan may not total more than ``needed``.
+        """
         self._lots = [lot for lot in self._lots if lot.quantity_remaining.raw > 0]
         plan = list(selector(self._lots, needed))
         budgets: dict[int, int] = {}
@@ -188,15 +233,26 @@ def process(
 ) -> PnLState:
     """Replay ``events`` into ``state`` (a fresh one when ``None``).
 
-    An acquisition opens a lot (and, under ``"acb"``, joins the pool); a
-    disposal consumes the selector's plan and records the outcome. The
-    state is advanced IN PLACE and returned, so
-    ``process(tail, m, process(head, m))`` reports identically to one pass
-    over ``head + tail``. ``ValidationError`` for an unknown ``method``,
-    one disagreeing with ``state.method``, or an event older than
-    ``state.last_at_ms`` — input must be monotonic because a lot ledger
-    cannot un-consume, though equal timestamps keep caller order.
-    ``CurrencyMismatchError`` on a priced value in another currency.
+    An acquisition opens a lot — and, under ``"acb"``, joins the pool; a
+    disposal consumes the selector's plan and books a
+    :class:`DisposalRecord`. The state is advanced IN PLACE and also
+    returned, so ``process(tail, m, process(head, m))`` reports
+    identically to one pass over ``head + tail``. That equivalence is the
+    whole point: a caller can replay a wallet once and take reports at
+    many cutoffs, instead of re-reading the history per cutoff.
+
+    ``events`` is consumed lazily, so a generator that filters by time
+    never materialises the events it discards.
+
+    Raises ``ValidationError`` for an unknown ``method``, for a ``method``
+    disagreeing with ``state.method`` — a lot ledger cannot switch
+    costing method mid-stream, because the lots it already consumed were
+    chosen by the old one — and for an event older than
+    ``state.last_at_ms``: input must be monotonic, since a lot ledger
+    cannot un-consume. Equal timestamps are allowed and keep caller
+    order, which is what makes replay deterministic when a block's
+    transactions share an instant. Raises ``CurrencyMismatchError`` on a
+    priced value denominated in another currency.
     """
     if state is None:
         state = PnLState(method)
@@ -230,8 +286,14 @@ def process(
 
 def _fix_currency(state: PnLState, priced: Money | None) -> None:
     """Bind the stream to the first priced currency; disagreement raises.
-    Pools opened before anything was priced adopt it too — such a pool is
-    empty or poisoned, so retagging invents no number."""
+
+    Mixing denominations silently is the failure that makes a tax report
+    wrong without looking wrong, so the first priced ``Money`` fixes the
+    stream and every later one must match. Pools opened before anything
+    was priced adopt the currency too: such a pool is either empty or
+    already poisoned by an unpriced acquisition, so retagging it invents
+    no number.
+    """
     if priced is None:
         return
     if state.currency is None:
@@ -245,7 +307,11 @@ def _fix_currency(state: PnLState, priced: Money | None) -> None:
 
 
 def _pool(state: PnLState, asset_id: str) -> AcbPool:
-    """The asset's ACB pool, opened in the stream's currency on demand."""
+    """The asset's ACB pool, opened in the stream's currency on demand.
+
+    Pools are per-asset by construction: cross-asset averaging is the bug
+    that corrupts a tax report silently (DECISIONS "ACB pooling").
+    """
     pool = state.pools.get(asset_id)
     if pool is None:
         pool = state.pools[asset_id] = AcbPool(state.currency or DEFAULT_CURRENCY)
@@ -259,8 +325,20 @@ def _dispose(
     selector: LotSelector,
     pooled: bool,
 ) -> DisposalRecord:
-    """Consume the plan and book one disposal, flagged in the order the
-    facts land: shortfall, rounding, unknown cost, unknown proceeds."""
+    """Consume the plan and book one disposal.
+
+    Under ``"acb"`` the basis comes from the pool's average, capped at
+    the units the pool actually holds — per-lot portions are meaningless
+    once cost has been pooled, so the lots are still consumed (they stay
+    ground truth for open-lot reporting) but do not supply the number.
+    Under the other three methods the basis is the exact sum of the
+    portions the selector consumed, and becomes ``None`` as soon as ONE
+    consumed lot was unpriced rather than under-counting a partial sum.
+
+    Flags are appended in the order the facts land: shortfall, rounding,
+    unknown cost, unknown proceeds. A shortfall never raises — it books
+    the uncovered units at zero cost (DECISIONS "Shortfall semantics").
+    """
     _fix_currency(state, event.proceeds)
     consumed, shortfall = ledger.consume(event.quantity, selector)
     currency = state.currency or DEFAULT_CURRENCY
@@ -295,96 +373,6 @@ def _dispose(
     )
 
 
-def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLReport:
-    """Summarise ``state`` as of ``as_of_ms`` against ``marks``.
-
-    ``realized`` is the exact sum of the disposals whose realised amount
-    is known, and zero when none are. ``unrealized`` is the exact sum over
-    assets of ``mark x held - remaining basis``, and ``None`` if ANY held
-    asset lacks a mark or complete basis — under ``"acb"`` that basis is
-    the POOL's, what the method actually costs with, so it will not equal
-    the surviving lots'. A mark in another currency raises
-    ``CurrencyMismatchError``; one for an unheld asset is ignored.
-    """
-    currency = state.currency or DEFAULT_CURRENCY
-    for asset_id, mark in marks.items():
-        if mark.currency != currency:
-            raise CurrencyMismatchError(
-                f"mark for {asset_id!r} is {mark.currency!r}, report is {currency!r}"
-            )
-    zero = Money(Decimal(0), currency)
-    realized, by_asset, missing = zero, {}, 0
-    for record in state.disposals:
-        if record.realized is None:
-            missing += 1
-            continue
-        realized = realized + record.realized
-        running = by_asset.get(record.asset_id)
-        by_asset[record.asset_id] = (
-            record.realized if running is None else running + record.realized
-        )
-    per_asset: dict[str, AssetPnL] = {}
-    rows: list[tuple[str, int, str, TaxLot]] = []
-    total: Fraction | None = Fraction(0)
-    for asset_id, ledger in state.ledgers.items():
-        open_lots = ledger.open_lots
-        held, basis = _held(open_lots, state.scales.get(asset_id, 0))
-        if state.method == "acb":
-            pool = state.pools.get(asset_id)
-            basis = None if pool is None else pool.cost
-        mark = marks.get(asset_id)
-        gap: Fraction | None = None
-        if held.raw == 0:  # nothing left to be wrong about; no mark needed
-            gap = Fraction(0)
-        elif mark is not None and basis is not None:
-            gap = Fraction(exact_mul(mark.amount, held.as_decimal())) - basis
-        if gap is None:
-            total = None
-        elif total is not None:
-            total += gap
-        per_asset[asset_id] = AssetPnL(
-            by_asset.get(asset_id, zero),
-            None if gap is None else fraction_to_money(gap, currency)[0],
-            held,
-        )
-        rows.extend(
-            (asset_id, lot.opened_at_ms, lot.lot_id, _tax_lot(lot, mark, currency))
-            for lot in open_lots
-        )
-    rows.sort(key=lambda row: row[:3])
-    return PnLReport(
-        as_of_ms, state.method, realized, missing,
-        None if total is None else fraction_to_money(total, currency)[0],
-        MappingProxyType(per_asset), tuple(row[3] for row in rows),
-    )
-
-
-def _held(open_lots: tuple[Lot, ...], decimals: int) -> tuple[Quantity, Fraction | None]:
-    """Surviving units and their exact basis (``None`` if a lot is unpriced)."""
-    units, basis = 0, Fraction(0)
-    for lot in open_lots:
-        units += lot.quantity_remaining.raw
-        if lot.cost_remaining is None:
-            basis = None
-        elif basis is not None:
-            basis += lot.cost_remaining
-    return Quantity(units, decimals), basis
-
-
-def _tax_lot(lot: Lot, mark: Money | None, currency: str) -> TaxLot:
-    """One open lot in Plaid's shape, marked when a mark exists."""
-    remaining = lot.quantity_remaining.as_decimal()
-    price = None if lot.cost_total is None else fraction_to_money(
-        Fraction(lot.cost_total.amount) / Fraction(lot.quantity_original.as_decimal()),
-        currency,
-    )[0]
-    basis = None if lot.cost_remaining is None else fraction_to_money(
-        lot.cost_remaining, currency
-    )[0]
-    value = None if mark is None else Money(exact_mul(mark.amount, remaining), currency)
-    return TaxLot(lot.lot_id, lot.opened_at_ms, remaining, price, basis, value)
-
-
 def pnl_at(
     events: Iterable[AccountingEvent],
     method: str,
@@ -392,8 +380,19 @@ def pnl_at(
     marks: Mapping[str, Money],
 ) -> PnLReport:
     """PnL at an ARBITRARY date — the thing Zerion cannot do (SPEC §9).
+
     Replays only the events at or before ``at_ms``, in ONE pass, and
-    reports as of the cutoff — equivalent to filtering, :func:`process`
-    and :func:`report`, with no marks pre-computed at fixed dates."""
+    reports as of that cutoff. Exactly equivalent to filtering the stream
+    by time, calling :func:`process` and then
+    :func:`~auradefi.accounting.report.report` — no marks are
+    pre-computed at fixed dates, and no cutoff is privileged over any
+    other, so a date 3,000 transactions from the nearest month end costs
+    what any other date costs.
+
+    The filter is a generator, so events after the cutoff are skipped
+    without being materialised. ``marks`` prices the units still held at
+    the cutoff and follows the same rules as in
+    :func:`~auradefi.accounting.report.report`.
+    """
     admitted = (event for event in events if event.at_ms <= at_ms)
     return report(process(admitted, method), at_ms, marks)
