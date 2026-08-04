@@ -21,8 +21,8 @@ harsh-reviewer → devops-docs, per SPEC §11 phase). Newest first.
 | 2 | cross-tenant isolation test that tries to leak | pending |
 | 3 | reorg fixture → removed + re-added | pending |
 | 4 | projection invariant holds | **DONE** — 6 orders; UniV2/V3 (canonical TickMath), Aave, liquid staking with block-20450000 goldens; synthetic Holdings sum to net worth exactly |
-| 5 | host binds own session, syncs on own tick | pending |
-| 6 | one xpub → full derived balance set | pending |
+| 5 | host binds own session, syncs on own tick | **DONE** — 74 tests; budgeted two-phase sync (live cursor never advances on a budget cut), connect-time validation, no-op proven by counting transport calls |
+| 6 | one xpub → full derived balance set | **DONE** — 121 tests; pure-Python BIP32 validated against published vectors; 44-interaction cassette enforces the gap-20 stop; extended key mechanically never reaches HTTP |
 | 7 | SPL balances offline | **DONE** — 118 tests; Token-2022 ScaledUiAmount carried as both raw Quantity and ui_amount_string, identity break asserted; 5-POST wire order pinned |
 | 8 | signed/durable/replayable webhooks | pending |
 | 9 | arbitrary-date PnL on large fixture | pending |
