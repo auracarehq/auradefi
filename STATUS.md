@@ -23,7 +23,7 @@ harsh-reviewer → devops-docs, per SPEC §11 phase). Newest first.
 | 4 | projection invariant holds | **DONE** — 6 orders; UniV2/V3 (canonical TickMath), Aave, liquid staking with block-20450000 goldens; synthetic Holdings sum to net worth exactly |
 | 5 | host binds own session, syncs on own tick | pending |
 | 6 | one xpub → full derived balance set | pending |
-| 7 | SPL balances offline | pending |
+| 7 | SPL balances offline | **DONE** — 118 tests; Token-2022 ScaledUiAmount carried as both raw Quantity and ui_amount_string, identity break asserted; 5-POST wire order pinned |
 | 8 | signed/durable/replayable webhooks | pending |
 | 9 | arbitrary-date PnL on large fixture | pending |
 
