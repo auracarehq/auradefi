@@ -15,7 +15,7 @@ host owns:
   proven by COUNTING requests, never by timing.
 
 Golden vectors derived independently via ``python3 -c`` from the pinned
-formulas in docs/DECISIONS.md, never regenerated from the code:
+formulas in docs/internal/DECISIONS.md, never regenerated from the code:
 
     usr_  = "usr_"  + sha256("embed|host-user-1")[:16]
     conn_ = "conn_" + sha256("embed|usr_…|address|eip155:1|0x1111…")[:16]
@@ -24,7 +24,7 @@ formulas in docs/DECISIONS.md, never regenerated from the code:
 The conn_ preimage gained its ``eip155:1`` segment in 0.1.1 (§5 #26): an
 id without it let one address be connected on only ONE chain and made two
 chains share a sync cursor. Every conn_ and txn_ literal below therefore
-changed, and 0.1.0 data is not portable — see docs/DECISIONS.md.
+changed, and 0.1.0 data is not portable — see docs/internal/DECISIONS.md.
 
 Holdings: 2 ETH @ 2500 + 25 USDC @ 1 = 5025 USD exactly (Decimal, never
 float). Transactions: 7, one per hour from 1700000000 (UTC hour 22)

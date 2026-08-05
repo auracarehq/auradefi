@@ -2,7 +2,7 @@
 
 The tenant graph of SPEC §3.1 — ``Organisation → Project`` (with api
 keys) ``→ EndUser`` (via ``external_user_id``) ``→ Connection`` — plus
-the deterministic-id algorithms pinned in docs/DECISIONS.md and the
+the deterministic-id algorithms pinned in docs/internal/DECISIONS.md and the
 SPEC §7.2 hardening: scoped keys, per-environment keys, and opaque ids
 enforced as an invariant (the ``external_user_id`` charset excludes
 ``@``, so email-shaped input is structurally impossible — it is a

@@ -21,7 +21,7 @@ deliberately:
 exposes no project getter and this phase may not edit Phase 2 files: the
 host hands us ``project_id -> signing secret | None``.
 
-Pinned in docs/DECISIONS.md ("Quota headers"): nine headers,
+Pinned in docs/internal/DECISIONS.md ("Quota headers"): nine headers,
 ``X-RateLimit-{Limit,Remaining,Reset}-{Second,Day,Month}``, every value a
 decimal string, ``Reset`` a MS-EPOCH int (§4.4 ms-everywhere) while
 ``Retry-After`` stays in whole seconds per RFC 9110.

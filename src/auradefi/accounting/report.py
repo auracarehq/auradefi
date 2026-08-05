@@ -55,7 +55,7 @@ from auradefi.money.quantity import Quantity
 if TYPE_CHECKING:  # a report READS replay state; the dependency is one-way
     from auradefi.accounting.pnl import PnLState
 
-#: The one flag this module emits, pinned in docs/DECISIONS.md
+#: The one flag this module emits, pinned in docs/internal/DECISIONS.md
 #: ("Fraction->Money boundary … always flagged").
 ROUNDED_BASIS = "rounded_basis"
 
@@ -171,7 +171,7 @@ class PnLReport:
     a disposal consumes ``pool_cost × take/pool`` and leaves the pool
     reduced proportionally; the lots behind it are untouched and keep
     reporting their own remaining basis, because they stay ground truth for
-    lot-level reporting (docs/DECISIONS.md, "ACB pooling"). Buy 1 at 10, 1
+    lot-level reporting (docs/internal/DECISIONS.md, "ACB pooling"). Buy 1 at 10, 1
     at 20 and 1 at 15, sell one, and the pool holds 30 while the surviving
     lots sum to 35 — a permanent, intended gap of 5.
 

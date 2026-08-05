@@ -9,7 +9,7 @@ Fraction(quantity_original.raw)``, descending, unpriced last, ties
 oldest-first then earlier input position.
 
 Lots are local stubs: ``select`` is structurally typed and
-docs/DECISIONS.md ("Duplication waiver extension") forbids the runtime
+docs/internal/DECISIONS.md ("Duplication waiver extension") forbids the runtime
 import of ``accounting.lots``/``fifo``/``lifo``. One test does import the
 real ``Lot`` — locally — because a restated walk that reads the wrong
 field names is exactly the failure the waiver risks.

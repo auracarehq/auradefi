@@ -2,7 +2,7 @@
 
 Under ACB there is no per-lot basis at all: every acquisition of an asset
 melts into one running pool and a disposal consumes a pro-rata slice of
-it. docs/DECISIONS.md "ACB pooling" pins the mechanics:
+it. docs/internal/DECISIONS.md "ACB pooling" pins the mechanics:
 
   * the pool is ``(total_cost: exact Fraction | None, total base-unit
     quantity)`` per asset;
@@ -24,7 +24,7 @@ per-lot basis portions that walk would imply under FIFO.
 That oldest-first walk is a deliberate restatement of ``fifo``'s, on the
 identical terms (no mutation, no cost math in the selector, only
 ``opened_at_ms`` and ``quantity_remaining`` read, ``Lot`` imported under
-``TYPE_CHECKING`` alone) — docs/DECISIONS.md "Duplication waiver
+``TYPE_CHECKING`` alone) — docs/internal/DECISIONS.md "Duplication waiver
 extension": same-wave disjoint ownership forbids the runtime import, and
 golden vectors pin both copies.
 

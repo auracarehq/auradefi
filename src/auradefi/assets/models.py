@@ -1,5 +1,5 @@
 """Asset and Implementation models; the pinned deterministic asset id
-(SPEC §4.2, rule #3; docs/DECISIONS.md).
+(SPEC §4.2, rule #3; docs/internal/DECISIONS.md).
 
 A chain-agnostic Asset carries one Implementation per chain. ``decimals``
 lives ON the implementation, never on the asset — USDC is 6 everywhere
@@ -89,7 +89,7 @@ class Asset:
 
 
 def asset_id(caip19s: Iterable[str]) -> str:
-    """The pinned deterministic asset id (docs/DECISIONS.md, rule #3):
+    """The pinned deterministic asset id (docs/internal/DECISIONS.md, rule #3):
     hash over the sorted, deduplicated canonical CAIP-19 set; empty
     input rejected.
 

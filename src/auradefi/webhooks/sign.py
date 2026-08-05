@@ -5,7 +5,7 @@ unusable behind most PaaS ingress and proves nothing about the payload.
 This is the replacement, and it is the whole authentication story: there
 is no IP allowlist and no manual URL whitelisting anywhere in auradefi.
 
-Pinned in docs/DECISIONS.md ("Webhook signature (v1)"):
+Pinned in docs/internal/DECISIONS.md ("Webhook signature (v1)"):
 
     X-Auradefi-Signature: v1=<hex>
     <hex> = hmac.new(secret.encode("utf-8"),

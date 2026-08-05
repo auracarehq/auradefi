@@ -2,7 +2,7 @@
 
 Built by a five-role agent loop (spec-interpreter → test-author →
 implementer → harsh-reviewer → devops-docs, one pass per SPEC §11 phase);
-see [`docs/AGENT_PROMPTS.md`](docs/AGENT_PROMPTS.md) to re-run it.
+see [`docs/internal/AGENT_PROMPTS.md`](AGENT_PROMPTS.md) to re-run it.
 
 ## Currently
 
@@ -45,7 +45,7 @@ Each gate is a real test file, run by the normal suite — not a claim.
 
 ## 0.1.1 — released
 
-`docs/RELEASE_0.1.1.md` is the spec: nineteen verified defects in the
+`docs/internal/RELEASE_0.1.1.md` is the spec: nineteen verified defects in the
 published 0.1.0, **none of which failed a test**. `CHANGELOG.md` `[0.1.1]`
 carries the host-facing account, including the *Upgrading* note — 0.1.0
 **library**-ingested data is not portable, because the embed connection id
@@ -83,7 +83,7 @@ first commit of 0.1.2.
    **pool's** cost, while each open lot still reports its own remaining
    basis. The two will not agree — the pool is what ACB actually costs
    with, and the lots remain ground truth for lot-level reporting
-   (`docs/DECISIONS.md`, "ACB pooling"; demonstrated in
+   (`docs/internal/DECISIONS.md`, "ACB pooling"; demonstrated in
    `docs/books/11_accounting.ipynb`).
 
    The report now **says which one it used**: `basis_source` is `"pool"`

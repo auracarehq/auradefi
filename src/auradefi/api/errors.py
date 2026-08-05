@@ -1,6 +1,6 @@
 """The one exception handler: the pinned error-status table (SPEC §7).
 
-docs/DECISIONS.md ("HTTP error table") is the whole contract, verbatim:
+docs/internal/DECISIONS.md ("HTTP error table") is the whole contract, verbatim:
 first hit walking ``type(exc).__mro__`` over the ordered table below; body
 ``{"error": {"type", "message", "status"}}`` plus ``existing_id`` (and
 ``existing_connection_id`` when it starts ``conn_``) on 409, plus header

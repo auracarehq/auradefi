@@ -4,7 +4,7 @@ height, per adapter — the clearest cause of both predecessors' deaths
 was shipping none).
 
 Every literal below is hardcoded, derived independently from the pinned
-algorithms in docs/DECISIONS.md — never from the code under test:
+algorithms in docs/internal/DECISIONS.md — never from the code under test:
 
     pos_e61f7629709553ef == "pos_" + sha256(
         "lido|eip155:1|0xae7ab96520de3a18e5e111b5eaab095312d7fe84|"

@@ -2,7 +2,7 @@
 
 Value objects for the persistence layer: the immutable ``LedgerTransaction``
 with its ``Entry`` movements, the deterministic ``transaction_id`` pinned in
-docs/DECISIONS.md, payload equality that ignores backend bookkeeping fields,
+docs/internal/DECISIONS.md, payload equality that ignores backend bookkeeping fields,
 and the sync-event envelope (``SyncEvent``/``SyncPage``) that
 ``auradefi.ledger.port.LedgerPort`` speaks.
 

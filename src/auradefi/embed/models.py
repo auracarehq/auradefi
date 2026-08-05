@@ -7,7 +7,7 @@ always resolves to the same tenant (SPEC §7.1). A host that also runs
 the HTTP API over one ledger sets ``Settings.project_id`` to its real
 project so both surfaces derive ONE tenant (RELEASE_0.1.1 §5 #19).
 
-Duplication waiver (docs/DECISIONS.md): :func:`derive_tenant_id` is a
+Duplication waiver (docs/internal/DECISIONS.md): :func:`derive_tenant_id` is a
 value-identical local copy of the pinned ``tenancy.models.end_user_id``
 formula — the layer contract forbids embed→tenancy imports.
 tests/golden/test_embed_ids.py cross-pins both sides to the same bytes,

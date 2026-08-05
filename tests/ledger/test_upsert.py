@@ -3,7 +3,7 @@
 ``classify`` is pure diffing over ``payload_equal``: bookkeeping fields
 (``last_modified_seq``, ``removed``) must never make a re-delivered
 transaction look changed. Transaction-id literals reuse the golden
-vectors pinned in test_models.py / docs/DECISIONS.md, derived
+vectors pinned in test_models.py / docs/internal/DECISIONS.md, derived
 independently via ``python3 -c`` — never from the code under test.
 """
 

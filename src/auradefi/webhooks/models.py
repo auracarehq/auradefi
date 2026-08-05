@@ -1,7 +1,7 @@
 """Webhook value objects, deterministic ids, and the pinned wire format.
 
 SPEC §7.3 and rule #8. Everything in this module is a PUBLIC STABILITY
-CONTRACT pinned in docs/DECISIONS.md ("Webhook ids", "Webhook retry
+CONTRACT pinned in docs/internal/DECISIONS.md ("Webhook ids", "Webhook retry
 schedule") — changing a byte here breaks every receiver that verifies a
 signature or de-duplicates on a delivery id.
 

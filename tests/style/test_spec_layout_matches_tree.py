@@ -1,4 +1,4 @@
-"""The shipped tree vs docs/SPEC.md §3.2, diffed both ways (§5 #17).
+"""The shipped tree vs docs/internal/SPEC.md §3.2, diffed both ways (§5 #17).
 
 README's *What is not there* understated the gap: it omitted the whole
 ``jobs/`` package, five ``api/routes/`` modules, ``project/plaid.py`` and
@@ -31,7 +31,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 SRC = REPO / "src" / "auradefi"
-SPEC = REPO / "docs" / "SPEC.md"
+SPEC = REPO / "docs" / "internal" / "SPEC.md"
 README = REPO / "README.md"
 
 #: Declared in §3.2, absent from the tree. Each is a documented limitation.
@@ -98,8 +98,14 @@ SHIPPED_BUT_UNDECLARED = frozenset(
         "api/sinks.py",  # 0.1.1 §5 Wave C: the webhook seam, split out of deps.py
         "api/wire.py",
         "decode/models.py",
+        # The developer-experience change: nothing shipped a DEFAULT for any
+        # port, so the shortest working program began with forty lines of
+        # adapter. These four give `Auradefi.sandbox()` / `.from_env()` a
+        # wiring to hand back, and split what no longer fits the line budget.
+        "embed/bootstrap.py",  # default port sets for sandbox + live
         "embed/dispatch.py",  # 0.1.1 §5 #24: budget dispatch + containment
         "embed/facade.py",
+        "embed/handle.py",  # UserHandle, split off at facade.py's 400-line cap
         "embed/models.py",
         "embed/state.py",
         "embed/sync.py",
@@ -109,8 +115,10 @@ SHIPPED_BUT_UNDECLARED = frozenset(
         "portfolio/models.py",
         "positions/models.py",
         "sources/bitcoin/encoding.py",
+        "sources/evm/source.py",  # both seams over one client, so a host writes none
         "sources/evm/txfetch.py",
         "sources/evm/txlist.py",
+        "sources/sandbox.py",  # the Sandbox environment's replay transport
         "tenancy/store.py",
         "testing/cassettes.py",
         "webhooks/urls.py",
@@ -204,7 +212,7 @@ def test_every_declared_absence_is_inventoried():
 def test_every_undeclared_module_is_inventoried():
     extra = _shipped_modules() - _declared_modules()
     assert extra == SHIPPED_BUT_UNDECLARED, (
-        "a module exists that docs/SPEC.md §3.2 does not declare and this "
+        "a module exists that docs/internal/SPEC.md §3.2 does not declare and this "
         "inventory does not list.\n"
         f"new: {sorted(extra - SHIPPED_BUT_UNDECLARED)}\n"
         f"gone: {sorted(SHIPPED_BUT_UNDECLARED - extra)}\n"

@@ -13,13 +13,28 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class Clock(Protocol):
+    """The time port: one method, integer milliseconds.
+
+    A host may bind anything with this shape — a frozen clock, a replay
+    clock, a clock skewed to another timezone's business day. It is a
+    ``Protocol``, so there is nothing to inherit.
+    """
+
     def now_ms(self) -> int:
         """Current time as integer milliseconds since the Unix epoch."""
         ...
 
 
 class SystemClock:
+    """The wall clock, and the default when a host binds no other.
+
+    Time is a port precisely so this class is replaceable: quota windows,
+    sync throttling and ``as_of_ms`` are all derived from ``now_ms()``, so
+    swapping it is what makes those testable without sleeping.
+    """
+
     def now_ms(self) -> int:
+        """Current time as integer milliseconds since the Unix epoch."""
         return time.time_ns() // 1_000_000
 
 

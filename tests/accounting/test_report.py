@@ -1,7 +1,7 @@
 """The reporting projection over replayed PnL state — SPEC §9, SPEC §6.2.
 
 Every expected number is hand-computed from the pinned rules in
-docs/DECISIONS.md ("Shortfall semantics", "ACB pooling", "None-propagation
+docs/internal/DECISIONS.md ("Shortfall semantics", "ACB pooling", "None-propagation
 (PnL)", "Fraction->Money boundary", "Plaid TaxLot mapping") and asserted as
 an exact ``Decimal`` — never a float.
 
@@ -247,7 +247,7 @@ class TestImmutability:
 class TestRoundedBasisIsFlagged:
     """RELEASE_0.1.1 §5 #29 — the boundary that rounds must SAY it rounded.
 
-    docs/DECISIONS.md pins the Fraction->Money boundary as "ROUND_HALF_EVEN
+    docs/internal/DECISIONS.md pins the Fraction->Money boundary as "ROUND_HALF_EVEN
     at 28 significant digits with flag `rounded_basis` … rounding exists
     only at this boundary and is always flagged", and
     ``fraction_to_money`` returns ``(money, is_exact)`` with its own

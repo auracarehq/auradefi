@@ -1,6 +1,6 @@
 """ACB: Canadian pooled average cost — SPEC §9 pluggable methods.
 
-Two halves, both pinned in docs/DECISIONS.md ("ACB pooling"):
+Two halves, both pinned in docs/internal/DECISIONS.md ("ACB pooling"):
 
   * :class:`AcbPool`, the costing overlay — exact rational pool, pro-rata
     disposal, permanent poisoning on an unpriced acquisition;

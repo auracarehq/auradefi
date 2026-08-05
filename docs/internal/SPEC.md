@@ -1,8 +1,8 @@
 # conduit — an open-source, multi-tenant crypto data aggregator
 
 > Working name; check PyPI before committing. Python, no frontend.
-> This document becomes the repo's `docs/SPEC.md`.
-> **Shipping name: `auradefi`** (decided 2026-08-02 — `conduit` is taken on PyPI; see `docs/DECISIONS.md`).
+> This document becomes the repo's `docs/internal/SPEC.md`.
+> **Shipping name: `auradefi`** (decided 2026-08-02 — `conduit` is taken on PyPI; see `docs/internal/DECISIONS.md`).
 
 ---
 
@@ -686,7 +686,7 @@ Size caps, structure, placement, layering — including the gates that keep the 
 
 | Decision | Recommendation |
 |---|---|
-| **Name** | ~~`conduit` is a placeholder — check PyPI~~ **Resolved: `auradefi`** (see `docs/DECISIONS.md`) |
+| **Name** | ~~`conduit` is a placeholder — check PyPI~~ **Resolved: `auradefi`** (see `docs/internal/DECISIONS.md`) |
 | **Licence** | **Apache-2.0** (§1.1) |
 | **Database** | Postgres via the default SQLModel backend; SQLite and in-memory for tests |
 | **Interaction index** | Start with explorer-derived (§5.2 option 1); instrument before building the log index |

@@ -27,6 +27,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from site_errors_http import errors_html, http_html  # noqa: E402
+from site_reference import index_html, symbol_page, targets  # noqa: E402
 from site_render import (  # noqa: E402  (path set above so this runs from anywhere)
     PAGE_FOR,
     REPO_URL,
@@ -58,6 +60,7 @@ class Page:
     outline: list = field(default_factory=list)
     section: str = ""
     summary: str = ""
+    extra: str | None = None      # a sibling file to write, e.g. openapi.json
 
 
 def _run_example(path: Path) -> tuple[str | None, str | None]:
@@ -96,15 +99,39 @@ def _first_sentence(path: Path) -> str:
 
 
 def collect(run_examples: bool) -> list[Page]:
+    """Every published page, in nav order.
+
+    ORDER IS THE ARGUMENT. A developer arriving here is asking "how do I use
+    this", so the first four pages answer it: five lines that run, how to
+    install, what credentials you need (almost none), and how to swap in your
+    own infrastructure. The reference comes after, and the design documents
+    do not come at all — they answer a different question and used to be the
+    first thing on the site.
+    """
     pages: list[Page] = []
 
+    body, outline = render_markdown(REPO / "docs" / "quickstart.md",
+                                    "docs/quickstart.md", 0)
+    pages.append(Page("quickstart.html", "Quickstart", body, outline, "Get started",
+                      "Five lines, no credentials, working code."))
+
     body, outline = render_markdown(REPO / "README.md", "README.md", 0)
-    pages.append(Page("index.html", "auradefi", body, outline, "Start here",
+    pages.append(Page("index.html", "auradefi", body, outline, "Get started",
                       "What it is, what works today, and what is not there."))
+
+    for source, title, summary in (
+        ("docs/authentication.md", "Authentication & keys",
+         "What credentials you need — at most one, and it is optional."),
+        ("docs/bring-your-own.md", "Bring your own",
+         "Your API, your database, your prices: every port and its methods."),
+    ):
+        body, outline = render_markdown(REPO / source, source, 0)
+        pages.append(Page(f"{Path(source).stem}.html", title, body, outline,
+                          "Get started", summary))
 
     body, outline = render_markdown(REPO / "examples" / "README.md",
                                     "examples/README.md", 1)
-    pages.append(Page("examples/index.html", "Examples", body, outline, "Examples",
+    pages.append(Page("examples/index.html", "All guides", body, outline, "Guides",
                       "Ten task-shaped recipes that run offline."))
 
     example_files = [REPO / "examples" / "quickstart.py"] + sorted(
@@ -114,7 +141,7 @@ def collect(run_examples: bool) -> list[Page]:
         output, note = _run_example(path) if run_examples else (None, None)
         body, outline = render_example(path, output, note)
         pages.append(Page(f"examples/{path.stem}.html", path.stem, body, outline,
-                          "Examples", _first_sentence(path)))
+                          "Guides", _first_sentence(path)))
 
     books = sorted((REPO / "docs" / "books").glob("*.ipynb"))
     book_rows = "\n".join(
@@ -127,28 +154,37 @@ def collect(run_examples: bool) -> list[Page]:
         "Each runs offline against committed fixtures, asserts its own "
         "outputs, and is executed headlessly in CI, so it cannot drift from "
         f"the code.</p><ul class=\"cards\">{book_rows}</ul>",
-        section="PyBooks", summary="Twelve executable notebooks, run in CI."))
+        section="Notebooks", summary="Twelve executable notebooks, run in CI."))
     for path in books:
         body, outline = render_notebook(path, 1)
         pages.append(Page(f"books/{path.stem}.html", path.stem.replace("_", " "),
-                          body, outline, "PyBooks", ""))
+                          body, outline, "Notebooks", ""))
 
-    # The output path is stated, never derived from the title: `site_render`'s
-    # PAGE_FOR maps links onto these exact names, and a slug that drifts from
-    # the map is a 404 nobody notices until a reader hits it.
-    for source, title, summary in (
-        ("docs/SPEC.md", "SPEC", "The design contract."),
-        ("docs/DECISIONS.md", "Decisions", "Every pinned algorithm and id formula."),
-        ("STATUS.md", "Status", "Phase gates, live test count, known caveats."),
-        ("CHANGELOG.md", "Changelog", "What changed per release."),
-        ("docs/RELEASING.md", "Releasing", "The pip + Docker release procedure."),
-        ("docs/RELEASE_0.1.1.md", "Release 0.1.1",
-         "Every defect found in 0.1.0, and its fix."),
-        ("docs/AGENT_PROMPTS.md", "Agent loop",
-         "The agent loop that builds this repo."),
-    ):
-        body, outline = render_markdown(REPO / source, source, 0)
-        pages.append(Page(PAGE_FOR[source], title, body, outline, "Reference", summary))
+    # The design and build documents are NOT published — see
+    # site_render.INTERNAL_DOCS. A spec, a build log and a release
+    # post-mortem answer "what is this and how was it made"; a developer
+    # opening these docs is asking "how do I use it". They stay in the
+    # repository, and every citation to them resolves to GitHub.
+    # Generated from the code: signatures, field lists, status codes and the
+    # OpenAPI schema. Nothing here is hand-maintained, so nothing here can
+    # describe a surface the package no longer has.
+    pages.append(Page("reference/index.html", "Overview", index_html(), [],
+                      "API reference",
+                      "Every public symbol, grouped the way a host meets it."))
+    for target in targets():
+        path, title, body, outline = symbol_page(target)
+        pages.append(Page(path, title, body, outline, "API reference", ""))
+
+    pages.append(Page("errors.html", "Errors", errors_html(), [], "Reference",
+                      "Every exception, when it fires, and its HTTP status."))
+
+    http_body, schema = http_html()
+    pages.append(Page("http.html", "HTTP API", http_body, [], "Reference",
+                      "Plaid's wire format over your ports.", extra=schema))
+
+    body, outline = render_markdown(REPO / "CHANGELOG.md", "CHANGELOG.md", 0)
+    pages.append(Page("changelog.html", "Changelog", body, outline, "Reference",
+                      "What changed per release, and what breaks."))
 
     return pages
 
@@ -252,6 +288,8 @@ def main() -> int:
     pages = collect(run_examples)
     for page in pages:
         write(page, pages)
+        if page.extra is not None:
+            (OUT / "openapi.json").write_text(page.extra, encoding="utf-8")
     (OUT / "style.css").write_text(
         STYLE.read_text(encoding="utf-8") + "\n" + pygments_css(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("", encoding="utf-8")

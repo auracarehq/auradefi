@@ -1,7 +1,7 @@
 """Incremental PnL engine — SPEC §9, the arbitrary-date replay.
 
 Every expected number is hand-computed from the pinned rules in
-docs/DECISIONS.md ("Shortfall semantics", "ACB pooling", "None-propagation
+docs/internal/DECISIONS.md ("Shortfall semantics", "ACB pooling", "None-propagation
 (PnL)", "Fraction->Money boundary", "Plaid TaxLot mapping") and asserted as
 an exact ``Decimal`` — never a float.
 

@@ -2,7 +2,7 @@
 
 Every golden literal below was derived INDEPENDENTLY of the code under
 test, via ``python3 -c`` implementing the algorithms pinned in
-docs/DECISIONS.md ("Webhook ids", "Webhook retry schedule"):
+docs/internal/DECISIONS.md ("Webhook ids", "Webhook retry schedule"):
 
     canonical_json = json.dumps(obj, separators=(",", ":"), sort_keys=True)
     endpoint_id    = "whe_" + sha256(f"{project_id}|{url}")[:16]

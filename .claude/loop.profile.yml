@@ -1,16 +1,16 @@
-# The ONLY project-specific file in the loop. See loop.md.
+# The ONLY project-specific file in the loop. See docs/internal/loop.md.
 # Every agent reads this first. If something an agent needs is not here,
 # it stops and reports blocked_on rather than guessing.
 
 project:
   name: auradefi
-  spec: docs/SPEC.md
-  decisions: docs/DECISIONS.md
-  status: STATUS.md
+  spec: docs/internal/SPEC.md
+  decisions: docs/internal/DECISIONS.md
+  status: docs/internal/STATUS.md
   # `greenfield` is right for phase 10 onward. The 0.1.1 fix release ran with
-  # `mode: fix` and `spec: docs/RELEASE_0.1.1.md`: the source already existed,
+  # `mode: fix` and `spec: docs/internal/RELEASE_0.1.1.md`: the source already existed,
   # red meant the SHIPPED behaviour was wrong, the bug was the mutant, and
-  # tests asserting the defect as contract were normal. See loop.md,
+  # tests asserting the defect as contract were normal. See docs/internal/loop.md,
   # "Fix-release mode" — running that release without this key cost a
   # hand-written override block in all eleven work-order contracts.
   mode: greenfield

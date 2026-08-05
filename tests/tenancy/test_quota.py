@@ -1,7 +1,7 @@
 """Quota: per-tenant Second/Day/Month windows (SPEC §7.3).
 
 Golden ``reset_at_ms`` values below were derived independently from the
-pinned window algorithms (docs/DECISIONS.md "Quota windows") with
+pinned window algorithms (docs/internal/DECISIONS.md "Quota windows") with
 python3/datetime — never with the code under test:
 
   T0            = 1767225600000  # 2026-01-01T00:00:00Z

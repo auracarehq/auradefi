@@ -14,7 +14,7 @@ to a single URL. NO retry, NO rate limiting, no ``commitment`` param
 ``httpx.Client`` is REQUIRED and injected so cassettes plug in.
 
 Base58 case is SIGNIFICANT on Solana — no string here is ever lowercased
-(docs/DECISIONS.md, asset-id pin), unlike the EVM source which
+(docs/internal/DECISIONS.md, asset-id pin), unlike the EVM source which
 canonicalizes hex to lower case.
 
 Amounts and slots parse as ``int`` — never through float (SPEC rules

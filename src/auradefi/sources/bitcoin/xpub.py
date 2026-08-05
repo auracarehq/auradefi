@@ -6,7 +6,7 @@ httpx, no esplora import. SPEC §10 is the reason: an extended key is
 derived locally and NEVER travels off-box. :func:`derive_addresses`
 returns plain addresses, which is all the HTTP layer ever sees.
 
-Pinned in docs/DECISIONS.md:
+Pinned in docs/internal/DECISIONS.md:
 
 * **secp256k1**: ``p = 2**256 - 2**32 - 977``; affine add/double,
   double-and-add scalar mult, inversion via ``pow(x, -1, p)``; compressed

@@ -1,6 +1,6 @@
 """Append-only audit log for token mints (SPEC §7.2 — Vezgo has nothing).
 
-Pinned record shape (docs/DECISIONS.md "Audit record shape"):
+Pinned record shape (docs/internal/DECISIONS.md "Audit record shape"):
 ``{seq (per-project, from 1), event: "token.minted", project_id,
 external_user_id, key_id, ip, at_ms}`` — append-only, no
 delete/update/clear. Only ``token.minted`` is recorded tonight.

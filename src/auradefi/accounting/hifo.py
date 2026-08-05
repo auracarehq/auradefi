@@ -7,7 +7,7 @@ no basis and prorates nothing; proration and lot mutation live in
 ``opened_at_ms``, ``quantity_original``, ``quantity_remaining`` and
 ``cost_total`` are ever read, and ``Lot`` is imported under
 ``TYPE_CHECKING`` alone, so the greedy walk is restated here rather than
-shared (docs/DECISIONS.md "Duplication waiver extension").
+shared (docs/internal/DECISIONS.md "Duplication waiver extension").
 
 HIFO consumes the most expensive basis first, which minimises realised
 gain. The order is pinned:

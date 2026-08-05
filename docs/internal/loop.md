@@ -36,7 +36,7 @@ stage to save tokens.
 Copy these into any repository:
 
 ```
-loop.md                          this file
+docs/internal/loop.md                          this file
 .claude/loop.profile.yml         the ONLY project-specific file — you write this
 .claude/agents/*.md              eleven role definitions
 .claude/workflows/phase-build.js the orchestration
@@ -390,8 +390,8 @@ exists to support. It is worth more than any single stage.
 ```yaml
 project:
   name: my-project
-  spec: docs/SPEC.md          # the specification (required)
-  decisions: docs/DECISIONS.md # pinned algorithms; "" if you have none
+  spec: docs/internal/SPEC.md          # the specification (required)
+  decisions: docs/internal/DECISIONS.md # pinned algorithms; "" if you have none
   status: STATUS.md            # where unresolved findings land (required)
   mode: greenfield             # or `fix` — see [Fix-release mode]
 

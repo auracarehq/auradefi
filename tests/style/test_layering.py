@@ -32,7 +32,13 @@ ALLOWED_IMPORTS: dict[str, set[str]] = {
     "chains": set(),
     "testing": set(),
     "assets": {"money", "chains"},
-    "sources": {"money", "chains", "assets"},
+    # `testing` is here for ONE reason: sources/sandbox.py replays the
+    # bundled recording through testing/cassettes.py's matcher rather than
+    # forking it. That module is shipped, host-facing surface (its own
+    # docstring invites hosts to test their integrations with it), not test
+    # scaffolding — and two replay matchers with drifting semantics would be
+    # worse than this edge. `testing` imports no domain, so it cannot cycle.
+    "sources": {"money", "chains", "assets", "testing"},
     "prices": {"money", "chains", "assets", "sources"},
     "decode": {"money", "chains", "assets", "sources", "prices"},
     "positions": {"money", "chains", "assets", "sources", "prices"},

@@ -40,7 +40,12 @@ wheel = glob.glob("dist/*.whl")[0]
 names = zipfile.ZipFile(wheel).namelist()
 assert any(n.endswith("auradefi/py.typed") for n in names), "py.typed missing from wheel"
 assert not any(n.startswith("tests/") for n in names), "tests leaked into wheel"
-print(f"    {wheel}: {len(names)} files ok")
+# The Sandbox recording is a PRODUCT file, not a test fixture: without it
+# `pip install auradefi` plus five lines fails, for the one audience with
+# no checkout to debug against. Nothing else in the build would notice.
+fixtures = [n for n in names if n.startswith("auradefi/sources/fixtures/") and n.endswith(".json")]
+assert fixtures, "the Sandbox recording is missing from the wheel"
+print(f"    {wheel}: {len(names)} files ok, {len(fixtures)} sandbox fixture(s)")
 EOF
 
 echo "==> fresh-venv wheel install smoke test"

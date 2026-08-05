@@ -3,7 +3,7 @@
 Zerion's three-window shape — Second / Day / Month, each with
 limit / remaining / reset — scoped **per tenant (project), never per org**.
 
-Pinned window algorithms (docs/DECISIONS.md "Quota windows"):
+Pinned window algorithms (docs/internal/DECISIONS.md "Quota windows"):
 
   second: key = now_ms // 1000;        reset_at_ms = (key + 1) * 1000
   day:    key = now_ms // 86_400_000;  reset_at_ms = (key + 1) * 86_400_000  (UTC)

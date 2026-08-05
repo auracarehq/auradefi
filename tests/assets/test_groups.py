@@ -1,7 +1,7 @@
 """Asset groups with single fallback (SPEC §4.2) — golden-vector tests.
 
 Every ast_… and grp_… literal below was derived independently via
-``python3 -c`` from the algorithms pinned in docs/DECISIONS.md::
+``python3 -c`` from the algorithms pinned in docs/internal/DECISIONS.md::
 
     "ast_" + sha256("\\n".join(sorted(canonical_caip19s)).encode()).hexdigest()[:16]
     "grp_" + sha256("\\n".join(sorted(asset_ids)).encode()).hexdigest()[:16]

@@ -1,7 +1,7 @@
 """Contract tests for auradefi.positions.models (SPEC §4.3; DECISIONS.md).
 
 The id literals below were derived INDEPENDENTLY of the code under test,
-via ``python3 -c`` over the algorithms pinned in docs/DECISIONS.md:
+via ``python3 -c`` over the algorithms pinned in docs/internal/DECISIONS.md:
 
     "pos_" + sha256(f"{adapter_id}|{chain_id}|{contract_lower}|{discriminator}"
                     .encode()).hexdigest()[:16]

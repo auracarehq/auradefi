@@ -12,8 +12,14 @@ constructs a client and never reads the environment; cassette transports
 plug straight in. Each request is a GET on
 ``https://api.etherscan.io/v2/api`` with query params in EXACTLY this
 order: ``chainid``, ``module=account``, ``action=txlist|tokentx``,
-``address``, ``startblock=0``, ``endblock=99999999``, ``page``,
-``offset=<page_size>``, ``sort=asc``, ``apikey``.
+``address``, ``startblock``, ``endblock``, ``page``, ``offset``,
+``sort``, ``apikey`` (omitted entirely when there is no key).
+
+:func:`fetch_page` is the window-aware public seam: ONE page of ONE
+block window, raw dicts, nothing widened or retried. The two whole-history
+fetchers page over it, and ``sources.evm.source.EtherscanSource`` answers
+the embedding engine's chosen window with it, so the envelope quirks below
+are known in exactly one place.
 
 Pagination (July 2026 cut: max 1,000 records per request — paginate
 correctly from day one): request ``page=1,2,...`` while a page returns
@@ -43,7 +49,8 @@ from auradefi.sources.evm.txlist import (
     parse_tokentx_row,
 )
 
-_BASE_URL = "https://api.etherscan.io/v2/api"
+BASE_URL = "https://api.etherscan.io/v2/api"
+HEAD_BLOCK = 99_999_999
 _NO_TRANSACTIONS = "No transactions found"
 
 _RecordT = TypeVar("_RecordT")
@@ -133,14 +140,14 @@ def _fetch_all(
     records: list[_RecordT] = []
     page = 1
     while True:
-        rows = _fetch_page(
+        rows = fetch_page(
             client,
             chain_id=chain_id,
             address=address,
-            api_key=api_key,
-            page_size=page_size,
             action=action,
             page=page,
+            offset=page_size,
+            api_key=api_key,
         )
         records.extend(parse_row(row) for row in rows)
         if len(rows) != page_size:
@@ -148,21 +155,46 @@ def _fetch_all(
         page += 1
 
 
-def _fetch_page(
+def fetch_page(
     client: httpx.Client,
     *,
     chain_id: int,
     address: str,
-    api_key: str,
-    page_size: int,
-    action: str,
-    page: int,
+    action: str = "txlist",
+    start_block: int = 0,
+    end_block: int = HEAD_BLOCK,
+    page: int = 1,
+    offset: int = 1000,
+    sort: str = "asc",
+    api_key: str | None = None,
+    base_url: str = BASE_URL,
 ) -> list[dict]:
-    """One page's raw row dicts; ``[]`` for an empty history.
+    """ONE page of ONE block window, as raw row dicts; ``[]`` when empty.
 
-    Raises ``SourceError`` on transport failure, non-2xx HTTP, a
-    non-JSON body, a malformed envelope, or a status-``"0"`` message
-    other than ``"No transactions found"`` (carrying that message).
+    The public seam under both callers: :func:`fetch_txlist` /
+    :func:`fetch_tokentx` walk whole histories with it, and
+    ``sources.evm.source.EtherscanSource`` answers the embedding engine's
+    chosen window with it. Rows come back RAW and unparsed because the two
+    callers want different things — typed records there, dicts for the
+    decoder seam here — and because parsing authority lives in
+    ``txlist.py`` (SPEC §3.2), never in a fetcher.
+
+    Every window parameter is the CALLER's: the engine picks
+    ``start_block``/``end_block``/``page``/``sort`` and its budget depends
+    on getting exactly the page it asked for, so nothing is widened,
+    retried or paginated here.
+
+    ``api_key=None`` omits the ``apikey`` param entirely rather than
+    sending it empty — matching :class:`~auradefi.sources.evm.etherscan
+    .EtherscanV2`. This is not cosmetic: ``apikey=`` is a DIFFERENT URL,
+    so a keyless request would miss a keyless recording and Etherscan
+    would answer it differently.
+
+    Returns ``[]`` for a status-``"0"`` ``"No transactions found"``
+    envelope — an empty history is not an error. Raises ``SourceError``
+    on transport failure, non-2xx HTTP, a non-JSON body, a malformed
+    envelope, any other status-``"0"`` message (carrying that message),
+    or a ``result`` that is not a list of objects.
     """
     # Insertion order IS the wire order — the param sequence is contractual.
     params = {
@@ -170,15 +202,16 @@ def _fetch_page(
         "module": "account",
         "action": action,
         "address": address,
-        "startblock": "0",
-        "endblock": "99999999",
+        "startblock": str(start_block),
+        "endblock": str(end_block),
         "page": str(page),
-        "offset": str(page_size),
-        "sort": "asc",
-        "apikey": api_key,
+        "offset": str(offset),
+        "sort": sort,
     }
+    if api_key is not None:
+        params["apikey"] = api_key
     try:
-        response = client.get(_BASE_URL, params=params)
+        response = client.get(base_url, params=params)
     except httpx.HTTPError as exc:
         raise SourceError(f"etherscan {action} request failed: {exc!r}") from exc
     if not 200 <= response.status_code < 300:

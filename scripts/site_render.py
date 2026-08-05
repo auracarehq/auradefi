@@ -26,17 +26,26 @@ BLOB = f"{REPO_URL}/blob/main"
 #: so a link can never silently 404 inside the site.
 PAGE_FOR = {
     "README.md": "index.html",
-    "STATUS.md": "status.html",
     "CHANGELOG.md": "changelog.html",
-    "docs/SPEC.md": "spec.html",
-    "docs/DECISIONS.md": "decisions.html",
-    "docs/RELEASING.md": "releasing.html",
-    "docs/RELEASE_0.1.1.md": "release-0-1-1.html",
-    "docs/AGENT_PROMPTS.md": "agent-prompts.html",
     "examples": "examples/index.html",
     "examples/README.md": "examples/index.html",
     "docs/books": "books/index.html",
 }
+
+#: Design and build documents. They are NOT published: a spec, a build log
+#: and a release post-mortem answer "what is this and how was it made",
+#: which is not what a developer opening the docs is asking. They stay in
+#: the repository and link out to GitHub, so a citation still resolves.
+INTERNAL_DOCS = frozenset(
+    {
+        "docs/internal/SPEC.md",
+        "docs/internal/DECISIONS.md",
+        "docs/internal/STATUS.md",
+        "docs/internal/RELEASING.md",
+        "docs/internal/RELEASE_0.1.1.md",
+        "docs/internal/AGENT_PROMPTS.md",
+    }
+)
 
 _ANSI = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
 _HEADING = re.compile(r"<h([1-6])>(.*?)</h\1>", re.DOTALL)
@@ -91,10 +100,18 @@ def rewrite_links(body: str, source: str, depth: int) -> str:
     """Point repo-relative links at their published page, or at GitHub.
 
     ``source`` is the repo-relative file the markdown came from, so a
-    ``../docs/SPEC.md`` written inside ``examples/README.md`` resolves the
-    same way GitHub resolves it. ``depth`` is how many directories deep the
-    OUTPUT page sits, so every emitted link stays relative — the site is
-    served from a subpath (`/auradefi/`) and root-relative links break.
+    ``../docs/internal/SPEC.md`` written inside ``examples/README.md``
+    resolves the same way GitHub resolves it. ``depth`` is how many
+    directories deep the OUTPUT page sits, so every emitted link stays
+    relative — the site is served from a subpath (`/auradefi/`) and
+    root-relative links break.
+
+    A link with no published page becomes a GitHub blob URL. That is
+    correct for source files and for the design documents in
+    :data:`INTERNAL_DOCS`, and it is a SILENT failure for anything else —
+    a page that should be on the site quietly becomes an outbound link.
+    :func:`unpublished_targets` exists so a gate can catch that; nothing
+    here can tell the two cases apart on its own.
     """
     up = "../" * depth
     base = posixpath.dirname(source)
@@ -106,20 +123,60 @@ def rewrite_links(body: str, source: str, depth: int) -> str:
         target, _, fragment = href.partition("#")
         if not target:
             return match.group(0)
+        # A `.html`/`.json` href names a BUILT artefact, not a repo file, and
+        # is already written relative to the page it appears on. Rewriting it
+        # as a repo path would turn a valid site link into a GitHub 404.
+        # `tests/style/test_site_publishes_what_it_links.py` resolves these
+        # against the real page list, which is the only thing that can.
+        if target.endswith((".html", ".json")):
+            return match.group(0)
         resolved = posixpath.normpath(posixpath.join(base, target)).lstrip("./")
-        page = PAGE_FOR.get(resolved) or PAGE_FOR.get(resolved.rstrip("/"))
-        if page is None:
-            if resolved.startswith("docs/books/") and resolved.endswith(".ipynb"):
-                page = "books/" + Path(resolved).stem + ".html"
-            elif resolved.startswith("examples/") and resolved.endswith(".py"):
-                page = "examples/" + Path(resolved).stem + ".html"
-        if page is None:
-            suffix = f"#{fragment}" if fragment else ""
-            return f'href="{BLOB}/{resolved}{suffix}"'
+        page = page_for(resolved)
         suffix = f"#{fragment}" if fragment else ""
+        if page is None:
+            return f'href="{BLOB}/{resolved}{suffix}"'
         return f'href="{up}{page}{suffix}"'
 
     return _HREF.sub(replace, body)
+
+
+def page_for(resolved: str) -> str | None:
+    """The published page for a repo-relative path, or ``None``.
+
+    ``None`` means "not published here" and the caller falls back to
+    GitHub. Books and examples are derived rather than listed, because
+    both directories grow.
+    """
+    page = PAGE_FOR.get(resolved) or PAGE_FOR.get(resolved.rstrip("/"))
+    if page is not None:
+        return page
+    if resolved.startswith("docs/books/") and resolved.endswith(".ipynb"):
+        return "books/" + Path(resolved).stem + ".html"
+    if resolved.startswith("examples/") and resolved.endswith(".py"):
+        return "examples/" + Path(resolved).stem + ".html"
+    return None
+
+
+def unpublished_targets(body: str, source: str) -> list[str]:
+    """Repo-relative markdown links that resolve to no published page.
+
+    Every entry became an outbound GitHub link. A design document
+    (:data:`INTERNAL_DOCS`) or a source file is meant to; a page that was
+    supposed to be published is a regression no rendered-link check can
+    see, because the href it produces is perfectly valid.
+    """
+    base = posixpath.dirname(source)
+    missing: list[str] = []
+    for href in _HREF.findall(body):
+        if "://" in href or href.startswith(("#", "mailto:")):
+            continue
+        target = href.partition("#")[0]
+        if not target or target.endswith((".html", ".json")):
+            continue
+        resolved = posixpath.normpath(posixpath.join(base, target)).lstrip("./")
+        if page_for(resolved) is None and resolved not in INTERNAL_DOCS:
+            missing.append(resolved)
+    return missing
 
 
 def render_markdown(path: Path, source: str, depth: int) -> tuple[str, list]:
