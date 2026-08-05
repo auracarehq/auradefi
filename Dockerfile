@@ -37,7 +37,9 @@ COPY scripts ./scripts
 # tests/style/test_release_note_companions.py checks that a version pinned in
 # docs/internal/DECISIONS.md owns a CHANGELOG section. STATUS.md moved under
 # docs/internal/, which the `COPY docs` above already carries.
-COPY CHANGELOG.md ./
+# .env.example is quoted in full by llms-full.txt, so
+# tests/style/test_llm_context_is_true.py reads it here too.
+COPY CHANGELOG.md .env.example ./
 # [dev] = pytest + build/twine + nbformat/nbclient/ipykernel + fastapi + sqlmodel.
 RUN pip install --quiet ".[dev]"
 # Bare `pytest`: pyproject's addopts already carries -q, and a second -q

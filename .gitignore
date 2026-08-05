@@ -17,3 +17,6 @@ htmlcov/
 *.db
 .env
 .env.*
+# ...except the annotated template, which the docs link to and
+# llms-full.txt publishes verbatim.
+!.env.example

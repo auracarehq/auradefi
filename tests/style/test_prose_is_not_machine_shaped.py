@@ -79,6 +79,9 @@ SCANNED_ROOT_FILES = (
     "CHANGELOG.md",
     "Dockerfile",
     "docker-compose.yml",
+    # Published verbatim inside llms-full.txt, so its prose is read as often
+    # as any page's.
+    ".env.example",
 )
 
 #: Text formats. Binary and lock files are skipped.

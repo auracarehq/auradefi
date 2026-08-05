@@ -223,6 +223,10 @@ Start here:
   format, plus `openapi.json`
 - [Errors](https://auradefi.info/errors.html): every
   exception and its HTTP status
+- [Build with an LLM](https://auradefi.info/llms.html): a
+  prompt to paste into a model, plus
+  [llms.txt](https://auradefi.info/llms.txt) and the whole
+  documentation as [one file](https://auradefi.info/llms-full.txt)
 
 Also in the repository:
 

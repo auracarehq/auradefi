@@ -339,3 +339,30 @@ pre.run {
   background: var(--panel);
   border-left: 3px solid var(--accent);
 }
+
+/* ------------------------------------------------- the paste-in prompt */
+/* Wrapped, unlike every other block on the site: this one is sentences,
+   and a reader wants to judge it before copying it. */
+pre.prompt {
+  font: 0.82rem/1.6 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 1rem 1.1rem;
+  margin: 1.1rem 0 0.6rem;
+  max-height: 26rem;
+  overflow-y: auto;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--panel);
+}
+button.copy {
+  font: 500 0.85rem/1 var(--text);
+  color: var(--paper);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+}
+button.copy:hover { filter: brightness(1.12); }

@@ -12,4 +12,7 @@ htmlcov
 .ipynb_checkpoints
 .env
 .env.*
+# ...except the annotated template. The docs link to it, llms-full.txt
+# quotes it in full, and a gate reads it.
+!.env.example
 .claude

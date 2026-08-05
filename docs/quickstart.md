@@ -108,6 +108,9 @@ four ports.
   minimal implementation of each.
 - [API reference](reference/index.html): signatures, parameters, return
   fields and exceptions.
+- [Build with an LLM](llms.html): a prompt to paste into a model before
+  asking it for auradefi code, plus `llms.txt` and the whole documentation
+  as one file.
 
 ## What this is not
 

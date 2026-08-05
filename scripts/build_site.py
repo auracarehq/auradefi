@@ -30,10 +30,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from site_errors_http import errors_html, http_html  # noqa: E402
+from site_llms import full_txt, index_txt, llms_html, prompt_txt  # noqa: E402
 from site_reference import index_html, symbol_page, targets  # noqa: E402
 from site_render import (  # noqa: E402  (path set above so this runs from anywhere)
     PAGE_FOR,
     REPO_URL,
+    anchored,
     pygments_css,
     render_example,
     render_markdown,
@@ -50,6 +52,10 @@ TAGLINE = ("Open-source multi-tenant crypto data aggregator: Vezgo's "
 #: Where the site is served. Written into the artifact as `CNAME`, which is
 #: what GitHub Pages reads to keep serving auradefi.info after a deploy.
 CUSTOM_DOMAIN = "auradefi.info"
+
+#: Absolute base for the machine-facing files. `llms.txt` is fetched on its
+#: own, out of any page's context, so its links cannot be relative.
+SITE_URL = f"https://{CUSTOM_DOMAIN}"
 
 #: Examples needing an optional extra, and the import that proves it is there.
 EXTRA_FOR = {"04_persist_to_your_database.py": ("sqlmodel", "[sql]"),
@@ -159,6 +165,17 @@ def collect(run_examples: bool) -> list[Page]:
         body, outline = render_markdown(REPO / source, source, 0)
         pages.append(Page(f"{Path(source).stem}.html", title, body, outline,
                           "Get started", summary))
+
+    # Last in the section because it is not a step: a reader who has met the
+    # first program and the ports can judge whether the rules in the prompt
+    # are the right ones. The corpus is measured, not estimated, so the page
+    # and the prompt can both tell a reader what a fetch will cost them.
+    corpus_bytes = len(full_txt(SITE_URL).encode("utf-8"))
+    body, outline = anchored(llms_html(SITE_URL, corpus_bytes))
+    pages.append(Page("llms.html", "Build with an LLM", body, outline,
+                      "Get started",
+                      "A prompt to paste in, and the docs as one file a "
+                      "model can hold."))
 
     body, outline = render_markdown(REPO / "examples" / "README.md",
                                     "examples/README.md", 1)
@@ -328,6 +345,14 @@ def main() -> int:
     (OUT / "style.css").write_text(
         STYLE.read_text(encoding="utf-8") + "\n" + pygments_css(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("", encoding="utf-8")
+    # The machine-facing copies. Written after the pages so the index can
+    # describe exactly what was built, and served as text/plain so a model
+    # fetching one gets prose instead of a nav bar and a stylesheet.
+    corpus = full_txt(SITE_URL)
+    (OUT / "llms.txt").write_text(index_txt(pages, SITE_URL), encoding="utf-8")
+    (OUT / "llms-full.txt").write_text(corpus, encoding="utf-8")
+    (OUT / "prompt.txt").write_text(
+        prompt_txt(SITE_URL, len(corpus.encode("utf-8"))), encoding="utf-8")
     # The custom domain travels WITH the artifact. GitHub Pages also stores it
     # in repository settings, but an Actions deployment publishes whatever the
     # artifact contains, and a deploy without this file can drop the domain
@@ -336,6 +361,8 @@ def main() -> int:
     total = sum(path.stat().st_size for path in OUT.rglob("*") if path.is_file())
     print(f"built {len(pages)} pages into {OUT.relative_to(REPO)} "
           f"({total / 1024:.0f} KiB, no external requests)")
+    print(f"  llms.txt, prompt.txt and llms-full.txt "
+          f"({len(corpus.encode('utf-8')) / 1024:.0f} KiB of corpus)")
     if not run_examples:
         print("  NOTE: --no-run, so no example output is published on this build")
     return 0
