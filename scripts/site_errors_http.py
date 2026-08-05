@@ -52,7 +52,7 @@ def errors_html() -> str:
             f'<tr id="{cls.__name__.lower()}">'
             f"<td><code>{escape(cls.__name__)}</code></td>"
             f'<td><code>{escape(", ".join(parents) or "none")}</code></td>'
-            f"<td>{status if status else "none"}</td>"
+            f"<td>{status if status else 'none'}</td>"
             f"<td>{escape(first)}</td></tr>"
         )
     return f"""<h1>Errors</h1>

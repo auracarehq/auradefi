@@ -161,10 +161,35 @@ def negative_parallelism_rate(text: str) -> float:
     return len(_NEGATIVE_PARALLELISM.findall(text)) * 100.0 / lines
 
 
+#: The least each directory may contribute before the scan is presumed blind.
+#: Stated per directory rather than as one repo-wide total, because the Docker
+#: test image copies a SUBSET of the tree (src, tests, docs, examples, scripts,
+#: the two root markdown files) and carries neither `.claude` nor `.github`. A
+#: single total made this guard fail in the container at 294 files while
+#: passing on the host, which is a gate reporting its own environment rather
+#: than the repository's prose.
+#: Floors sit near 80% of today's counts (src 118, tests 126, docs 25,
+#: examples 12, scripts 11), so ordinary deletion does not trip them but a
+#: glob that stops descending does.
+MINIMUM_FILES_PER_DIRECTORY = {
+    "src": 94,
+    "tests": 100,
+    "docs": 20,
+    "examples": 9,
+    "scripts": 8,
+}
+
+
 def test_the_scan_actually_reaches_the_repository() -> None:
     """A glob that found nothing would make every rule below vacuous."""
     files = _scanned_files()
-    assert len(files) > 300, f"only {len(files)} text files scanned"
+    for directory, minimum in MINIMUM_FILES_PER_DIRECTORY.items():
+        root = REPO / directory
+        found = [path for path in files if path.is_relative_to(root)]
+        assert len(found) >= minimum, (
+            f"only {len(found)} text files scanned under {directory}/ "
+            f"(expected at least {minimum}): the glob has gone blind"
+        )
     names = {path.name for path in files}
     assert {"README.md", "facade.py", "quickstart.py"} <= names
 
