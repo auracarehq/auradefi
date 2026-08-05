@@ -23,7 +23,12 @@ jobs:
       - name: Style gates
         run: pytest tests/style -v
       - name: Quickstart (every phase, end to end)
-        run: python docs/examples/quickstart.py
+        run: python examples/quickstart.py
+
+      # An example that no longer runs is a published lie about the package's
+      # surface. `pytest` never executes one, so this is the gate.
+      - name: Examples (every recipe under examples/, offline)
+        run: bash scripts/run_examples.sh
 
   package:
     runs-on: ubuntu-latest

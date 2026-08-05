@@ -42,7 +42,7 @@ FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 RUN useradd --create-home --uid 1000 auradefi
 COPY --from=base /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY docs/examples/quickstart.py /home/auradefi/quickstart.py
+COPY examples/quickstart.py /home/auradefi/quickstart.py
 USER auradefi
 WORKDIR /home/auradefi
 CMD ["python", "quickstart.py"]

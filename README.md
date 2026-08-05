@@ -9,16 +9,25 @@ exchange data in one schema downstream.
 directly and pays no serialisation or network cost; the HTTP API is a thin
 shell over the importable core.
 
-> Status: alpha. All ten SPEC phases are implemented and the 0.1.0 release
-> gate was green offline on a fresh clone with no API keys.
+> **Status: alpha, and 0.1.1 is the release to use.** All ten SPEC phases
+> are implemented; the suite is **3,247 tests green offline on a fresh clone
+> with no API keys**, all twelve notebooks execute clean, and every example
+> under [`examples/`](examples) runs against the published wheel.
 >
 > **Do not use 0.1.0.** An independent adversarial review found nineteen
 > verified defects in it — five security, four silent data loss — none of
 > which failed a test. [`docs/RELEASE_0.1.1.md`](docs/RELEASE_0.1.1.md) is
-> the full accounting and 0.1.1 is the fix release, **in progress**.
-> [`STATUS.md`](STATUS.md) carries the live test count and which of those
-> fixes have landed; the capability table below says what works today, and
-> [`docs/SPEC.md`](docs/SPEC.md) is the full design contract.
+> the full accounting; 0.1.1 fixes them and **breaks one id derivation on
+> purpose**, so read *Upgrading* in [`CHANGELOG.md`](CHANGELOG.md) before
+> moving library-ingested data across.
+>
+> Alpha means the gaps below are real: read *What is not there* before you
+> budget work against this. [`STATUS.md`](STATUS.md) carries the live gate
+> state and [`docs/SPEC.md`](docs/SPEC.md) is the design contract.
+
+**[Documentation site →](https://auracarehq.github.io/auradefi/)** — the
+examples, the twelve executable notebooks and the full reference, rendered
+with every example's real output.
 
 ## Install
 
@@ -33,9 +42,35 @@ From a clone (no pip on your system python? `scripts/bootstrap.sh` handles it):
 ```bash
 git clone https://github.com/auracarehq/auradefi
 cd auradefi && bash scripts/bootstrap.sh
-.venv/bin/pytest                              # the whole suite, offline, no keys
-.venv/bin/python docs/examples/quickstart.py  # every phase, end to end
+.venv/bin/pytest                           # the whole suite, offline, no keys
+.venv/bin/python examples/quickstart.py    # every phase, end to end
+bash scripts/run_examples.sh               # all eleven examples
 ```
+
+## Examples
+
+[`examples/`](examples) holds one file per question. Each is
+**self-contained** — it reads nothing from this repository — runs **offline
+with no API keys**, asserts its own output, and is executed by CI so it
+cannot rot.
+
+| | |
+|---|---|
+| [`quickstart.py`](examples/quickstart.py) | the whole library in one file — start here |
+| [`01_holdings_for_an_address.py`](examples/01_holdings_for_an_address.py) | a priced portfolio, exactly, with unpriced assets named |
+| [`02_embed_in_your_backend.py`](examples/02_embed_in_your_backend.py) | your ports, your tick, your database; restart resume |
+| [`03_write_a_source_adapter.py`](examples/03_write_a_source_adapter.py) | point it at your own chain data (two methods) |
+| [`04_persist_to_your_database.py`](examples/04_persist_to_your_database.py) | host-owned DDL, a resumable cursor feed, a reorg |
+| [`05_serve_the_http_api.py`](examples/05_serve_the_http_api.py) | Plaid's envelope over HTTP, batch partial success |
+| [`06_isolate_two_tenants.py`](examples/06_isolate_two_tenants.py) | one deployment, many customers, attacked four ways |
+| [`07_read_defi_positions.py`](examples/07_read_defi_positions.py) | an LP and a loan that still add up to net worth |
+| [`08_report_cost_basis_and_pnl.py`](examples/08_report_cost_basis_and_pnl.py) | FIFO/LIFO/HIFO/ACB, any instant, Plaid `tax_lots[]` |
+| [`09_deliver_signed_webhooks.py`](examples/09_deliver_signed_webhooks.py) | signed, retried on a pinned schedule, replayable |
+| [`10_scan_bitcoin_and_solana.py`](examples/10_scan_bitcoin_and_solana.py) | an xpub that never leaves the process; Token-2022 |
+
+[`examples/README.md`](examples/README.md) is the annotated index, and every
+example is rendered with its real output on the
+[documentation site](https://auracarehq.github.io/auradefi/examples/).
 
 ## Using it
 
@@ -88,7 +123,7 @@ runs offline and asserts its own outputs, plus a gate test under `tests/`.
 | Tenancy: org/project/end-user, scoped `adk_` keys, `authEndpoint` JWT mint, three-window quota, audit log | 2 | **works** — isolation gate actively tries to leak; [`06_tenancy`](docs/books/06_tenancy.ipynb) |
 | Rich transactions: `parts[]`/`acts[]`, fees as siblings carrying `borne_by`, derived `type`, ledger bridge, reorg + resurrection | 3 | **works** — EVM only, one act per transaction; [`07_transactions`](docs/books/07_transactions.ipynb) |
 | DeFi positions: adapter protocol, drill-down, group totals + health factor, signed synthetic-Holdings projection | 4 | **works** — Uniswap v2/v3, Aave v3, Lido/Rocket Pool; **fixture-driven, see below**; [`08_positions`](docs/books/08_positions.ipynb) |
-| Embedding: `from auradefi import Auradefi`, host-owned session, budgeted two-phase sync, 26-metric scalar projection | 5 | **RED on this branch** — the 0.1.1 sync fixes (#18/#21/#24) are in `embed/` and their recorded fixture has not been re-recorded to match the new backfill window, so the engine is currently losing rows against it; see [`STATUS.md`](STATUS.md). Chain-scoped connection ids, restart resume and per-connection failure isolation are demonstrated in [`docs/examples/quickstart.py`](docs/examples/quickstart.py); [`09_embedding`](docs/books/09_embedding.ipynb) does **not** execute clean |
+| Embedding: `from auradefi import Auradefi`, host-owned session, budgeted two-phase sync, 26-metric scalar projection | 5 | **works** — chain-scoped connection ids, restart resume enumerated from the state port, and one connection's failure contained to its own row (0.1.1 #18/#21/#24/#26); [`09_embedding`](docs/books/09_embedding.ipynb), [`02_embed_in_your_backend.py`](examples/02_embed_in_your_backend.py) |
 | Bitcoin: pure-Python BIP32 xpub derivation, gap-20 scan, confirmed-only UTXO balances | 6 | **works** — p2wpkh + Esplora only; the extended key never reaches HTTP; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
 | Solana: SPL + Token-2022 balances, ScaledUiAmount carried both ways, signature history | 7 | **works** — balances only, no decode; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
 | HTTP API: Plaid `/crypto/sync` envelope, connections, `/coverage` generated as data, nine quota headers, batch holdings | 8 | **works** — [`12_http_api`](docs/books/12_http_api.ipynb) |
@@ -165,6 +200,12 @@ docker compose run --rm demo    # quickstart against the installed wheel
 
 ## Docs
 
+Everything below is published at
+**[auracarehq.github.io/auradefi](https://auracarehq.github.io/auradefi/)**,
+built from this repository by `scripts/build_site.py` with every example
+executed at build time.
+
+- [`examples/`](examples) — eleven single-file recipes, offline, CI-executed
 - [`docs/SPEC.md`](docs/SPEC.md) — the design contract
 - [`docs/books/`](docs/books) — twelve executable notebooks, run headlessly in
   CI so they cannot rot

@@ -33,6 +33,10 @@ dependencies = [
 [project.optional-dependencies]
 sql = ["sqlmodel>=0.0.16"]
 api = ["fastapi>=0.115"]
+# Everything `scripts/build_site.py` needs. Notebooks are read as JSON and
+# pages are plain strings, so there is no site generator and no template
+# engine here: markdown-it-py renders prose, Pygments colours code.
+docs = ["markdown-it-py>=3", "Pygments>=2.17"]
 dev = [
   "fastapi>=0.115",
   "pytest>=8",
@@ -47,6 +51,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/auracarehq/auradefi"
+Documentation = "https://auracarehq.github.io/auradefi/"
 Source = "https://github.com/auracarehq/auradefi"
 Issues = "https://github.com/auracarehq/auradefi/issues"
 
@@ -54,7 +59,10 @@ Issues = "https://github.com/auracarehq/auradefi/issues"
 packages = ["src/auradefi"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/auradefi", "tests", "docs", "README.md", "CHANGELOG.md", "LICENSE"]
+include = [
+  "src/auradefi", "tests", "docs", "examples", "scripts",
+  "README.md", "CHANGELOG.md", "STATUS.md", "LICENSE",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

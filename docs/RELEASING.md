@@ -17,7 +17,7 @@ bash scripts/run_books.sh             # every PyBook executed headlessly
 `release_check.sh` builds the sdist + wheel, runs `twine check`, verifies
 the wheel's contents (`py.typed` in, `tests/` out), installs the wheel into
 a **fresh** venv with only core dependencies, and runs
-`docs/examples/quickstart.py` against it — which is why the quickstart must
+`examples/quickstart.py` against it — which is why the quickstart must
 degrade gracefully when the `[sql]` and `[api]` extras are absent.
 
 ```bash

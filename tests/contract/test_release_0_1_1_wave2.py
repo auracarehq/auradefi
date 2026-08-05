@@ -7,7 +7,7 @@ every test below asserts a VALUE a caller can observe: the rows read back,
 the id handed out, the flag the report shows. Never the absence of an error.
 
 Written blind from docs/RELEASE_0.1.1.md, docs/SPEC.md §8, docs/DECISIONS.md
-and the published surface (README.md, docs/books/, docs/examples/quickstart.py).
+and the published surface (README.md, docs/books/, examples/quickstart.py).
 Nothing under src/auradefi was read; every expected id is derived from the
 formula pinned in DECISIONS.md, never by calling the code under test.
 """
