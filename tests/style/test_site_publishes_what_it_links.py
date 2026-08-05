@@ -49,6 +49,7 @@ PUBLISHED_SOURCES = (
     "docs/quickstart.md",
     "docs/authentication.md",
     "docs/bring-your-own.md",
+    "docs/schema.md",
 )
 
 

@@ -124,6 +124,8 @@ def collect(run_examples: bool) -> list[Page]:
          "What credentials you need — at most one, and it is optional."),
         ("docs/bring-your-own.md", "Bring your own",
          "Your API, your database, your prices: every port and its methods."),
+        ("docs/schema.md", "Database schema",
+         "Two tables, as SQL you can paste into your own migration."),
     ):
         body, outline = render_markdown(REPO / source, source, 0)
         pages.append(Page(f"{Path(source).stem}.html", title, body, outline,

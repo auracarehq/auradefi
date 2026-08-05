@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 
-from sqlalchemy import Index
+from sqlalchemy import BigInteger, Index
 from sqlmodel import Field, SQLModel
 
 from auradefi.errors import ValidationError
@@ -47,17 +47,23 @@ class LedgerTransactionRow(SQLModel, table=True):
         ),
     )
 
+    # BIGINT, not INTEGER, on every numeric column. Python `int` maps to
+    # SQLAlchemy `Integer`, which is int4 on Postgres — and a millisecond
+    # epoch (1_754_000_000_000) overflows int4 by 816x, so the FIRST insert
+    # would fail with "integer out of range". sqlite never noticed because
+    # its INTEGER affinity is already 8 bytes, which is why a green suite
+    # coexisted with a backend that could not run on Postgres at all.
     tenant_id: str = Field(primary_key=True)
     id: str = Field(primary_key=True)
     chain_id: str
     tx_hash: str
     account_id: str
-    block_number: int | None = None
-    initiated_at: int
-    confirmed_at: int | None = None
+    block_number: int | None = Field(default=None, sa_type=BigInteger)
+    initiated_at: int = Field(sa_type=BigInteger)
+    confirmed_at: int | None = Field(default=None, sa_type=BigInteger)
     entries_json: str
     removed: bool = False
-    last_modified_seq: int
+    last_modified_seq: int = Field(sa_type=BigInteger)
 
 
 class TenantSeqRow(SQLModel, table=True):
@@ -70,7 +76,7 @@ class TenantSeqRow(SQLModel, table=True):
     __tablename__ = "auradefi_ledger_seqs"
 
     tenant_id: str = Field(primary_key=True)
-    seq: int
+    seq: int = Field(sa_type=BigInteger)   # BIGINT: see the row above
 
 
 def encode_entries(entries: Sequence[Entry]) -> str:
