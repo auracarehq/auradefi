@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from auradefi.errors import CaipParseError
+from auradefi.errors import CaipParseError, CurrencyMismatchError
 from auradefi.money.fiat import Money
 from auradefi.prices.inquirer import Inquirer, PriceOracle
 
@@ -223,3 +223,38 @@ def test_inquirer_module_imports_no_oracle_module():
         f"inquirer.py must not import any oracle module (structural seam): "
         f"{offenders}"
     )
+
+
+# ------------------------------------------------------------- §5 #23 USD
+
+
+def test_a_non_usd_quote_is_refused_and_names_the_oracle():
+    # pins: the oracle contract this module documents ("every returned Money
+    #       has currency USD") is ENFORCED, not merely stated. Unenforced, a
+    #       EUR quote reached portfolio.holdings, which multiplied it by a
+    #       quantity and stamped the product "USD" — a total wrong by the FX
+    #       rate, labelled as dollars, absent from `unpriced`, nothing
+    #       raised. Oracles are host-supplied, so this boundary is the one
+    #       place every composed oracle's output passes through.
+    class EuroOracle:
+        def usd_prices(self, caip19s):  # noqa: ANN001
+            return {caip19s[0]: Money(Decimal("2000"), "EUR")}
+
+    inquirer = Inquirer([EuroOracle()])
+
+    with pytest.raises(CurrencyMismatchError) as excinfo:
+        inquirer.usd_prices([ETH])
+
+    assert "EuroOracle" in str(excinfo.value)
+    assert "EUR" in str(excinfo.value)
+
+
+def test_a_usd_quote_passes_through_untouched():
+    # The control: the guard must not disturb a conforming oracle.
+    class UsdOracle:
+        def usd_prices(self, caip19s):  # noqa: ANN001
+            return {caip19s[0]: Money(Decimal("2000"), "USD")}
+
+    assert Inquirer([UsdOracle()]).usd_prices([ETH]) == {
+        ETH: Money(Decimal("2000"), "USD")
+    }
