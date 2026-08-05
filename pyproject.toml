@@ -51,7 +51,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/auracarehq/auradefi"
-Documentation = "https://auracarehq.github.io/auradefi/"
+Documentation = "https://auradefi.info/"
 Source = "https://github.com/auracarehq/auradefi"
 Issues = "https://github.com/auracarehq/auradefi/issues"
 

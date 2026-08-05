@@ -47,6 +47,10 @@ STYLE = Path(__file__).resolve().parent / "site_style.css"
 TAGLINE = ("Open-source multi-tenant crypto data aggregator: Vezgo's "
            "tenancy, DeBank's DeFi depth, Plaid's wire format.")
 
+#: Where the site is served. Written into the artifact as `CNAME`, which is
+#: what GitHub Pages reads to keep serving auradefi.info after a deploy.
+CUSTOM_DOMAIN = "auradefi.info"
+
 #: Examples needing an optional extra, and the import that proves it is there.
 EXTRA_FOR = {"04_persist_to_your_database.py": ("sqlmodel", "[sql]"),
              "05_serve_the_http_api.py": ("fastapi", "[api]")}
@@ -324,6 +328,11 @@ def main() -> int:
     (OUT / "style.css").write_text(
         STYLE.read_text(encoding="utf-8") + "\n" + pygments_css(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("", encoding="utf-8")
+    # The custom domain travels WITH the artifact. GitHub Pages also stores it
+    # in repository settings, but an Actions deployment publishes whatever the
+    # artifact contains, and a deploy without this file can drop the domain
+    # back to auracarehq.github.io. Keep it identical to the Pages setting.
+    (OUT / "CNAME").write_text(f"{CUSTOM_DOMAIN}\n", encoding="utf-8")
     total = sum(path.stat().st_size for path in OUT.rglob("*") if path.is_file())
     print(f"built {len(pages)} pages into {OUT.relative_to(REPO)} "
           f"({total / 1024:.0f} KiB, no external requests)")

@@ -27,7 +27,7 @@ shell over the same importable core.
 > [`STATUS.md`](docs/internal/STATUS.md) carries the live gate state, and
 > [`docs/internal/SPEC.md`](docs/internal/SPEC.md) is the design contract.
 
-**[Documentation site →](https://auracarehq.github.io/auradefi/)** carries the
+**[Documentation site →](https://auradefi.info/)** carries the
 examples, the twelve executable notebooks and the full reference, rendered
 with every example's real output.
 
@@ -72,7 +72,7 @@ stale example fails the build.
 | [`10_scan_bitcoin_and_solana.py`](examples/10_scan_bitcoin_and_solana.py) | an xpub that never leaves the process, and Token-2022 |
 
 [`examples/README.md`](examples/README.md) annotates the index, and the
-[documentation site](https://auracarehq.github.io/auradefi/examples/) renders
+[documentation site](https://auradefi.info/examples/) renders
 every example with its real output.
 
 ## Using it
@@ -203,25 +203,25 @@ docker compose run --rm demo    # quickstart against the installed wheel
 
 ## Docs
 
-**[auracarehq.github.io/auradefi](https://auracarehq.github.io/auradefi/)** is
+**[auradefi.info](https://auradefi.info/)** is
 built from this repository, with every example executed at build time and
 every signature generated from the code.
 
 Start here:
 
-- [Quickstart](https://auracarehq.github.io/auradefi/quickstart.html): five
+- [Quickstart](https://auradefi.info/quickstart.html): five
   lines, no credentials
-- [Authentication & keys](https://auracarehq.github.io/auradefi/authentication.html):
+- [Authentication & keys](https://auradefi.info/authentication.html):
   what you need before mainnet (at most one key, and it is optional)
-- [Bring your own](https://auracarehq.github.io/auradefi/bring-your-own.html):
+- [Bring your own](https://auradefi.info/bring-your-own.html):
   your API, your database, your prices, with every port and its methods
-- [Guides](https://auracarehq.github.io/auradefi/examples/index.html):
+- [Guides](https://auradefi.info/examples/index.html):
   [`examples/`](examples), eleven single files that run offline
-- [API reference](https://auracarehq.github.io/auradefi/reference/index.html):
+- [API reference](https://auradefi.info/reference/index.html):
   signatures, parameters, return fields, exceptions
-- [HTTP API](https://auracarehq.github.io/auradefi/http.html): Plaid's wire
+- [HTTP API](https://auradefi.info/http.html): Plaid's wire
   format, plus `openapi.json`
-- [Errors](https://auracarehq.github.io/auradefi/errors.html): every
+- [Errors](https://auradefi.info/errors.html): every
   exception and its HTTP status
 
 Also in the repository:
