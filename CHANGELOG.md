@@ -5,6 +5,102 @@ follow SemVer once past 1.0.
 
 ## [Unreleased]
 
+## [0.1.1]
+
+A correctness release. 0.1.0 is published and **should not be used**: an
+independent adversarial review found nineteen verified defects, none of
+which failed a test (`docs/RELEASE_0.1.1.md` is the full accounting). This
+section covers the identity, persistence and sync-correctness half — waves A
+and B of that document's §5. Four of the six were **silent**: they lost
+transactions or returned empty results while reporting success.
+
+### Upgrading — 0.1.0 embed data is NOT portable
+
+Read this before upgrading a host that ingested through the **library**
+(`from auradefi import Auradefi`); hosts that only used the HTTP API are
+unaffected.
+
+- The embed **connection id** is now chain-scoped
+  (`sha256("embed|{tenant_id}|address|{chain_id}|{address}")`), so every
+  0.1.0 embed connection id re-derives on the next connect.
+- That id **is** the ledger `account_id` that `transaction_id` hashes
+  (`chain_id|tx_hash|account_id`), so **every transaction id of a
+  library-ingested row re-derives with it**. Rows written by 0.1.0 keep the
+  old chainless `account_id`, so they stop matching into holdings and
+  metrics, and re-ingesting the same history arrives as fresh rows rather
+  than as idempotent redeliveries.
+- **Tenant** ids are unchanged under the default project id (`"embed"`), so
+  0.1.0 rows remain addressable *by tenant* — just not by `account_id`.
+- A host with library-ingested data in place either re-derives those account
+  and transaction ids in a migration, or accepts the old rows as orphaned
+  history. There is no in-package migration.
+
+### Changed — breaking
+
+- **`SyncStatePort` grew a fifth method, `tenants()`.** The published,
+  `runtime_checkable` Protocol a host may implement now requires it, and
+  `Auradefi.__init__` checks for it at **bind** time: a store written
+  against the 0.1.0 four-method shape raises `ValidationError` naming the
+  missing method instead of binding cleanly and reporting `no_op=True`
+  forever. `connections(tenant_id)` needs the tenant already known, so with
+  only four methods nothing in a restarted process could ask the store what
+  work it held.
+- **`ConnectionSyncReport` gained `failed: bool = False`**, and
+  `SyncReport` a derived `failed_connections` property. `failed` and `no_op`
+  are mutually exclusive — "I could not do it" is not "nothing needed
+  doing", and a row claiming both raises `ValidationError`.
+- `embed.models.derive_connection_id` takes `chain_id`;
+  `derive_tenant_id` takes an optional `project_id`.
+
+### Fixed
+
+- **#19 — the library and the HTTP API addressed different tenants.** The
+  facade keyed rows by `sha256("embed|{external_user_id}")` while
+  `GET /crypto/sync` keyed them by `sha256("{project_id}|…")`: ingest with
+  the library, read over HTTP, and the client saw an account with **zero
+  transactions, forever**, with no error on either side. There is now one
+  derivation, threaded from the new `Settings.project_id` (default
+  `"embed"`, the 0.1.0 value).
+- **#26 — a connection id dropped `chain_id`.** The same address could be
+  watched on exactly one chain — the second connect returned a
+  `ConflictError` naming an id the caller already owned — and two chains
+  would have shared one sync cursor. One address on two chains is now two
+  connections with independent cursors.
+- **#18 — backfill dropped transactions and reported success.** The window
+  restarted strictly *below* the lowest block ingested, so when a page
+  ended inside a block the rest of that block was never fetched, and
+  `backfill_complete` still flipped to `True`. Permanent, unrecoverable,
+  silent. The boundary block is now inclusive and de-duplication is by
+  transaction id rather than by treating `block_number` as a unique cursor.
+- **#21 — `sync()` no-opped after a restart.** Connections were enumerated
+  from an in-process list, so a restarted worker returned
+  `SyncReport(no_op=True)` — success-shaped — while ingesting nothing,
+  forever. They are enumerated from the injected `SyncStatePort`.
+- **#24 — an unseeded chain connected, then broke the whole sync loop.**
+  Only the CAIP-2 *shape* was validated, so connecting an address on a chain
+  absent from `ChainRegistry` succeeded and every later `sync()` raised
+  `UnknownChainError` — starving **every other connection** as the
+  exception escaped the loop. `connect_address` now checks registry
+  membership, and one connection's `AuradefiError` is filed as
+  `ConnectionSyncReport.failure` (costing one budget unit) instead of
+  aborting the tick. A non-`AuradefiError` still propagates: a bug is not
+  an API contract.
+- **#22 — an orphaned transaction could never be resurrected.**
+  `plan_reorg` decided re-add by `payload_equal`, which ignores the
+  `removed` flag, so a transaction orphaned by an earlier reorg and back
+  on-chain **unchanged** landed in neither bucket and stayed `removed=True`
+  forever. The stored `removed` flag is now part of the re-add decision.
+
+### Documentation
+
+- `docs/DECISIONS.md` pins the three 0.1.1 decisions (embed id derivation,
+  the sync loop's containment rules, the `SyncStatePort` version break).
+- Three new style gates keep the docs from drifting: a version pinned in
+  DECISIONS must own a CHANGELOG section and announce a portability break
+  (`tests/style/test_release_note_companions.py`), and an executable doc may
+  not pin a retired derived value or a stale dataclass repr
+  (`tests/style/test_docs_pin_live_values.py`).
+
 ## [0.1.0] — in progress
 
 The first release implements all ten SPEC phases. 3,027 tests pass on a

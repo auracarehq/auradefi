@@ -9,10 +9,15 @@ exchange data in one schema downstream.
 directly and pays no serialisation or network cost; the HTTP API is a thin
 shell over the importable core.
 
-> Status: alpha. All ten SPEC phases are implemented — **3,027 tests, green
-> on a fresh clone with no API keys and no network**. The capability table
-> below says exactly what that does and does not mean;
-> [`STATUS.md`](STATUS.md) records the phase gates and known caveats, and
+> Status: alpha. All ten SPEC phases are implemented and the 0.1.0 release
+> gate was green offline on a fresh clone with no API keys.
+>
+> **Do not use 0.1.0.** An independent adversarial review found nineteen
+> verified defects in it — five security, four silent data loss — none of
+> which failed a test. [`docs/RELEASE_0.1.1.md`](docs/RELEASE_0.1.1.md) is
+> the full accounting and 0.1.1 is the fix release, **in progress**.
+> [`STATUS.md`](STATUS.md) carries the live test count and which of those
+> fixes have landed; the capability table below says what works today, and
 > [`docs/SPEC.md`](docs/SPEC.md) is the full design contract.
 
 ## Install
@@ -28,7 +33,7 @@ From a clone (no pip on your system python? `scripts/bootstrap.sh` handles it):
 ```bash
 git clone https://github.com/auracarehq/auradefi
 cd auradefi && bash scripts/bootstrap.sh
-.venv/bin/pytest                              # 3,027 tests, offline, no keys
+.venv/bin/pytest                              # the whole suite, offline, no keys
 .venv/bin/python docs/examples/quickstart.py  # every phase, end to end
 ```
 
@@ -83,7 +88,7 @@ runs offline and asserts its own outputs, plus a gate test under `tests/`.
 | Tenancy: org/project/end-user, scoped `adk_` keys, `authEndpoint` JWT mint, three-window quota, audit log | 2 | **works** — isolation gate actively tries to leak; [`06_tenancy`](docs/books/06_tenancy.ipynb) |
 | Rich transactions: `parts[]`/`acts[]`, fees as siblings carrying `borne_by`, derived `type`, ledger bridge, reorg + resurrection | 3 | **works** — EVM only, one act per transaction; [`07_transactions`](docs/books/07_transactions.ipynb) |
 | DeFi positions: adapter protocol, drill-down, group totals + health factor, signed synthetic-Holdings projection | 4 | **works** — Uniswap v2/v3, Aave v3, Lido/Rocket Pool; **fixture-driven, see below**; [`08_positions`](docs/books/08_positions.ipynb) |
-| Embedding: `from auradefi import Auradefi`, host-owned session, budgeted two-phase sync, 26-metric scalar projection | 5 | **works** — second sync is a no-op proven by counting requests; [`09_embedding`](docs/books/09_embedding.ipynb) |
+| Embedding: `from auradefi import Auradefi`, host-owned session, budgeted two-phase sync, 26-metric scalar projection | 5 | **RED on this branch** — the 0.1.1 sync fixes (#18/#21/#24) are in `embed/` and their recorded fixture has not been re-recorded to match the new backfill window, so the engine is currently losing rows against it; see [`STATUS.md`](STATUS.md). Chain-scoped connection ids, restart resume and per-connection failure isolation are demonstrated in [`docs/examples/quickstart.py`](docs/examples/quickstart.py); [`09_embedding`](docs/books/09_embedding.ipynb) does **not** execute clean |
 | Bitcoin: pure-Python BIP32 xpub derivation, gap-20 scan, confirmed-only UTXO balances | 6 | **works** — p2wpkh + Esplora only; the extended key never reaches HTTP; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
 | Solana: SPL + Token-2022 balances, ScaledUiAmount carried both ways, signature history | 7 | **works** — balances only, no decode; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
 | HTTP API: Plaid `/crypto/sync` envelope, connections, `/coverage` generated as data, nine quota headers, batch holdings | 8 | **works** — [`12_http_api`](docs/books/12_http_api.ipynb) |
@@ -116,6 +121,15 @@ Stated plainly, because rule #10 cuts both ways.
   history only.
 - No async surface, no background worker, no scheduler: the host owns the
   tick.
+- **No migration for the 0.1.1 embed id break.** Library-ingested embed
+  connection ids — and every `transaction_id` hashed over them — re-derive in
+  0.1.1, so 0.1.0 rows written through `Auradefi` stop matching. A host either
+  re-derives them itself or accepts the old rows as orphaned history
+  (`CHANGELOG.md`, *Upgrading*). Data written through the **HTTP API** is
+  unaffected.
+- **`SyncStatePort` is a five-method Protocol in 0.1.1** (`tenants()` was
+  added). A host store written against the 0.1.0 four-method shape is refused
+  at bind time rather than silently syncing nothing.
 
 ## The rules the code lives by
 
@@ -143,6 +157,10 @@ docker compose run --rm demo    # quickstart against the installed wheel
 - [`STATUS.md`](STATUS.md) — phase gates and known caveats
 - [`docs/AGENT_PROMPTS.md`](docs/AGENT_PROMPTS.md) — the agent loop that builds this repo, with copy-paste prompts
 - [`docs/RELEASING.md`](docs/RELEASING.md) — pip + Docker release procedure
+- [`docs/RELEASE_0.1.1.md`](docs/RELEASE_0.1.1.md) — every defect found in
+  0.1.0, its fix and the regression-test protocol
+- [`CHANGELOG.md`](CHANGELOG.md) — what changed per release, including the
+  0.1.1 upgrade note
 
 ## Licence
 

@@ -1,16 +1,25 @@
 """Golden vectors and invariants for auradefi.embed.models (SPEC §8, §7.1).
 
 The id literals below were derived INDEPENDENTLY of the code under test,
-via ``python3 -c`` over the algorithms pinned in docs/DECISIONS.md, with
-project id fixed to ``"embed"``:
+via ``python3 -c`` over the algorithms pinned in docs/DECISIONS.md:
 
-    tenant_id     = "usr_"  + sha256(f"embed|{external_user_id}".encode()).hexdigest()[:16]
-    connection_id = "conn_" + sha256(f"embed|{tenant_id}|address|{normalized}".encode()).hexdigest()[:16]
+    tenant_id     = "usr_"  + sha256(f"{project_id}|{external_user_id}".encode()).hexdigest()[:16]
+    connection_id = "conn_" + sha256(f"embed|{tenant_id}|address|{chain_id}|{normalized}".encode()).hexdigest()[:16]
     normalized    = address.strip(), lowercased iff it startswith "0x"
 
+``project_id`` defaults to ``"embed"`` — the 0.1.0 value, so library data
+written before 0.1.1 stays addressable (RELEASE_0.1.1 §5 #19) — and a
+host that also runs the HTTP API sets ``Settings.project_id`` to its real
+project so both surfaces hash the same tenant.
+
+The connection id carries ``chain_id`` (RELEASE_0.1.1 §5 #26): without it
+one address could be connected on exactly one chain, and two chains would
+share one sync cursor. That segment is a DELIBERATE divergence from
+``tenancy.connection_id``, which has none; tests/golden/test_embed_ids.py
+records the retirement of that half of the duplication waiver.
+
 A stability contract is a hardcoded string, not a call to the function
-under test. These pin the DECISIONS duplication waiver: embed's local
-copies must produce the same bytes as the tenancy formulas forever.
+under test.
 """
 
 from __future__ import annotations
@@ -37,6 +46,10 @@ USR_1 = "usr_1e63721d071ea2d9"  # embed | host-user-1
 USR_2 = "usr_d6ace495d5f89481"  # embed | host-user-2
 USR_MAX = "usr_1b449786b9a4c12c"  # embed | "z" * 128
 
+PROJECT_X = "proj_9f8e7d6c5b4a3928"  # a host's REAL project id
+USR_1_UNDER_X = "usr_2d8ea8d7f9c2c31e"  # PROJECT_X | host-user-1
+USR_2_UNDER_X = "usr_0833f2095815e9b5"  # PROJECT_X | host-user-2
+
 ADDR = "0x" + "1" * 40
 ADDR_2 = "0x" + "2" * 40
 MIXED_CASE_ADDRESS = "0xAbCdEf" + "1" * 34
@@ -44,12 +57,22 @@ UPPER_HEX_ADDRESS = "0xABCDEF" + "1" * 34
 LOWERED_ADDRESS = "0xabcdef" + "1" * 34
 SOLANA_ADDRESS = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 
-CONN_ADDR = "conn_b116094c537a85e6"  # embed | USR_1 | address | ADDR
-CONN_MIXED = "conn_b5d62ac34b85acb6"  # embed | USR_1 | address | lowered mixed
-CONN_ADDR_2 = "conn_3a8b8993bc6953a9"  # embed | USR_1 | address | ADDR_2
-CONN_UNDER_USR_2 = "conn_41ee2cd106c1f426"  # embed | USR_2 | address | ADDR
-CONN_SOL = "conn_afea59bc61c58c1f"  # embed | USR_1 | address | SOLANA verbatim
-CONN_SOL_LOWERED = "conn_86dedf519e6d918e"  # embed | USR_1 | address | solana lowered
+CHAIN = "eip155:1"
+CHAIN_POLYGON = "eip155:137"
+CHAIN_SOLANA = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
+
+# embed | tenant | address | chain | normalized-descriptor
+CONN_ADDR = "conn_d0327e21d9b0ea55"  # USR_1 | eip155:1 | ADDR
+CONN_ADDR_POLYGON = "conn_acb7e927076b309e"  # USR_1 | eip155:137 | ADDR
+CONN_MIXED = "conn_6b627bb29f855dd2"  # USR_1 | eip155:1 | lowered mixed
+CONN_ADDR_2 = "conn_f43b49b47d7e5802"  # USR_1 | eip155:1 | ADDR_2
+CONN_UNDER_USR_2 = "conn_728f32d3a4f2e4f4"  # USR_2 | eip155:1 | ADDR
+CONN_SOL = "conn_a683a123e9b8a8dd"  # USR_1 | solana:… | SOLANA verbatim
+CONN_SOL_LOWERED = "conn_a656fc7b897f7b8d"  # USR_1 | solana:… | solana lowered
+
+# The 0.1.0 chainless id for (USR_1, ADDR) — kept ONLY to prove the
+# chain segment actually moved the hash (RELEASE_0.1.1 §5 #26).
+CONN_ADDR_0_1_0 = "conn_b116094c537a85e6"
 
 MS = 1_754_000_000_000  # ms-epoch, matches the repo's frozen clock era
 HEX_DIGITS = set("0123456789abcdef")
@@ -159,41 +182,97 @@ class TestDeriveTenantId:
         assert len(got) == 20
 
 
+class TestDeriveTenantIdProject:
+    """RELEASE_0.1.1 §5 #19 — the project id is the host's, not a constant."""
+
+    # pins: derive_tenant_id's project id defaults to "embed", so a tenant
+    #       derived by 0.1.0 resolves to the same string in 0.1.1.
+    def test_the_default_project_is_the_0_1_0_value(self):
+        assert derive_tenant_id("host-user-1") == USR_1
+        assert derive_tenant_id("host-user-1", EMBED_PROJECT_ID) == USR_1
+
+    # pins: an explicit project id is hashed as the FIRST segment, so a host
+    #       running the library under its real project derives that project's
+    #       tenant rather than "embed"'s.
+    def test_an_explicit_project_id_is_hashed_into_the_tenant(self):
+        got = derive_tenant_id("host-user-1", project_id=PROJECT_X)
+        assert got == USR_1_UNDER_X
+        assert got != USR_1
+
+    # pins: the project id is identity-bearing on BOTH axes — two projects
+    #       never share a tenant and two users never share one either.
+    def test_project_and_user_are_both_identity_bearing(self):
+        assert derive_tenant_id("host-user-2", project_id=PROJECT_X) == USR_2_UNDER_X
+        assert len({USR_1, USR_2, USR_1_UNDER_X, USR_2_UNDER_X}) == 4
+
+    # pins: the opaque-id charset is enforced whatever the project id is — a
+    #       configurable project must not open a hole in the §7.2 invariant.
+    def test_the_charset_invariant_survives_a_custom_project(self):
+        with pytest.raises(ValidationError):
+            derive_tenant_id("user@example.dev", project_id=PROJECT_X)
+
+
 class TestDeriveConnectionId:
+    # pins: the pinned chain-scoped formula, byte for byte.
     def test_pinned_golden_vector(self):
-        assert derive_connection_id(USR_1, ADDR) == CONN_ADDR
+        assert derive_connection_id(USR_1, ADDR, CHAIN) == CONN_ADDR
+
+    # pins: the chain travels in the hash — the SAME tenant and address on a
+    #       second chain is a DIFFERENT connection (RELEASE_0.1.1 §5 #26).
+    def test_the_same_address_on_another_chain_is_another_id(self):
+        polygon = derive_connection_id(USR_1, ADDR, CHAIN_POLYGON)
+        assert polygon == CONN_ADDR_POLYGON
+        assert polygon != CONN_ADDR
+
+    # pins: the chain segment actually moved the hash off the 0.1.0 value —
+    #       0.1.0 connection ids are NOT portable to 0.1.1.
+    def test_the_id_is_no_longer_the_0_1_0_chainless_hash(self):
+        assert CONN_ADDR != CONN_ADDR_0_1_0
+        assert derive_connection_id(USR_1, ADDR, CHAIN) != CONN_ADDR_0_1_0
+
+    # pins: chain_id is nameable as a keyword, so a call site cannot swap it
+    #       with the address and still derive an id.
+    def test_chain_id_is_a_named_parameter(self):
+        assert derive_connection_id(USR_1, ADDR, chain_id=CHAIN) == CONN_ADDR
 
     def test_whitespace_padded_address_yields_the_same_id(self):
-        assert derive_connection_id(USR_1, f"  {ADDR}\n") == CONN_ADDR
+        assert derive_connection_id(USR_1, f"  {ADDR}\n", CHAIN) == CONN_ADDR
 
     def test_mixed_case_uppercase_hex_and_lowercase_all_yield_the_same_id(self):
-        assert derive_connection_id(USR_1, MIXED_CASE_ADDRESS) == CONN_MIXED
-        assert derive_connection_id(USR_1, UPPER_HEX_ADDRESS) == CONN_MIXED
-        assert derive_connection_id(USR_1, LOWERED_ADDRESS) == CONN_MIXED
+        assert derive_connection_id(USR_1, MIXED_CASE_ADDRESS, CHAIN) == CONN_MIXED
+        assert derive_connection_id(USR_1, UPPER_HEX_ADDRESS, CHAIN) == CONN_MIXED
+        assert derive_connection_id(USR_1, LOWERED_ADDRESS, CHAIN) == CONN_MIXED
 
     def test_other_address_differs(self):
-        got = derive_connection_id(USR_1, ADDR_2)
+        got = derive_connection_id(USR_1, ADDR_2, CHAIN)
         assert got == CONN_ADDR_2
         assert got != CONN_ADDR
 
     def test_tenant_id_is_identity_bearing(self):
-        got = derive_connection_id(USR_2, ADDR)
+        got = derive_connection_id(USR_2, ADDR, CHAIN)
         assert got == CONN_UNDER_USR_2
         assert got != CONN_ADDR
 
     def test_non_0x_descriptor_keeps_case(self):
         # base58 is case-significant; only 0x-prefixed input is folded.
-        assert derive_connection_id(USR_1, SOLANA_ADDRESS) == CONN_SOL
-        lowered = derive_connection_id(USR_1, SOLANA_ADDRESS.lower())
+        assert derive_connection_id(USR_1, SOLANA_ADDRESS, CHAIN_SOLANA) == CONN_SOL
+        lowered = derive_connection_id(USR_1, SOLANA_ADDRESS.lower(), CHAIN_SOLANA)
         assert lowered == CONN_SOL_LOWERED
         assert lowered != CONN_SOL
 
     def test_all_goldens_distinct(self):
-        goldens = {CONN_ADDR, CONN_MIXED, CONN_ADDR_2, CONN_UNDER_USR_2, CONN_SOL}
-        assert len(goldens) == 5
+        goldens = {
+            CONN_ADDR,
+            CONN_ADDR_POLYGON,
+            CONN_MIXED,
+            CONN_ADDR_2,
+            CONN_UNDER_USR_2,
+            CONN_SOL,
+        }
+        assert len(goldens) == 6
 
     def test_shape_is_conn_plus_16_hex_chars(self):
-        got = derive_connection_id(USR_1, ADDR)
+        got = derive_connection_id(USR_1, ADDR, CHAIN)
         assert got.startswith("conn_")
         suffix = got.removeprefix("conn_")
         assert len(suffix) == 16
@@ -362,6 +441,50 @@ class TestConnectionSyncReport:
             )
 
 
+class TestConnectionSyncReportFailure:
+    """RELEASE_0.1.1 §5 #24 — a row that failed says so, in the report."""
+
+    # pins: a row is not failed unless it says so, so every report written
+    #       before this field existed keeps meaning "this went fine".
+    def test_failed_defaults_to_false(self):
+        assert make_conn_report().failed is False
+
+    # pins: a connection whose sync raised is reported with failed=True and
+    #       zero work — the counts alone would read as a clean quiet tick.
+    def test_a_failed_row_carries_the_flag_and_no_work(self):
+        report = make_conn_report(
+            failed=True,
+            no_op=False,
+            pages_fetched=0,
+            live_pages=0,
+            backfill_pages=0,
+            transactions_ingested=0,
+        )
+        assert report.failed is True
+        assert report.no_op is False
+        assert report.transactions_ingested == 0
+
+    # pins: failed and no_op are mutually exclusive — "nothing needed doing"
+    #       and "I could not do it" are different answers and a report that
+    #       claims both is refused rather than believed.
+    def test_a_failed_row_can_never_also_be_a_no_op(self):
+        with pytest.raises(ValidationError):
+            make_conn_report(
+                failed=True,
+                no_op=True,
+                pages_fetched=0,
+                live_pages=0,
+                backfill_pages=0,
+                transactions_ingested=0,
+            )
+
+    # pins: a failed row still obeys every count invariant — failure is not a
+    #       licence to emit an incoherent partition.
+    def test_a_failed_row_still_obeys_the_partition(self):
+        with pytest.raises(ValidationError):
+            make_conn_report(failed=True, pages_fetched=4, live_pages=2, backfill_pages=1)
+
+
 class TestSyncReport:
     def test_happy_path_field_values_round_trip(self):
         report = make_report()
@@ -434,6 +557,58 @@ class TestSyncReport:
     def test_no_op_with_zero_pages_but_phase_pages_raises(self):
         with pytest.raises(ValidationError):
             SyncReport(True, 0, 1, 0, 0)
+
+
+class TestSyncReportFailedConnections:
+    """RELEASE_0.1.1 §5 #24 — the tick names the connections that failed."""
+
+    # pins: a tick with no breakdown names no failure — the field is derived
+    #       from the rows, so it can never contradict them.
+    def test_no_rows_means_no_failures(self):
+        assert make_report().failed_connections == ()
+
+    # pins: a tick whose rows all succeeded reports no failure, so a host can
+    #       branch on this instead of scanning the breakdown itself.
+    def test_all_healthy_rows_report_no_failures(self):
+        report = SyncReport.assemble([make_conn_report()])
+        assert report.failed_connections == ()
+
+    # pins: the ids of exactly the failed rows, in breakdown order — a
+    #       partial failure is nameable, not merely countable.
+    def test_only_the_failed_rows_are_named_in_order(self):
+        healthy = make_conn_report(connection_id=CONN_ADDR)
+        broken = make_conn_report(
+            connection_id=CONN_ADDR_2,
+            failed=True,
+            pages_fetched=0,
+            live_pages=0,
+            backfill_pages=0,
+            transactions_ingested=0,
+        )
+        report = SyncReport.assemble([broken, healthy])
+        assert report.failed_connections == (CONN_ADDR_2,)
+        assert report.transactions_ingested == 57
+        assert report.no_op is False
+
+    # pins: a tick in which EVERY connection failed ingested nothing and is
+    #       not a no-op — the shape a restarted worker must never mistake for
+    #       "there was nothing to do".
+    def test_a_tick_where_every_row_failed_is_not_a_no_op(self):
+        rows = [
+            make_conn_report(
+                connection_id=connection_id,
+                failed=True,
+                pages_fetched=0,
+                live_pages=0,
+                backfill_pages=0,
+                transactions_ingested=0,
+            )
+            for connection_id in (CONN_ADDR, CONN_ADDR_2)
+        ]
+        report = SyncReport.assemble(rows)
+        assert report.failed_connections == (CONN_ADDR, CONN_ADDR_2)
+        assert report.no_op is False
+        assert report.transactions_ingested == 0
 
 
 class TestImmutability:

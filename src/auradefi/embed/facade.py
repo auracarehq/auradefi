@@ -20,13 +20,18 @@ Validate at CONNECT time, not at sync time (SPEC §8): a bad chain or
 address is rejected before any HTTP, a duplicate before any HTTP, and a
 live source failure surfaces from ``connect_address`` — a connector that
 accepts anything and fails silently on a background tick hours later is
-the worst failure mode for an embedding host.
+the worst failure mode for an embedding host — and "a bad chain" now
+includes one the ``ChainRegistry`` does not hold, since the decoder needs
+that entry (RELEASE_0.1.1 §5 #24). Nothing durable lives in this process
+either: connections come from the injected ``SyncStatePort``, so a
+restart resumes stored work rather than reporting a success-shaped
+``no_op`` (§5 #21), and one failure stays in its own row (§5 #24).
 
 Phase 5 is single-tenant and ingests the NATIVE txlist stream only; the
 tenant id derives deterministically from the host's opaque
-``external_user_id`` (SPEC §7.1 get-or-create) and tokentx rides in later
-behind the same decoder seam. No web framework, no ORM, no ``httpx``
-anywhere in this module — the layering gate enforces it.
+``external_user_id`` (SPEC §7.1 get-or-create) under ``project_id``, and
+tokentx rides in later behind the same decoder seam. No web framework, no
+ORM, no ``httpx`` here — the layering gate enforces it.
 """
 
 from __future__ import annotations
@@ -34,8 +39,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from auradefi.chains.evm import chain_id_from_caip2, normalize_address
+from auradefi.chains.registry import ChainRegistry
 from auradefi.clock import Clock, SystemClock
 from auradefi.config import Settings
+from auradefi.embed.dispatch import run_sync
 from auradefi.embed.models import (
     ConnectionRecord,
     ConnectionSyncReport,
@@ -79,7 +86,9 @@ class Auradefi:
 
         ``clock=None`` means ``SystemClock()``, ``settings=None`` means
         ``Settings()``, ``sync_state=None`` means ``MemorySyncState()``
-        (in-process; a host that wants durable cursors binds its own).
+        (in-process; a host that wants durable cursors binds its own). A
+        pre-seeded ``ChainRegistry`` — per instance, it is mutable — is
+        built here and gates ``connect_address``.
 
         ``decoder=None`` binds the default composition LAZILY, at first
         use — ``sources.evm.txlist.parse_normal_row`` per row ->
@@ -90,22 +99,23 @@ class Auradefi:
         not satisfy both seams: the failure belongs at bind time, not at
         the first background tick.
         """
+        state = sync_state if sync_state is not None else MemorySyncState()
         seams = ((BalanceSource, "balances"), (PageFetcher, "fetch_txlist"))
         for protocol, seam in seams:
             if not isinstance(source, protocol):
                 raise ValidationError(
-                    f"source must satisfy {protocol.__name__} — it has no "
-                    f"{seam!r} method"
+                    f"source must satisfy {protocol.__name__} — no {seam!r}"
                 )
+        # §5 #21, by METHOD not isinstance: getattr_static is blind to wrappers.
+        if not callable(getattr(state, "tenants", None)):
+            raise ValidationError("sync_state has no 'tenants' — see SyncStatePort")
         self._ledger = ledger
         self._source = source
         self._prices = prices
         self._clock = clock if clock is not None else SystemClock()
         self._settings = settings if settings is not None else Settings()
-        self._sync_state = (
-            sync_state if sync_state is not None else MemorySyncState()
-        )
-        self._tenants: list[str] = []
+        self._sync_state = state
+        self._chains = ChainRegistry()
         self._engine = SyncEngine(
             ledger,
             self._sync_state,
@@ -120,15 +130,15 @@ class Auradefi:
         """Get-or-create the handle for one opaque host user id.
 
         Pure: no I/O and no persistence — the tenant id is DERIVED from
-        the id (``embed.models.derive_tenant_id``), so the same string
-        always resolves to the same tenant. Raises
-        ``auradefi.errors.ValidationError`` for anything outside the
-        pinned opaque-id charset (an email is guessable and this value is
+        the id (``embed.models.derive_tenant_id``) under
+        ``settings.project_id``, so the same string always resolves to the
+        same tenant, and to the SAME one that project's HTTP API resolves
+        it to (RELEASE_0.1.1 §5 #19). Raises
+        ``auradefi.errors.ValidationError`` for anything outside the pinned
+        opaque-id charset (an email is guessable and this is
         bearer-equivalent, so ``@`` cannot appear).
         """
-        tenant_id = derive_tenant_id(external_user_id)
-        if tenant_id not in self._tenants:
-            self._tenants.append(tenant_id)
+        tenant_id = derive_tenant_id(external_user_id, self._settings.project_id)
         return UserHandle(self, external_user_id, tenant_id)
 
     def sync(self, budget: int = 5) -> SyncReport:
@@ -143,7 +153,7 @@ class Auradefi:
         connections. Self-throttling comes from
         ``settings.sync_min_interval_s``.
         """
-        return self._run_sync(self._pairs(), budget)
+        return run_sync(self._engine, self._sync_state, self._pairs(), budget)
 
     def holdings(self) -> tuple[HoldingsReport, ...]:
         """One priced ``HoldingsReport`` per connection, creation order."""
@@ -161,34 +171,18 @@ class Auradefi:
         return self._metrics(self._pairs())
 
     def _pairs(self) -> list[tuple[str, ConnectionRecord]]:
-        """Every ``(tenant_id, connection)`` known, in creation order."""
+        """Every ``(tenant_id, connection)`` the STATE PORT holds.
+
+        Enumerated from the port in the order it reports, never from a
+        list this process built: a worker reading its tenants from
+        process memory finds none after a restart and calls that
+        ``no_op=True`` (RELEASE_0.1.1 §5 #21).
+        """
         return [
             (tenant_id, connection)
-            for tenant_id in self._tenants
+            for tenant_id in self._sync_state.tenants()
             for connection in self._sync_state.connections(tenant_id)
         ]
-
-    def _run_sync(
-        self, pairs: Sequence[tuple[str, ConnectionRecord]], budget: int
-    ) -> SyncReport:
-        """Spend one shared budget over ``pairs``; the pinned algorithm.
-
-        Connections are visited in order until the budget runs out; a
-        throttled connection spends nothing, so the next one still gets
-        the full remainder. Connections past the exhausted budget are
-        not visited and contribute no row.
-        """
-        if budget < 1:
-            raise ValidationError(f"budget must be >= 1, got {budget}")
-        remaining = budget
-        rows: list[ConnectionSyncReport] = []
-        for tenant_id, connection in pairs:
-            if remaining < 1:
-                break
-            row = self._engine.sync_connection(tenant_id, connection, remaining)
-            remaining -= row.pages_fetched
-            rows.append(row)
-        return SyncReport.assemble(rows)
 
     def _reports(
         self, pairs: Sequence[tuple[str, ConnectionRecord]]
@@ -262,8 +256,16 @@ class Auradefi:
 
         Raw Etherscan txlist rows -> ``parse_normal_row`` each ->
         ``decode_account(..., tokens=())`` -> ``to_ledger_transaction``
-        each. Phase 5 ingests the NATIVE stream only; a malformed row's
-        ``auradefi.errors.SourceError`` propagates.
+        each. Phase 5 ingests the NATIVE stream only.
+
+        A malformed row raises ``auradefi.errors.SourceError``, and this
+        function does not decide who sees it: it is a callback, so its
+        INJECTOR does. ``embed.dispatch.run_sync`` contains it and files
+        it as that connection's ``ConnectionSyncReport.failure`` row, so
+        it reaches the host as a failed row in the report rather than as
+        a raised exception (RELEASE_0.1.1 §5 #24). The docstring said
+        "propagates" before that containment existed; a callback claiming
+        an error escapes is claiming something it cannot know.
         """
         from auradefi.decode.pipeline import decode_account
         from auradefi.ledger.bridge import to_ledger_transaction
@@ -303,27 +305,33 @@ class UserHandle:
         In order, and each step before any HTTP can happen:
 
         1. ``chains.evm.chain_id_from_caip2(chain)`` — a vendor name like
-           ``"ethereum"`` raises ``auradefi.errors.CaipParseError``; then
-           ``chains.evm.normalize_address(address)`` — a non-address
+           ``"ethereum"`` raises ``auradefi.errors.CaipParseError``.
+        2. ChainRegistry MEMBERSHIP: a well-formed CAIP-2 the registry
+           does not hold raises ``auradefi.errors.UnknownChainError``
+           naming it — the decoder needs that entry, so accepting the
+           chain stores a connection every ``sync()`` fails on (§5 #24).
+        3. ``chains.evm.normalize_address(address)`` — a non-address
            raises ``auradefi.errors.ValidationError``. The normalized
            (lowercased) address is what gets stored.
-        2. The connection id is DERIVED
-           (``embed.models.derive_connection_id``), so a re-connect of
-           the same (chain, address) — in any letter case in the 40 hex
-           DIGITS — raises ``auradefi.errors.ConflictError`` carrying
-           ``existing_id`` with ZERO requests made. The ``0x`` prefix is
-           NOT case-insensitive: ``0X…`` never reaches this step,
-           because step 1's ``normalize_address`` rejects it first.
-        3. A liveness probe: EXACTLY one request. Its
+        4. The connection id is DERIVED
+           (``embed.models.derive_connection_id``) and CHAIN-SCOPED, so a
+           re-connect of the same (chain, address) — in any letter case in
+           the 40 hex DIGITS — raises ``auradefi.errors.ConflictError``
+           carrying ``existing_id`` with ZERO requests made, while the
+           SAME address on ANOTHER chain is a second, independent
+           connection (§5 #26). The ``0x`` prefix is NOT
+           case-insensitive: ``0X…`` never reaches here, step 3 rejects it.
+        5. A liveness probe: EXACTLY one request. Its
            ``auradefi.errors.SourceError`` propagates and NOTHING is
            stored; an EMPTY result is a valid fresh address.
-        4. The ``ConnectionRecord`` is stored with
+        6. The ``ConnectionRecord`` is stored with
            ``created_at_ms = clock.now_ms()`` and returned.
         """
         facade = self._facade
         chain_id_from_caip2(chain)
+        facade._chains.get(chain)
         normalized = normalize_address(address)
-        connection_id = derive_connection_id(self.tenant_id, normalized)
+        connection_id = derive_connection_id(self.tenant_id, normalized, chain)
         for existing in self.connections():
             if existing.id == connection_id:
                 raise ConflictError(
@@ -350,7 +358,12 @@ class UserHandle:
 
     def sync(self, budget: int = 5) -> SyncReport:
         """:meth:`Auradefi.sync` restricted to THIS user's connections."""
-        return self._facade._run_sync(self._pairs(), budget)
+        return run_sync(
+            self._facade._engine,
+            self._facade._sync_state,
+            self._pairs(),
+            budget,
+        )
 
     def holdings(self) -> tuple[HoldingsReport, ...]:
         """:meth:`Auradefi.holdings` for THIS user's connections."""

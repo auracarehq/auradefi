@@ -295,6 +295,8 @@ section("phase 5: a host embeds the library and syncs on its own tick")
 
 from auradefi import Auradefi
 from auradefi.config import Settings
+from auradefi.embed.state import MemorySyncState
+from auradefi.errors import UnknownChainError
 from auradefi.sources.evm.etherscan import BalanceRecord
 
 
@@ -333,8 +335,11 @@ class HostPrices:
 
 host_clock = FrozenClock(1_754_000_000_000)
 source = HostSource()
-embedded = Auradefi(MemoryLedger(), source, HostPrices(), host_clock,
-                    Settings(sync_min_interval_s=60), sync_page_size=10)
+host_ledger = MemoryLedger()
+host_state = MemorySyncState()   # the host's cursor store; it outlives the facade
+embedded = Auradefi(host_ledger, source, HostPrices(), host_clock,
+                    Settings(sync_min_interval_s=60), sync_state=host_state,
+                    sync_page_size=10)
 user = embedded.user("host-user-1")
 connection = user.connect_address("eip155:1", ME)
 
@@ -352,6 +357,33 @@ print(f"  sync: {synced.pages_fetched} pages, {synced.transactions_ingested} tra
       f"immediate re-sync no_op={noop.no_op} with 0 extra requests")
 print(f"  holdings {holdings_report.total_value}; {len(metrics)} scalar metrics "
       f"(portfolio_value_usd={dict((m.name, m.value) for m in metrics)['portfolio_value_usd']})")
+
+# 0.1.1 (docs/RELEASE_0.1.1.md §5): the connection id is chain-scoped, an
+# unseeded chain is refused at connect, and the sync loop enumerates the
+# STATE PORT — so a restarted worker resumes stored work instead of
+# reporting a success-shaped no-op.
+polygon = user.connect_address("eip155:137", ME)
+assert polygon.id != connection.id, "#26: the same address on two chains is two connections"
+
+try:                                   # #24: not in the ChainRegistry
+    user.connect_address("eip155:42161", ME)
+    raise AssertionError("an unseeded chain must be refused at connect time")
+except UnknownChainError as exc:
+    refusal = str(exc)
+
+restarted = Auradefi(host_ledger, source, HostPrices(), host_clock,
+                     Settings(sync_min_interval_s=60), sync_state=host_state,
+                     sync_page_size=10)          # a "new process": only the state carries over
+assert host_state.tenants() == (user.tenant_id,)
+after_restart = restarted.sync(budget=3)
+assert [row.connection_id for row in after_restart.connections] == [
+    connection.id, polygon.id
+], "#21: a restart must enumerate the stored connections, not an empty in-process list"
+assert after_restart.failed_connections == ()
+print(f"  chain-scoped ids: {connection.id} (eip155:1) vs {polygon.id} (eip155:137)")
+print(f"  unseeded chain refused at connect: {refusal}")
+print(f"  after a restart, sync() enumerated {len(after_restart.connections)} stored "
+      f"connection(s) from the state port, {len(after_restart.failed_connections)} failed")
 
 
 # --------------------------------------------------------------- phase 6/7
