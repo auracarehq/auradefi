@@ -53,6 +53,10 @@ aura = Auradefi.from_env(
 Install it with `pip install 'auradefi[sql]'`. Postgres and sqlite both go
 through the same port; only sqlite is exercised in CI.
 
+Would rather own the DDL? **[Database schema](schema.html)** has both tables as
+plain SQL for Postgres and SQLite, ready for Alembic, Flyway or a reviewed
+migration — plus two things that will bite you if you hand-write it.
+
 ### Or write the port yourself
 
 Four methods, every one tenant-scoped — `tenant_id` is the first argument
