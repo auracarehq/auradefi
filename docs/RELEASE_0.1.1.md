@@ -10,10 +10,15 @@ published and should not be used" to "0.1.1 is correct and installable".
 **0.1.0 is published to PyPI and Docker Hub.** It passes 3,027 tests offline,
 its release gate is green, and it runs clean in a network-isolated container.
 
-An independent adversarial review then found **15 verified defects**, filed as
-GitHub issues **#18–#32**. Three are security, four cause silent data loss or
-silent empty results, and the rest produce wrong numbers or break any
-host-supplied implementation of a declared interface.
+Independent adversarial review then found **19 verified defects**, filed as
+GitHub issues **#18–#36**. Five are security, four cause silent data loss or
+silent empty results, and the rest produce wrong numbers, unhandled 500s, or
+break any host-supplied implementation of a declared interface.
+
+The last four (#33–#36) came from a *single-file* review of
+`api/routes/auth.py` — a whole-repo sweep had already covered that file and
+found two. Narrow scope concentrates attention: when the release work starts,
+review the touched files individually rather than in one broad pass.
 
 None of them fail a test. That is the point: every one of them is green today.
 
@@ -52,7 +57,7 @@ notifies anyone who did install it.
 
 All of the following, none assumed:
 
-1. Every issue in §4 and §5 closed, each with a regression test that **fails
+1. Every issue in §4 and §5 closed (#18–#36), each with a regression test that **fails
    against the unfixed code** (see §6).
 2. `.venv/bin/pytest` green — the count will exceed 3,027; new tests only.
 3. `bash scripts/release_check.sh` → PASSED.
@@ -94,6 +99,48 @@ rotation job silently re-privileges a key an operator revoked.
 - **Also in scope:** `revoke` and `rotate` look the key up in the global
   `self._keys` dict with **no project filter**. Add the tenant gate and a test
   that project A cannot revoke or rotate project B's key.
+
+### #33 — `POST /auth/revoke` is a cross-tenant authenticity oracle
+`src/auradefi/api/routes/auth.py:154`
+
+`_signing_secret` resolves the secret from the token's **own unverified**
+`project_id` claim, so a foreign token is verified under that project's real
+secret. The response then distinguishes three cases an outsider must not be
+able to tell apart: genuine-and-live → **404**, bad signature → **401
+AuthError**, genuine-but-expired → **401 TokenExpiredError** (separable by
+`error.type`).
+
+An attacker who registers their own free project and issues their own
+`users:admin` key can POST captured JWTs — from logs, `Referer` headers, crash
+reports — and learn which ones are authentic and still live for projects they
+hold **no credential for**, then replay only those. They cannot compute this
+offline, since they do not know the victim's signing secret.
+
+The module docstring claims another project's token is "indistinguishable from
+a token that never existed". It is plainly distinguishable from an invalid one.
+
+- **Fix:** make every failure path on this route indistinguishable — one
+  status, one error type, one timing profile — regardless of whether the token
+  was authentic, expired, foreign or forged.
+- **Test:** all four cases return byte-identical responses.
+
+### #34 — unauthenticated `RecursionError` becomes an unhandled 500
+`src/auradefi/api/routes/auth.py:148` → `src/auradefi/api/deps.py:172-188`
+
+`_peek_project_id` base64-decodes and `json.loads()`es a caller-supplied string
+guarding only `(ValueError, UnicodeDecodeError)`. A ~26 KB token of ~10,000
+nested arrays raises `RecursionError` — a `RuntimeError`, not caught — which
+escapes into an **unformatted 500** instead of the pinned
+`401 {"error": {"type": "AuthError"}}`.
+
+Reachable with **no credentials at all** via `GET /users/me`, where
+`require_user_token` peeks the raw `Authorization` header. Each request burns a
+worker unwinding a 10,000-frame C recursion and leaks a stack trace into logs.
+
+- **Fix:** bound the token length before decoding, and catch `RecursionError`
+  (or use a depth-limited parse) so malformed input is always a 401.
+- **Test:** the nested payload returns 401 with the pinned error body, on both
+  `/auth/revoke` and `/users/me`.
 
 ### #30 — audit log records a caller-controlled IP
 `src/auradefi/api/routes/auth.py:65`
@@ -226,6 +273,26 @@ hard-coded bad limit drains its per-day window and then 429s **every other user
 of the project**.
 *Fix:* validate first, as `POST /batch/holdings` already does — its
 `_checked_size` docstring states the rule.
+
+**#35 — `POST /auth/token` 500s on wire-string scopes.**
+`src/auradefi/api/routes/auth.py:113`. `{scope.value for scope in key.scopes}`
+assumes `Scope` members, while the *very next line* defensively uses
+`str(scope)`. `ApiKeyStore.issue` stores `frozenset(scopes)` with no coercion
+and `has_scope` compares with `in`, which succeeds for plain strings because
+`Scope` is a `StrEnum` — so a key rehydrated from JSON or SQL authenticates
+everywhere else and then `AttributeError`s here into an unformatted 500. Token
+minting is dead for that key while `GET /users` on it returns 200.
+*Fix:* coerce at the store boundary, and make line 113 as tolerant as line 114.
+
+**#36 — a refused mint costs the caller nothing.**
+`src/auradefi/api/routes/auth.py:115`. The three sibling handlers call
+`consume_quota` immediately after authentication; this one defers quota to
+`mint_user_token`, and the `raise ScopeError` returns before reaching it. A
+tenant can drive unlimited authenticated `POST /auth/token` requests — each one
+walking and HMAC-comparing every stored key — that always request a scope the
+key lacks, and decrement nothing.
+*Fix:* consume quota after authentication, before the privilege check, as the
+siblings do.
 
 ### Wave E — honesty
 
