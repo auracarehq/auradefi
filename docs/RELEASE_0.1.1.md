@@ -47,7 +47,8 @@ Instead:
 - Repoint or remove `latest` so it does not serve the defective build.
 - Leave `0.1.0` in place and note the defect in the repository description.
 
-**GitHub.** Consider a security advisory covering #20, #25 and #30, since the
+**GitHub.** Consider a security advisory covering #20, #25, #30, #33 and #34,
+since the
 package was publicly installable. Optional, but it is the mechanism that
 notifies anyone who did install it.
 
@@ -72,7 +73,8 @@ All of the following, none assumed:
 
 ## 4. Release blockers — security
 
-Fix these first. All three are exploitable by an ordinary caller.
+Fix these first. All five are exploitable by an ordinary caller, and #34 needs
+no credential at all.
 
 ### #20 — `scopes: []` mints a full-privilege token
 `src/auradefi/api/routes/auth.py:114`
