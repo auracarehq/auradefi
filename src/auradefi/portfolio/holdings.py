@@ -118,7 +118,14 @@ class HoldingsService:
             value = (
                 Money(
                     _exact_product(record.quantity.as_decimal(), price.amount),
-                    "USD",
+                    # The PRICE's currency, never a hardcoded "USD". Stamping
+                    # "USD" over a EUR price produced a total off by the FX
+                    # rate, labelled USD, with nothing in `unpriced` and
+                    # nothing raised — the caller could not tell it was
+                    # wrong, which is worse than no price at all. The oracle
+                    # contract says every price is USD; this stops a
+                    # violation of it from being SILENT (§5 #23).
+                    price.currency,
                 )
                 if price is not None
                 else None
