@@ -77,6 +77,16 @@ class PageFetcher(Protocol):
         history is ``[]`` — Etherscan's status-0 "No transactions found"
         is NOT an error (SPEC §3.3); a real failure raises
         ``auradefi.errors.SourceError``.
+
+        REQUIRED of the transport: successive pages of ONE window must
+        PARTITION it. For a fixed ``(start_block, end_block, sort)`` the
+        row order must be total and stable across page requests —
+        including BETWEEN transactions of the SAME block — so no row is
+        served twice and none is skipped. That is what makes a page
+        shorter than ``offset`` mean "the window drained", the signal
+        both phases stop on. A transport that reorders rows inside a
+        block between requests can hide a transaction behind a short
+        page, and the backfill would report itself complete without it.
         """
         raise NotImplementedError
 
@@ -106,6 +116,8 @@ class _Run:
     live_cursor: int = 0
     backfill_cursor: int | None = None
     backfill_complete: bool = False
+    backfill_end: int | None = None
+    backfill_page: int = 0
 
 
 def _block_numbers(rows: Sequence[dict]) -> list[int]:
@@ -199,11 +211,10 @@ class SyncEngine:
         budget cut would sit behind an advanced cursor forever. Their
         refetch next call is event-free.
 
-        BACKFILL — while budget remains and the backfill is incomplete:
-        one desc page over ``[0, backfill_cursor - 1]``;
-        ``backfill_cursor`` becomes its min block, and the backfill
-        completes on a short page or once the window would start below
-        block 0.
+        BACKFILL — while budget remains and the phase is incomplete, desc
+        pages over the FIXED window ``[0, backfill_end]``, resuming at
+        ``backfill_page + 1`` so no tick re-reads another's pages; only a
+        SHORT page completes it (see :meth:`_backfill`).
 
         Every page ingests through ``decoder`` then ``ledger.upsert`` and
         writes state, so a crash resumes at page granularity;
@@ -234,6 +245,8 @@ class SyncEngine:
             live_cursor=stored.live_cursor,
             backfill_cursor=stored.backfill_cursor,
             backfill_complete=stored.backfill_complete,
+            backfill_end=stored.backfill_end,
+            backfill_page=stored.backfill_page,
         )
         if run.backfill_cursor is None:
             self._anchor(run)
@@ -252,6 +265,14 @@ class SyncEngine:
         run.live_cursor = max(blocks) if blocks else 0
         run.backfill_cursor = min(blocks) if blocks else 0
         run.backfill_complete = len(rows) < self._page_size
+        if not run.backfill_complete:
+            # The window END is fixed HERE, for the whole phase, and never
+            # moves again: that is what keeps page numbers meaningful across
+            # ticks. It is INCLUSIVE of this block, because the anchor page
+            # may have cut it in half. A SHORT anchor page leaves it unset —
+            # there is no history left to walk, so there is no window.
+            run.backfill_end = run.backfill_cursor
+            run.backfill_page = 0
         self._persist(run)
 
     def _live(self, run: _Run) -> bool:
@@ -280,27 +301,29 @@ class SyncEngine:
         return False
 
     def _backfill(self, run: _Run) -> None:
-        """Walk history backwards until complete or out of budget.
+        """Page ONE FIXED window backwards until drained or out of budget.
 
-        ``backfill_cursor`` is the LOWEST block ingested so far, so an
-        empty page leaves it where it was — there is no older block to
-        move it to, and the page's shortness completes the phase anyway.
+        The window is ``[0, backfill_end]`` — set once by the anchor,
+        never moved — walked desc pages ``backfill_page + 1, +2, …``,
+        RESUMING across calls rather than restarting at page 1. A block is
+        not a page, and neither boundary choice on a ``min(block)`` cursor
+        can express that; ``SyncState`` carries the reasoning and
+        RELEASE_0.1.1 §5 #18 the defect. Only a SHORT page — proof the
+        window drained — completes the phase; block 0 can be split too.
         """
+        if run.backfill_end is None:  # pragma: no cover - anchor sets it
+            run.backfill_end = 0 if run.backfill_cursor is None else run.backfill_cursor
         while run.remaining > 0 and not run.backfill_complete:
-            cursor = 0 if run.backfill_cursor is None else run.backfill_cursor
-            if cursor - 1 < 0:
-                # Nothing older than block 0 can exist.
-                run.backfill_complete = True
-                self._persist(run)
-                return
+            page = run.backfill_page + 1
             rows, blocks = self._page(
-                run, start_block=0, end_block=cursor - 1, page=1, sort="desc"
+                run, start_block=0, end_block=run.backfill_end, page=page, sort="desc"
             )
             run.backfill_pages += 1
+            run.backfill_page = page
             run.ingested += self._ingest(run, rows)
-            reached = min(blocks) if blocks else cursor
-            run.backfill_cursor = reached
-            run.backfill_complete = len(rows) < self._page_size or reached - 1 < 0
+            if blocks:
+                run.backfill_cursor = min(blocks)
+            run.backfill_complete = len(rows) < self._page_size
             self._persist(run)
 
     def _page(
@@ -352,6 +375,8 @@ class SyncEngine:
                 backfill_cursor=run.backfill_cursor,
                 backfill_complete=run.backfill_complete,
                 last_sync_at_ms=run.now_ms,
+                backfill_end=run.backfill_end,
+                backfill_page=run.backfill_page,
             ),
         )
 

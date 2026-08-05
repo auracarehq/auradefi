@@ -27,6 +27,11 @@ RUN pip install --quiet .
 FROM base AS test
 COPY tests ./tests
 COPY docs ./docs
+# The suite reads repo-root prose too: tests/style/test_release_note_companions.py
+# checks that a version pinned in docs/DECISIONS.md owns a CHANGELOG section.
+# Without this COPY the container's run differs from the host's — which it did:
+# 24 failures in the image against 22 on the host.
+COPY CHANGELOG.md STATUS.md ./
 # [dev] = pytest + build/twine + nbformat/nbclient/ipykernel + fastapi + sqlmodel.
 RUN pip install --quiet ".[dev]"
 # Bare `pytest`: pyproject's addopts already carries -q, and a second -q

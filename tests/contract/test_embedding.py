@@ -18,8 +18,13 @@ Golden vectors derived independently via ``python3 -c`` from the pinned
 formulas in docs/DECISIONS.md, never regenerated from the code:
 
     usr_  = "usr_"  + sha256("embed|host-user-1")[:16]
-    conn_ = "conn_" + sha256("embed|usr_…|address|0x1111…")[:16]
-    txn_  = "txn_"  + sha256("eip155:1|0x…0001|conn_b116094c537a85e6")[:16]
+    conn_ = "conn_" + sha256("embed|usr_…|address|eip155:1|0x1111…")[:16]
+    txn_  = "txn_"  + sha256("eip155:1|0x…0001|conn_d0327e21d9b0ea55")[:16]
+
+The conn_ preimage gained its ``eip155:1`` segment in 0.1.1 (§5 #26): an
+id without it let one address be connected on only ONE chain and made two
+chains share a sync cursor. Every conn_ and txn_ literal below therefore
+changed, and 0.1.0 data is not portable — see docs/DECISIONS.md.
 
 Holdings: 2 ETH @ 2500 + 25 USDC @ 1 = 5025 USD exactly (Decimal, never
 float). Transactions: 7, one per hour from 1700000000 (UTC hour 22)
@@ -62,16 +67,16 @@ BASE_URL = "https://api.etherscan.io/v2/api"
 NO_TRANSACTIONS = "No transactions found"
 
 TENANT = "usr_1e63721d071ea2d9"
-CONNECTION_ID = "conn_b116094c537a85e6"
+CONNECTION_ID = "conn_d0327e21d9b0ea55"
 # One id per cassette hash 0x…0001 .. 0x…0007, ascending by block 100..106.
 TXN_IDS = (
-    "txn_fe9afdd1f225f05a",  # block 100, 0x…0001
-    "txn_eb1b40120730ac53",  # block 101, 0x…0002
-    "txn_7f427b6ab42bf9d4",  # block 102, 0x…0003
-    "txn_544ab457cb03f67a",  # block 103, 0x…0004
-    "txn_108ac7637ba319fa",  # block 104, 0x…0005
-    "txn_eece5e7dc41eeefd",  # block 105, 0x…0006
-    "txn_4e37d3aa1f224113",  # block 106, 0x…0007
+    "txn_b3618169bbd2dd6b",  # block 100, 0x…0001
+    "txn_66000dfdcbfd1e1a",  # block 101, 0x…0002
+    "txn_ae616c0eebd4f70c",  # block 102, 0x…0003
+    "txn_5b99cc91bcd22381",  # block 103, 0x…0004
+    "txn_b3e6f44232f94ed1",  # block 104, 0x…0005
+    "txn_13e7d71bab054127",  # block 105, 0x…0006
+    "txn_0edc0dca1d17ef58",  # block 106, 0x…0007
 )
 GOLDEN_TOTAL_USD = Money(Decimal("5025"), "USD")
 ACTIVE_HOURS = (22, 23, 0, 1, 2, 3, 4)
@@ -227,12 +232,17 @@ def test_the_first_sync_anchors_then_backfills_inside_its_budget(cassette):
     assert report.no_op is False
     assert report.pages_fetched == 2
     assert (report.live_pages, report.backfill_pages) == (1, 1)
-    assert report.transactions_ingested == 4
+    # 3, not the 4 the exclusive walk reported: the first backfill page
+    # deliberately OVERLAPS the anchor's lowest block, because the anchor page
+    # may have cut that block in half and nothing here can know whether it
+    # did (§5 #18). One redelivered row per connection buys never losing the
+    # remainder of a split block; the redelivery adds no event.
+    assert report.transactions_ingested == 3
     assert host.transport.calls == before + 2
     row = report.connections[0]
     assert (row.live_cursor, row.backfill_cursor, row.backfill_complete) == (
         106,
-        103,
+        104,
         False,
     )
 
@@ -257,12 +267,22 @@ def test_the_resumed_sync_drains_the_live_window_and_finishes_history(cassette):
     host.clock.advance(INTERVAL_MS)
     calls = host.transport.calls
 
-    report = host.auradefi.sync(budget=3)
+    report = host.auradefi.sync(budget=4)
 
-    assert report.pages_fetched == 3
-    assert (report.live_pages, report.backfill_pages) == (1, 2)
-    assert report.transactions_ingested == 3
-    assert host.transport.calls == calls + 3
+    assert report.pages_fetched == 4
+    assert (report.live_pages, report.backfill_pages) == (1, 3)
+    # 4: the overlap the first tick paid for is recovered here, and the
+    # resumed backfill continues at the stored page rather than re-reading
+    # page 1 of a moved window (§5 #18).
+    #
+    # The budget is 4, not 3. Confirming a window DRAINED costs one page:
+    # the six rows of [0, 105] fill pages 1-3 exactly, so the only evidence
+    # that nothing remains is a fourth, short page. The old exclusive walk
+    # appeared to finish in three only because its last window was narrower
+    # than a full page — it inferred completion from an arithmetic accident,
+    # which is the same reasoning that dropped the rest of a split block.
+    assert report.transactions_ingested == 4
+    assert host.transport.calls == calls + 4
     row = report.connections[0]
     assert row.backfill_complete is True
     assert (row.live_cursor, row.backfill_cursor) == (106, 100)
@@ -279,7 +299,7 @@ def test_the_host_reads_every_row_back_through_its_own_session(cassette):
     assert {row.account_id for row in rows} == {CONNECTION_ID}
     assert {row.chain_id for row in rows} == {CHAIN}
     assert not any(row.removed for row in rows)
-    assert rows[0].id == "txn_fe9afdd1f225f05a"
+    assert rows[0].id == "txn_b3618169bbd2dd6b"
     assert rows[0].initiated_at == 1_700_000_000_000
 
 

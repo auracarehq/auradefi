@@ -235,6 +235,18 @@ Everything the agents need is here. If an agent needs something that is not,
 it stops and reports `blocked_on` rather than guessing — a guess in one agent
 becomes a spec divergence in twelve.
 
+**A command the loop cannot see does not exist.** `commands` is the whole of
+what the loop runs, so an artefact executed by anything else is outside every
+gate. auradefi's 0.1.1 wave 2 paid for this: the twelve notebooks under
+`docs/books/` are executed only by `scripts/run_books.sh`, wired into a CI
+job and into `docker compose run books` — neither `commands.test`,
+`commands.style` nor `commands.release` opens a notebook. A published book
+therefore went on asserting a connection id the code had stopped minting, with
+the suite green. If your project has an executable-documentation artefact,
+either add it to `commands` (a `docs:` entry the release stage must run) or
+add a style gate that checks it at the text level; `tests/style/`
+`test_docs_pin_live_values.py` in this repo is the second option.
+
 ---
 
 ## Invariants
