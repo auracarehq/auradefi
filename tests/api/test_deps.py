@@ -279,7 +279,7 @@ def test_every_api_key_failure_raises_one_indistinguishable_auth_error():
     record, revoked_plaintext = deps.keys.issue(
         project.id, Environment.TEST, {Scope.ACCOUNTS_READ}, clock
     )
-    deps.keys.revoke(record.id, clock)
+    deps.keys.revoke(project.id, record.id, clock)
     with pytest.raises(AuthError) as store_rejection:
         deps.keys.authenticate(f"adk_test_{'0' * 48}", clock)
     baseline = str(store_rejection.value)

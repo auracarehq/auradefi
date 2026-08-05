@@ -183,7 +183,7 @@ def test_a_key_without_users_admin_cannot_mint():
 
 def test_a_revoked_key_is_a_plain_401(wired):
     client, deps, project, clock, _vault, record, plaintext = wired
-    deps.keys.revoke(record.id, clock)
+    deps.keys.revoke(project.id, record.id, clock)
     response = client.post(
         "/auth/token", json={"external_user_id": "u-1"}, headers=_bearer(plaintext)
     )
