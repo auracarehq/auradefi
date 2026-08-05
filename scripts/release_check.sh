@@ -60,12 +60,38 @@ expected = os.environ["AURADEFI_EXPECTED_VERSION"]
 assert auradefi.__version__ == expected, (auradefi.__version__, expected)
 print(f"    import auradefi {auradefi.__version__} ok (wheel, fresh venv)")
 EOF
-if [ -f docs/examples/quickstart.py ]; then
+if [ -f examples/quickstart.py ]; then
   # The fresh venv has CORE dependencies only, so this also proves the
   # quickstart degrades gracefully without the [sql] and [api] extras.
-  "$SMOKE/bin/python" docs/examples/quickstart.py >/dev/null
+  "$SMOKE/bin/python" examples/quickstart.py >/dev/null
   echo "    quickstart.py ran green against the installed wheel (core deps only)"
 fi
+# Every OTHER example, also against the installed wheel: each one is
+# self-contained and reads nothing from this checkout, so a reader who copies
+# one file out and pip-installs the package gets exactly this behaviour. The
+# two needing an extra skip themselves, loudly.
+for example in examples/[0-9][0-9]_*.py; do
+  [ -f "$example" ] || continue
+  case "$(basename "$example")" in
+    04_persist_to_your_database.py) needs="sqlmodel" ;;
+    05_serve_the_http_api.py) needs="fastapi" ;;
+    *) needs="" ;;
+  esac
+  # Probed, not inferred from the traceback: this venv holds CORE deps only,
+  # so an extras example is EXPECTED to be unrunnable here, and guessing that
+  # from an error message would also swallow a real import bug.
+  if [ -n "$needs" ] && ! "$SMOKE/bin/python" -c "import $needs" >/dev/null 2>&1; then
+    echo "    $(basename "$example") SKIPPED — needs the $needs extra (CI runs it)"
+    continue
+  fi
+  if output=$("$SMOKE/bin/python" "$example" 2>&1); then
+    echo "    $(basename "$example") ran green against the installed wheel"
+  else
+    printf '%s\n' "$output" | tail -20
+    echo "    $(basename "$example") FAILED against the installed wheel" >&2
+    exit 1
+  fi
+done
 
 # An unexecuted document is undelivered work. `pytest` never opens a
 # notebook, so without this the loop's own gates cannot see a published book

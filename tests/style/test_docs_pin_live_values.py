@@ -27,7 +27,7 @@ against a refactor:
 1. RETIRED VALUES STAY OUT OF EXECUTABLE DOCS. Any id-shaped string literal
    that `tests/` or `src/` binds to a name marked as superseded (a trailing
    `_0_1_0`-style version, or `OLD`/`PREV`/`LEGACY`/`RETIRED`/`SUPERSEDED`)
-   must not appear in `docs/books/*.ipynb` or `docs/examples/*.py`. Those
+   must not appear in `docs/books/*.ipynb` or `examples/*.py`. Those
    artefacts demonstrate live behaviour; history belongs in prose files
    (CHANGELOG, DECISIONS, the release note), which this gate leaves alone.
 2. A STORED REPR CARRIES EVERY CURRENT FIELD. A `ClassName(field=...)` repr in
@@ -52,7 +52,7 @@ REPO = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO / "src" / "auradefi"
 TEST_ROOT = REPO / "tests"
 BOOKS = REPO / "docs" / "books"
-EXAMPLES = REPO / "docs" / "examples"
+EXAMPLES = REPO / "examples"
 
 #: `conn_b116094c537a85e6`, `usr_1e63721d071ea2d9`, … — the DECISIONS-pinned
 #: id shape: a short lowercase prefix and a 16-hex truncated sha256.
@@ -73,8 +73,17 @@ _REPR_KEY = re.compile(r"(?:^|[\s,(\[])([a-z_][a-z_0-9]*)=")
 
 
 def _executable_docs() -> list[Path]:
-    """The doc artefacts that are RUN, so they must describe live behaviour."""
-    return sorted(BOOKS.glob("*.ipynb")) + sorted(EXAMPLES.glob("*.py"))
+    """The doc artefacts that are RUN, so they must describe live behaviour.
+
+    Both roots must be non-empty. A glob over a directory that has been
+    moved or renamed matches nothing and passes vacuously, which is the
+    same silence this gate exists to break.
+    """
+    books = sorted(BOOKS.glob("*.ipynb"))
+    examples = sorted(EXAMPLES.glob("*.py"))
+    assert books, f"no notebooks under {BOOKS.relative_to(REPO)} — gate is blind"
+    assert examples, f"no examples under {EXAMPLES.relative_to(REPO)} — gate is blind"
+    return books + examples
 
 
 def _retired_literals() -> dict[str, str]:
