@@ -467,6 +467,42 @@ class TestMintUserToken:
         assert audit.entries("proj_nope") == ()
 
 
+class TestMintUserTokenIpProvenance:
+    """§4 #30: the audit row says where its ``ip`` came from.
+
+    ``ip`` is a passed-in datum here, so the store cannot tell a verified
+    socket peer from a caller-supplied header — the provenance is threaded
+    through with it, and an unstated one is DECLARED, never guessed.
+    """
+
+    # pins: a stated ip provenance is threaded into the audit record.
+    def test_a_stated_ip_provenance_reaches_the_audit_record(self):
+        store, _org, _project, clock = make_store()
+        audit = AuditLog()
+        store.mint_user_token(
+            "proj_a",
+            "host-user-1",
+            ["accounts:read"],
+            TTL_MS,
+            IP,
+            KEY_ID,
+            clock,
+            audit,
+            jti=JTI,
+            ip_source="forwarded",
+        )
+        record = audit.entries("proj_a")[0]
+        assert (record.ip, record.ip_source) == (IP, "forwarded")
+
+    # pins: an unstated provenance is audited as "unknown" — the store never
+    #       claims an ip it was merely handed came from a verified socket.
+    def test_an_unstated_provenance_is_audited_as_unknown(self):
+        store, _org, _project, clock = make_store()
+        audit = AuditLog()
+        mint(store, clock, audit)
+        assert audit.entries("proj_a")[0].ip_source == "unknown"
+
+
 class TestSourceHygiene:
     def test_store_module_never_imports_tenancy_keys(self):
         # key_id is a passed-in datum; Phase 8 wires key auth to mint.

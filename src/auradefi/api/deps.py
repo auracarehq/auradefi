@@ -4,16 +4,18 @@ Rule #11 made structural: the HTTP shell owns no state. Everything a route
 needs arrives in one frozen :class:`Deps` — no module globals, no import-time
 I/O, no singletons. Two apps in one process never share a tenant store.
 
-Two collaborators are declared here as *structural* Protocols rather than
-imported, deliberately:
+Collaborators are declared as *structural* Protocols rather than imported,
+deliberately:
 
 * :class:`HoldingsProvider` — ``ALLOWED_IMPORTS['api']`` omits ``portfolio``
   (tests/style/test_layering.py). ``portfolio.holdings.HoldingsService``
   conforms without this module knowing it exists. The precedent is
   ``portfolio/holdings.py``'s own ``BalanceSource``.
-* :class:`WebhookSink` — ``webhooks/`` is a same-wave sibling; a runtime
-  import would couple the two orders. ``webhooks.deliver``'s store conforms
-  structurally.
+* :class:`WebhookSink` — re-exported from ``api/sinks.py``, where it moved
+  when stating its return shapes honestly outgrew this module's line
+  budget (RELEASE_0.1.1 §5 Wave C). Imported here so ``from
+  auradefi.api.deps import WebhookSink`` keeps working; the seam itself,
+  and the row Protocols a host implements, live over there.
 
 ``signing_secret_for`` exists because Phase 2's committed ``TenancyStore``
 exposes no project getter and this phase may not edit Phase 2 files: the
@@ -38,6 +40,7 @@ from typing import Protocol, runtime_checkable
 
 from fastapi import FastAPI, Request, Response
 
+from auradefi.api.sinks import WebhookSink
 from auradefi.chains.registry import ChainRegistry
 from auradefi.clock import Clock
 from auradefi.errors import NotFoundError, ScopeError
@@ -57,62 +60,16 @@ from auradefi.tenancy.tokens import (
 #: The three quota windows, in header order (DECISIONS "Quota windows").
 _WINDOWS = ("second", "day", "month")
 
-
-@runtime_checkable
-class WebhookSink(Protocol):
-    """Structural seam onto the project-scoped webhook store (SPEC §7.3).
-
-    Never an import of ``auradefi.webhooks``: the sibling order owns that
-    module. Any object with these six methods is a sink.
-    """
-
-    def register_endpoint(
-        self,
-        project_id: str,
-        url: str,
-        events: Iterable[str],
-        clock: Clock,
-    ) -> object:
-        """Register (or re-register) one endpoint for ``project_id``."""
-        raise NotImplementedError
-
-    def endpoints(self, project_id: str) -> Sequence[object]:
-        """This project's endpoints — never another project's."""
-        raise NotImplementedError
-
-    def emit(
-        self,
-        project_id: str,
-        name: str,
-        data: Mapping[str, object],
-        clock: Clock,
-    ) -> object:
-        """Emit event ``name`` to every endpoint subscribed to it."""
-        raise NotImplementedError
-
-    def deliveries(self, project_id: str) -> Sequence[object]:
-        """Every delivery for this project, in creation order."""
-        raise NotImplementedError
-
-    def dead_letter(self, project_id: str) -> Sequence[object]:
-        """Deliveries that exhausted the pinned retry schedule."""
-        raise NotImplementedError
-
-    def get_delivery(self, project_id: str, delivery_id: str) -> object:
-        """One delivery inside this project's scope."""
-        raise NotImplementedError
-
-    def get_event(self, project_id: str, event_id: str) -> object:
-        """The event a delivery carries, inside this project's scope.
-
-        Declared because the delivery wire exposes ``event_name`` while a
-        stored delivery holds only ``event_id`` — so the admin routes MUST
-        read the event back. Leaving it off the Protocol while calling it
-        anyway would make a conforming custom sink fail with
-        ``AttributeError`` at request time; a seam has to promise
-        everything its consumer actually uses.
-        """
-        raise NotImplementedError
+#: Longest bearer credential this shell decodes at all. Every claim of the
+#: pinned wire form is bounded — 36-char header, 43-char signature, 13-digit
+#: ms-epoch ``iat``/``exp``, 21-char ``project_id``, 32-hex ``jti``, all FOUR
+#: ``Scope`` members (an omitted ``scopes`` mints every scope the key holds,
+#: so ``sync:trigger`` counts) and a 128-char ``external_user_id`` — so the
+#: largest token this system can MINT is 36+1+456+1+43 = 537 chars, and 1 KiB
+#: is ~1.9x that. Beyond it NOTHING is decoded: 26 KB of nested arrays cost a
+#: worker a 10,000-frame RecursionError unwind and a leaked stack trace, per
+#: request, unauthenticated (§4 #34).
+MAX_TOKEN_CHARS = 1_024
 
 
 @runtime_checkable
@@ -137,6 +94,15 @@ class Deps:
     must never become a 404 — whether the resolver returns ``None`` or
     raises the way this repo's other lookups do (see
     :func:`_signing_secret` and :func:`require_user_token`).
+
+    ``trusted_proxy_hops`` is how many rightmost ``X-Forwarded-For`` hops
+    this deployment's own proxies append, and so how far back a client IP
+    may be trusted. It defaults to **0**: no proxy is trusted and the
+    socket peer is the only verified source. This is the injection point
+    for ``Settings.trusted_proxy_hops``; a host that terminates TLS behind
+    one proxy passes 1. An audit row attributed to a caller-supplied
+    header is permanently wrong and indistinguishable from a real one, so
+    the default never reads the header at all.
     """
 
     tenancy: TenancyStore
@@ -156,6 +122,7 @@ class Deps:
     sync_limit_default: int = 100
     sync_limit_max: int = 500
     batch_max_items: int = 100
+    trusted_proxy_hops: int = 0
 
 
 def _bearer_credential(request: Request) -> str:
@@ -172,17 +139,23 @@ def _bearer_credential(request: Request) -> str:
 def _peek_project_id(token: str) -> str | None:
     """The UNVERIFIED ``project_id`` claim, purely to select a secret.
 
-    Never raises, never trusts: anything but a three-segment token whose
-    payload is a JSON object with a ``str`` ``project_id`` reads ``None``,
-    and every claim is re-checked by ``tokens.verify_token``.
+    Never raises, never trusts: anything but a three-segment token of at
+    most :data:`MAX_TOKEN_CHARS` characters whose payload is a JSON object
+    with a ``str`` ``project_id`` reads ``None``, and every claim is
+    re-checked by ``tokens.verify_token``.
+
+    The bound is applied BEFORE any decode, and ``RecursionError`` joins
+    the caught parse errors — it is a ``RuntimeError``, so nested arrays
+    escaped this helper, against its own contract (§4 #34).
     """
-    parts = token.split(".")
-    if len(parts) != 3:
+    if len(token) > MAX_TOKEN_CHARS or token.count(".") != 2:
         return None
+    parts = token.split(".")
     padded = parts[1] + "=" * (-len(parts[1]) % 4)
     try:
         payload = json.loads(base64.b64decode(padded, altchars=b"-_", validate=True))
-    except (ValueError, UnicodeDecodeError):  # binascii.Error is a ValueError
+    # binascii.Error is a ValueError; a RecursionError is neither.
+    except (ValueError, UnicodeDecodeError, RecursionError):
         return None
     project_id = payload.get("project_id") if isinstance(payload, dict) else None
     return project_id if isinstance(project_id, str) else None
@@ -241,13 +214,13 @@ def require_user_token(deps: Deps, request: Request, scope: str) -> TokenClaims:
     """Verify a user JWT from ``Authorization: Bearer <jwt>``.
 
     The payload segment is PEEKED unverified for ``project_id`` purely to
-    select a secret via :func:`_signing_secret`. A malformed token, an
-    unparseable payload, a missing or non-``str`` ``project_id``, and an
-    unknown project — whether the resolver answers ``None`` or raises an
-    unknown-id error (``NotFoundError``/``KeyError``) — all raise plain
-    :class:`auradefi.errors.AuthError` with one identical
-    message — NEVER :class:`auradefi.errors.NotFoundError`, so token
-    probing cannot enumerate project ids.
+    select a secret via :func:`_signing_secret`. A malformed or over-long
+    token, an unparseable payload, a missing or non-``str``
+    ``project_id``, and an unknown project — whether the resolver answers
+    ``None`` or raises an unknown-id error (``NotFoundError``/``KeyError``)
+    — all raise plain :class:`auradefi.errors.AuthError` with one
+    identical message — NEVER :class:`auradefi.errors.NotFoundError`, so
+    token probing cannot enumerate project ids.
 
     Verification then runs through Phase 2's untouched
     ``tokens.verify_token`` (rejection order malformed → bad signature →
@@ -256,7 +229,14 @@ def require_user_token(deps: Deps, request: Request, scope: str) -> TokenClaims:
     verified claims, then ``tokens.require_scope`` applies ``scope``.
     """
     token = _bearer_credential(request)
-    secret = _signing_secret(deps, _peek_project_id(token))
+    if (project_id := _peek_project_id(token)) is None:
+        # Unreadable HERE is unverifiable THERE: `tokens.verify_token` runs
+        # the same base64/JSON decode, so a credential we cannot peek is
+        # already its one plain AuthError. Collapse it to the empty one, so
+        # bytes we refused to parse never reach Phase 2's parser, which
+        # catches only ValueError and not RecursionError (§4 #34).
+        token = ""
+    secret = _signing_secret(deps, project_id)
     if not secret:
         # No project, no secret: verify against a one-shot unguessable one,
         # so an unknown project fails as verify_token's own AuthError —

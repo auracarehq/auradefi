@@ -38,6 +38,7 @@ from auradefi.api.wire import (
     sync_envelope,
 )
 from auradefi.errors import AuradefiError, QuotaExceededError, ValidationError
+from auradefi.ledger.cursors import decode_cursor
 from auradefi.tenancy.models import Scope
 
 
@@ -190,13 +191,22 @@ def router(deps: Deps) -> APIRouter:
     ) -> dict[str, Any]:
         """One page of Plaid's envelope for the calling end user."""
         claims = require_user_token(deps, request, Scope.ACCOUNTS_READ)
+        # VALIDATE BEFORE CHARGING (RELEASE_0.1.1 §5 #32), the rule
+        # POST /batch/holdings already states in `_checked_size`: "an
+        # over-sized batch costs the caller nothing". Both of these are
+        # caller-controlled and both can only ever 422, so charging first
+        # meant a client with a hard-coded bad limit drained the PROJECT's
+        # per-day window on requests it could never succeed at — and then
+        # 429'd every other user of that project. The cursor is decoded
+        # here rather than left to `ledger.sync` for the same reason: its
+        # CursorError is also a 422 the caller pays for otherwise.
+        resolved_limit = _resolved_limit(deps, limit)
+        decode_cursor(cursor)
         consume_quota(deps, claims.project_id)
         # PINNED: the ledger tenant key is the usr_ id, which already
         # hashes project_id | external_user_id.
         tenant_id = resolve_end_user(deps, claims).id
-        return sync_envelope(
-            deps.ledger.sync(tenant_id, cursor, _resolved_limit(deps, limit))
-        )
+        return sync_envelope(deps.ledger.sync(tenant_id, cursor, resolved_limit))
 
     provider = deps.holdings
     if provider is not None:

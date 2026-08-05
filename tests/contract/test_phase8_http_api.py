@@ -151,7 +151,12 @@ def test_phase8_http_api_end_to_end(wired):
     assert len(entries) == 1
     assert (entries[0].seq, entries[0].event) == (1, "token.minted")
     assert entries[0].key_id == record.id
-    assert entries[0].ip == "198.51.100.9"
+    # pins: the end-to-end mint audits the socket peer, not the
+    #       X-Forwarded-For the request carries. Was `== "198.51.100.9"`
+    #       (the header value), which pinned RELEASE_0.1.1 §4 #30 — a
+    #       caller-chosen, permanent audit attribution — as contract.
+    assert entries[0].ip == "testclient"
+    assert entries[0].ip_source == "peer"
 
     for window, limit in (("Second", 1_000), ("Day", 10_000), ("Month", 100_000)):
         assert minted.headers[f"X-RateLimit-Limit-{window}"] == str(limit)

@@ -1,12 +1,21 @@
 """DECISIONS.md duplication-waiver cross-pin: embed vs tenancy id formulas.
 
-``embed.models.derive_tenant_id`` / ``derive_connection_id`` are
-value-identical local copies of ``tenancy.models.end_user_id`` /
-``connection_id`` — the layer contract forbids embed→tenancy imports
-(``tests/style/test_layering.py``: ``tenancy`` is absent from ``embed``'s
-allowed set). Byte equality between the two is therefore only checkable
-from a test. This is that test, in the established shape of
+``embed.models.derive_tenant_id`` is a value-identical local copy of
+``tenancy.models.end_user_id`` — the layer contract forbids embed→tenancy
+imports (``tests/style/test_layering.py``: ``tenancy`` is absent from
+``embed``'s allowed set). Byte equality between the two is therefore only
+checkable from a test. This is that test, in the established shape of
 ``tests/ledger/test_bridge.py``.
+
+**The connection-id half of that waiver was RETIRED in 0.1.1**
+(RELEASE_0.1.1 §5 #26). ``embed.models.derive_connection_id`` now hashes
+``chain_id`` as well, because without it one address could be connected
+on exactly one chain and two chains would share one sync cursor. That is
+a deliberate divergence, so this file pins the opposite of byte equality:
+the two formulas must now DIFFER, and ``tenancy.connection_id`` must NOT
+grow a chain segment — rehashing it would orphan every connection id
+already persisted by the HTTP surface. The tenant half is untouched and
+still cross-pinned below.
 
 Both sides are ALSO asserted against the literals pinned in
 tests/embed/test_models.py (derived independently via ``python3 -c`` from
@@ -40,15 +49,29 @@ USR_1 = "usr_1e63721d071ea2d9"  # embed | host-user-1
 USR_2 = "usr_d6ace495d5f89481"  # embed | host-user-2
 USR_MAX = "usr_1b449786b9a4c12c"  # embed | "z" * 128
 
+PROJECT_X = "proj_9f8e7d6c5b4a3928"  # a host's REAL project id
+USR_1_UNDER_X = "usr_2d8ea8d7f9c2c31e"  # PROJECT_X | host-user-1
+USR_2_UNDER_X = "usr_0833f2095815e9b5"  # PROJECT_X | host-user-2
+
 ADDR = "0x" + "1" * 40
 MIXED_CASE_ADDRESS = "0xAbCdEf" + "1" * 34
 UPPER_HEX_ADDRESS = "0xABCDEF" + "1" * 34
 SOLANA_ADDRESS = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 
-CONN_ADDR = "conn_b116094c537a85e6"  # embed | USR_1 | address | ADDR
-CONN_MIXED = "conn_b5d62ac34b85acb6"  # embed | USR_1 | address | lowered mixed
-CONN_SOL = "conn_afea59bc61c58c1f"  # embed | USR_1 | address | SOLANA verbatim
-CONN_SOL_LOWERED = "conn_86dedf519e6d918e"  # embed | USR_1 | address | lowered
+CHAIN = "eip155:1"
+CHAIN_POLYGON = "eip155:137"
+CHAIN_SOLANA = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
+
+# embed | USR_1 | address | chain | normalized-descriptor
+CONN_ADDR = "conn_d0327e21d9b0ea55"  # eip155:1  | ADDR
+CONN_ADDR_POLYGON = "conn_acb7e927076b309e"  # eip155:137 | ADDR
+CONN_MIXED = "conn_6b627bb29f855dd2"  # eip155:1  | lowered mixed
+CONN_SOL = "conn_a683a123e9b8a8dd"  # solana:…  | SOLANA verbatim
+CONN_SOL_LOWERED = "conn_a656fc7b897f7b8d"  # solana:…  | lowered
+
+# tenancy's own chainless id for the same inputs — the 0.1.0 embed value,
+# and still exactly what the HTTP surface persists today.
+TENANCY_CONN_ADDR = "conn_b116094c537a85e6"
 
 ADDRESS = tenancy.ConnectionKind.ADDRESS
 
@@ -77,28 +100,65 @@ def test_tenant_id_duplicate_is_byte_identical(external_user_id, expected):
     assert tenancy.end_user_id(EMBED_PROJECT_ID, external_user_id) == expected
 
 
+# pins: the two end_user_id formulas agree for ANY project id, not just
+#       "embed" — the whole point of #19 is that a host can configure one
+#       project and have both surfaces land on the same tenant.
 @pytest.mark.parametrize(
-    ("descriptor", "expected"),
+    ("external_user_id", "expected"),
+    [("host-user-1", USR_1_UNDER_X), ("host-user-2", USR_2_UNDER_X)],
+)
+def test_tenant_id_duplicate_agrees_under_a_real_project_id(
+    external_user_id, expected
+):
+    assert derive_tenant_id(external_user_id, project_id=PROJECT_X) == expected
+    assert tenancy.end_user_id(PROJECT_X, external_user_id) == expected
+
+
+# pins: embed's default project id is still "embed", so a 0.1.0 tenant id
+#       resolves unchanged in 0.1.1 and its ledger rows stay readable.
+def test_the_default_project_id_is_still_the_0_1_0_value():
+    assert derive_tenant_id("host-user-1") == USR_1
+    assert derive_tenant_id("host-user-1", project_id="embed") == USR_1
+
+
+# pins: the RETIRED half of the waiver — embed's connection id carries the
+#       chain, so it is deliberately NOT tenancy's id for the same inputs.
+@pytest.mark.parametrize(
+    ("chain_id", "descriptor", "expected"),
     [
-        (ADDR, CONN_ADDR),
-        (f"  {ADDR}\n", CONN_ADDR),
-        (MIXED_CASE_ADDRESS, CONN_MIXED),
-        (UPPER_HEX_ADDRESS, CONN_MIXED),
-        (SOLANA_ADDRESS, CONN_SOL),
-        (SOLANA_ADDRESS.lower(), CONN_SOL_LOWERED),
+        (CHAIN, ADDR, CONN_ADDR),
+        (CHAIN, f"  {ADDR}\n", CONN_ADDR),
+        (CHAIN_POLYGON, ADDR, CONN_ADDR_POLYGON),
+        (CHAIN, MIXED_CASE_ADDRESS, CONN_MIXED),
+        (CHAIN, UPPER_HEX_ADDRESS, CONN_MIXED),
+        (CHAIN_SOLANA, SOLANA_ADDRESS, CONN_SOL),
+        (CHAIN_SOLANA, SOLANA_ADDRESS.lower(), CONN_SOL_LOWERED),
     ],
 )
-def test_connection_id_duplicate_is_byte_identical(descriptor, expected):
-    assert derive_connection_id(USR_1, descriptor) == expected
+def test_connection_id_is_chain_scoped_and_no_longer_byte_identical(
+    chain_id, descriptor, expected
+):
+    assert derive_connection_id(USR_1, descriptor, chain_id) == expected
     assert (
-        tenancy.connection_id(EMBED_PROJECT_ID, USR_1, ADDRESS, descriptor) == expected
+        tenancy.connection_id(EMBED_PROJECT_ID, USR_1, ADDRESS, descriptor)
+        != expected
     )
+
+
+# pins: tenancy's connection id did NOT grow a chain segment — rehashing
+#       it would orphan every id the HTTP surface has already persisted.
+def test_tenancy_connection_id_is_unchanged_and_chainless():
+    assert (
+        tenancy.connection_id(EMBED_PROJECT_ID, USR_1, ADDRESS, ADDR)
+        == TENANCY_CONN_ADDR
+    )
+    assert CONN_ADDR != TENANCY_CONN_ADDR
 
 
 def test_descriptor_normalization_duplicate_agrees():
     # embed inlines "strip, lowercase iff startswith 0x"; tenancy owns it
     # as normalize_descriptor. The 0x fold and the base58 non-fold must
-    # stay the same rule on both sides.
+    # stay the same rule on both sides — only the chain segment diverged.
     assert tenancy.normalize_descriptor(ADDRESS, f"  {MIXED_CASE_ADDRESS} ") == (
         MIXED_CASE_ADDRESS.lower()
     )

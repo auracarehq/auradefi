@@ -8,6 +8,7 @@ a tenant-existence probe surface.
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -129,3 +130,51 @@ def test_audit_log_exposes_no_mutation_surface():
     log = AuditLog()
     for name in ("remove", "delete", "clear", "update"):
         assert not hasattr(log, name), f"append-only: AuditLog must not expose {name}()"
+
+
+# ------------------------------------------------- ip provenance (§4 #30)
+# An AuditLog entry is permanent and mutation-free, so a header-derived IP
+# recorded as if it were verified is permanently wrong. The record therefore
+# carries WHERE the IP came from, beside the IP itself.
+
+# The seven fields pinned by DECISIONS "Audit record shape", in order; the
+# provenance field is new in 0.1.1 and must come after them.
+PINNED_FIELDS = (
+    "seq",
+    "event",
+    "project_id",
+    "external_user_id",
+    "key_id",
+    "ip",
+    "at_ms",
+)
+
+
+# pins: record_token_mint records the stated provenance of the ip it is
+#       handed, and the stored entry carries it too.
+def test_record_token_mint_records_a_stated_ip_provenance():
+    log = AuditLog()
+    record = log.record_token_mint(
+        A, "user-1", "key_0a1b2c3d", "203.0.113.7", FrozenClock(T0),
+        ip_source="forwarded",
+    )
+    assert record.ip_source == "forwarded"
+    assert log.entries(A) == (record,)
+
+
+# pins: an UNSTATED provenance is declared "unknown" — never defaulted to
+#       "peer", which would launder a header-derived ip into a verified one.
+def test_an_unstated_ip_provenance_is_declared_unknown():
+    record = mint(AuditLog(), FrozenClock(T0))
+    assert record.ip_source == "unknown"
+
+
+# pins: the provenance field is the record's LAST field and has a default, so
+#       every construction site that predates it still builds a valid record.
+def test_the_provenance_field_comes_last_with_a_default():
+    names = tuple(field.name for field in dataclasses.fields(AuditRecord))
+    assert names == (*PINNED_FIELDS, "ip_source"), (
+        "the provenance field must be appended last, after the pinned seven"
+    )
+    legacy = AuditRecord(1, "token.minted", A, "user-1", "key_0a1b2c3d", "203.0.113.7", T0)
+    assert legacy.ip_source == "unknown"

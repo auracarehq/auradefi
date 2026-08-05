@@ -67,4 +67,18 @@ if [ -f docs/examples/quickstart.py ]; then
   echo "    quickstart.py ran green against the installed wheel (core deps only)"
 fi
 
+# An unexecuted document is undelivered work. `pytest` never opens a
+# notebook, so without this the loop's own gates cannot see a published book
+# that has gone stale against the code (it happened: docs/books/09 asserted a
+# connection id 0.1.1 had stopped minting, with the suite green). CI executes
+# the books in three jobs; this puts them inside the release gate too.
+echo "==> executable documentation (docs/books)"
+if [ -x ".venv/bin/jupyter" ] || command -v jupyter >/dev/null 2>&1; then
+  bash scripts/run_books.sh
+else
+  echo "    SKIPPED — no jupyter on PATH and no .venv/bin/jupyter."
+  echo "    The books are NOT verified by this run: install the dev extra"
+  echo "    (pip install '.[dev]') or rely on the CI 'notebooks' job."
+fi
+
 echo "==> release check PASSED"

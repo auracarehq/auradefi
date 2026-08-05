@@ -13,6 +13,12 @@ Ids are golden literals derived independently with ``python3 -c`` from
 the pinned formulas in docs/DECISIONS.md — never regenerated from the
 code under test. The facade is constructed INSIDE test bodies so a stub
 fails with NotImplementedError instead of erroring during collection.
+
+The 0.1.1 regressions (RELEASE_0.1.1 §5) live at the foot of the file and
+each pins a VALUE a caller can observe, because all four defects are
+silent: the tenant rows are written under (#19), the two ids one address
+gets on two chains (#26), the work a restarted worker does (#21), and the
+rows a healthy connection ingests beside a broken sibling (#24).
 """
 
 from __future__ import annotations
@@ -22,14 +28,21 @@ from decimal import Decimal
 
 import pytest
 
+from fastapi.testclient import TestClient
+
+from auradefi.api.app import create_app
+from auradefi.api.deps import Deps
+from auradefi.chains.registry import ChainRegistry
 from auradefi.clock import FrozenClock
 from auradefi.config import Settings
 from auradefi.embed.facade import Auradefi
+from auradefi.embed.models import ConnectionRecord
 from auradefi.embed.state import MemorySyncState
 from auradefi.errors import (
     CaipParseError,
     ConflictError,
     SourceError,
+    UnknownChainError,
     ValidationError,
 )
 from auradefi.ledger.backends.memory import MemoryLedger
@@ -37,28 +50,45 @@ from auradefi.ledger.models import Direction, Entry
 from auradefi.money.fiat import Money
 from auradefi.money.quantity import Quantity
 from auradefi.sources.evm.etherscan import BalanceRecord
+from auradefi.tenancy.audit import AuditLog
+from auradefi.tenancy.keys import ApiKeyStore
+from auradefi.tenancy.models import Environment, Scope
+from auradefi.tenancy.quota import QuotaCounter, QuotaLimits
+from auradefi.tenancy.store import TenancyStore
+from auradefi.tenancy.tokens import RevocationSet
+from auradefi.webhooks.deliver import WebhookStore
 
 T0 = 1_754_000_000_000
 INTERVAL_MS = 60_000
 CHAIN = "eip155:1"
+CHAIN_POLYGON = "eip155:137"
+# Arbitrum One: a well-formed CAIP-2 the seeded ChainRegistry does NOT hold.
+UNSEEDED_CHAIN = "eip155:42161"
 ADDR_A = "0x1111111111111111111111111111111111111111"
 ADDR_B = "0x2222222222222222222222222222222222222222"
 SENDER = "0x9999999999999999999999999999999999999999"
 ETH = "eip155:1/slip44:60"
 
 # Derived via python3 from the pinned formulas; NEVER from the code here.
-#   usr_ = "usr_" + sha256("embed|<external_user_id>")[:16]
-#   conn_ = "conn_" + sha256("embed|<tenant>|address|<normalized>")[:16]
+#   usr_ = "usr_" + sha256("<project_id>|<external_user_id>")[:16]
+#   conn_ = "conn_" + sha256("embed|<tenant>|address|<chain>|<normalized>")[:16]
 #   txn_ = "txn_" + sha256("<chain>|<tx_hash>|<account_id>")[:16]
-TENANT_1 = "usr_92f3779edb633e0b"  # unit-user-1
-TENANT_2 = "usr_cc1ec9058380eaac"  # unit-user-2
-CONN_1A = "conn_25c01723fcf5e88a"  # unit-user-1 x 0x1111…
-CONN_1B = "conn_bd449baa130e8a82"  # unit-user-1 x 0x2222…
-CONN_2A = "conn_6c7ef3e07cb54341"  # unit-user-2 x 0x1111…
-CONN_2B = "conn_12409fc9ced83187"  # unit-user-2 x 0x2222…
-TXN_100 = "txn_34fbe670fd9511e8"  # eip155:1 | 0x…064 | CONN_1A
-TXN_101 = "txn_5751bbfbe33a4e2b"
-TXN_102 = "txn_5f28133ac0d6c635"
+TENANT_1 = "usr_92f3779edb633e0b"  # embed | unit-user-1
+TENANT_2 = "usr_cc1ec9058380eaac"  # embed | unit-user-2
+CONN_1A = "conn_b96ce22765f9a8ef"  # unit-user-1 x eip155:1 x 0x1111…
+CONN_1B = "conn_a92062257d85da8e"  # unit-user-1 x eip155:1 x 0x2222…
+CONN_2A = "conn_d3c905caee693f0a"  # unit-user-2 x eip155:1 x 0x1111…
+CONN_2B = "conn_7a6f79af31ac11b0"  # unit-user-2 x eip155:1 x 0x2222…
+CONN_1A_POLYGON = "conn_8316fb8c9166fa96"  # unit-user-1 x eip155:137 x 0x1111…
+TXN_100 = "txn_43583a69cf45329e"  # eip155:1 | 0x…064 | CONN_1A
+TXN_101 = "txn_e56da9318ad266f4"
+TXN_102 = "txn_39ab81bd12b3ad9e"
+
+# RELEASE_0.1.1 §5 #19 — the same library under a host's REAL project id.
+PROJECT_X = "proj_9f8e7d6c5b4a3928"
+TENANT_1_UNDER_X = "usr_f13ef24edb915127"  # PROJECT_X | unit-user-1
+CONN_1A_UNDER_X = "conn_8aae188d384474d4"  # that tenant x eip155:1 x 0x1111…
+TXN_100_UNDER_X = "txn_933467c7ed77e8cf"  # eip155:1 | 0x…064 | CONN_1A_UNDER_X
 
 
 def _row(block: int, to_address: str = ADDR_A) -> dict:
@@ -86,6 +116,7 @@ class FakeSource:
         *,
         probe_error: Exception | None = None,
         corrupt: dict | None = None,
+        fails_for: Sequence[str] = (),
     ) -> None:
         self._histories = {
             address.lower(): [
@@ -98,6 +129,10 @@ class FakeSource:
             for address, records in (holdings or {}).items()
         }
         self._probe_error = probe_error
+        # Addresses whose upstream is down once ``armed`` — connect first,
+        # break the source after, exactly as a live outage arrives.
+        self._failing = {address.lower() for address in fails_for}
+        self.armed = False
         self.txlist_calls: list[dict] = []
         self.balance_calls: list[tuple[str, str]] = []
 
@@ -129,9 +164,51 @@ class FakeSource:
         )
         if self._probe_error is not None and offset == 1:
             raise self._probe_error
+        if self.armed and address.lower() in self._failing:
+            raise SourceError(f"explorer unavailable for {address}")
         window = [
             row
             for row in self._histories.get(address.lower(), [])
+            if start_block <= int(row["blockNumber"]) <= end_block
+        ]
+        window.sort(key=lambda row: int(row["blockNumber"]), reverse=sort == "desc")
+        return window[(page - 1) * offset : page * offset]
+
+
+class PerChainSource:
+    """Both seams, with history keyed by ``(chain_id, address)``.
+
+    The #26 fixture: the SAME address holds a different history on each
+    chain, so two connections sharing one cursor cannot pass by accident.
+    """
+
+    def __init__(self, histories: dict[tuple[str, str], Sequence[int]]) -> None:
+        self._histories = {
+            (chain_id, address.lower()): [
+                _row(block, address.lower()) for block in blocks
+            ]
+            for (chain_id, address), blocks in histories.items()
+        }
+        self.txlist_calls: list[dict] = []
+
+    def balances(self, chain_id: str, address: str) -> list[BalanceRecord]:
+        return []
+
+    def fetch_txlist(
+        self,
+        chain_id: str,
+        address: str,
+        *,
+        start_block: int,
+        end_block: int,
+        page: int,
+        offset: int,
+        sort: str,
+    ) -> list[dict]:
+        self.txlist_calls.append({"chain_id": chain_id, "address": address})
+        window = [
+            row
+            for row in self._histories.get((chain_id, address.lower()), [])
             if start_block <= int(row["blockNumber"]) <= end_block
         ]
         window.sort(key=lambda row: int(row["blockNumber"]), reverse=sort == "desc")
@@ -175,15 +252,23 @@ def _facade(
     clock: FrozenClock | None = None,
     page_size: int = 2,
     decoder=None,
+    ledger: MemoryLedger | None = None,
+    state: MemorySyncState | None = None,
+    settings: Settings | None = None,
 ) -> Auradefi:
-    """Build the facade; call this INSIDE a test body."""
+    """Build the facade; call this INSIDE a test body.
+
+    ``ledger`` and ``state`` are injectable so a test can rebind a FRESH
+    facade over the SAME host-owned storage — the restart the library
+    must survive.
+    """
     return Auradefi(
-        MemoryLedger(),
+        ledger if ledger is not None else MemoryLedger(),
         source,
         prices if prices is not None else FakePrices(),
         clock if clock is not None else FrozenClock(T0),
-        Settings(sync_min_interval_s=60),
-        sync_state=MemorySyncState(),
+        settings if settings is not None else Settings(sync_min_interval_s=60),
+        sync_state=state if state is not None else MemorySyncState(),
         decoder=decoder,
         sync_page_size=page_size,
     )
@@ -535,11 +620,15 @@ def test_the_default_decoder_is_the_real_txlist_decode_bridge_composition():
     )
 
 
-def test_a_malformed_row_surfaces_as_a_source_error():
+# pins: a malformed row is contained in ITS OWN connection's row and
+#       declared there — it never escapes sync() to abort the tick
+#       (RELEASE_0.1.1 §5 #24; supersedes the 0.1.0 propagation contract).
+def test_a_malformed_row_is_reported_against_its_connection_not_raised():
     # A JSON number in a raw-amount field — never trusted (rule #2).
     source = FakeSource({ADDR_A: (100,)}, corrupt={"value": 1})
+    ledger = MemoryLedger()
     facade = Auradefi(
-        MemoryLedger(),
+        ledger,
         source,
         FakePrices(),
         FrozenClock(T0),
@@ -548,5 +637,337 @@ def test_a_malformed_row_surfaces_as_a_source_error():
     )
     facade.user("unit-user-1").connect_address(CHAIN, ADDR_A)
 
-    with pytest.raises(SourceError):
+    report = facade.sync(budget=5)
+
+    assert report.failed_connections == (CONN_1A,)
+    assert [row.failed for row in report.connections] == [True]
+    assert report.no_op is False
+    assert report.transactions_ingested == 0
+    assert ledger.sync(TENANT_1, None, 100).events == ()
+
+
+# pins: a bug is not an API contract — an exception that is NOT an
+#       auradefi error escapes sync() instead of being filed as a
+#       per-connection failure.
+def test_a_non_auradefi_exception_still_escapes_the_sync_loop():
+    def exploding_decoder(chain_id, address, account_id, rows):
+        raise RuntimeError("a bug in the host's decoder")
+
+    source = FakeSource({ADDR_A: (100,)})
+    facade = _facade(source, decoder=exploding_decoder)
+    facade.user("unit-user-1").connect_address(CHAIN, ADDR_A)
+
+    with pytest.raises(RuntimeError):
         facade.sync(budget=5)
+
+
+# --------------------------------------------------------------------
+# #19 — the library and the API must address ONE ledger tenant
+# --------------------------------------------------------------------
+
+
+def _ledger_rows(ledger: MemoryLedger, tenant_id: str) -> dict:
+    """Every transaction ``tenant_id`` can read back, keyed by id."""
+    return {
+        event.transaction.id: event.transaction
+        for event in ledger.sync(tenant_id, None, 100).events
+    }
+
+
+# pins: the tenant a facade keys the ledger by comes from
+#       settings.project_id, so a host running the library under its real
+#       project writes rows that project's API can read.
+def test_the_configured_project_id_derives_the_ledger_tenant():
+    source = FakeSource({ADDR_A: (100, 101, 102)})
+    ledger = MemoryLedger()
+    facade = _facade(
+        source,
+        ledger=ledger,
+        settings=Settings(sync_min_interval_s=60, project_id=PROJECT_X),
+    )
+    user = facade.user("unit-user-1")
+
+    assert user.tenant_id == TENANT_1_UNDER_X
+    record = user.connect_address(CHAIN, ADDR_A)
+    assert record.id == CONN_1A_UNDER_X
+    facade.sync(budget=5)
+
+    rows = _ledger_rows(ledger, TENANT_1_UNDER_X)
+    assert len(rows) == 3
+    assert TXN_100_UNDER_X in rows
+    # …and NOTHING was written under the hardcoded "embed" project.
+    assert _ledger_rows(ledger, TENANT_1) == {}
+
+
+# pins: with no project_id configured the derivation is byte-identical to
+#       0.1.0's, so library data written before 0.1.1 stays addressable.
+def test_the_default_project_id_still_derives_the_0_1_0_tenant():
+    source = FakeSource({ADDR_A: (100,)})
+    ledger = MemoryLedger()
+    facade = _facade(source, ledger=ledger)
+
+    user = facade.user("unit-user-1")
+
+    assert user.tenant_id == TENANT_1
+    assert Settings().project_id == "embed"
+    user.connect_address(CHAIN, ADDR_A)
+    facade.sync(budget=5)
+    assert len(_ledger_rows(ledger, TENANT_1)) == 1
+
+
+# pins: rows the facade ingests for project X come back out of
+#       GET /crypto/sync for a token of project X — one derivation across
+#       both surfaces, so a library write IS an HTTP read.
+def test_rows_ingested_by_the_library_are_readable_over_that_projects_api():
+    clock = FrozenClock(T0)
+    ledger, tenancy, keys = MemoryLedger(), TenancyStore(), ApiKeyStore()
+    organisation = tenancy.create_organisation("acme", clock)
+    project = tenancy.create_project(organisation.id, "main", Environment.TEST, clock)
+    client = TestClient(
+        create_app(
+            Deps(
+                tenancy=tenancy,
+                keys=keys,
+                quota=QuotaCounter(QuotaLimits(500, 5_000, 50_000), clock),
+                audit=AuditLog(),
+                revocations=RevocationSet(),
+                ledger=ledger,
+                webhooks=WebhookStore(),
+                chains=ChainRegistry(),
+                clock=clock,
+                signing_secret_for={project.id: project.signing_secret}.get,
+            )
+        )
+    )
+    _record, plaintext = keys.issue(
+        project.id,
+        Environment.TEST,
+        (Scope.USERS_ADMIN, Scope.ACCOUNTS_READ, Scope.ACCOUNTS_WRITE),
+        clock,
+    )
+    minted = client.post(
+        "/auth/token",
+        json={"external_user_id": "unit-user-1"},
+        headers={"Authorization": f"Bearer {plaintext}"},
+    )
+    assert minted.status_code == 200, minted.text
+
+    facade = _facade(
+        FakeSource({ADDR_A: (100, 101, 102)}),
+        clock=clock,
+        ledger=ledger,
+        settings=Settings(sync_min_interval_s=60, project_id=project.id),
+    )
+    facade.user("unit-user-1").connect_address(CHAIN, ADDR_A)
+    report = facade.sync(budget=5)
+    assert report.transactions_ingested == 3
+
+    page = client.get(
+        "/crypto/sync?limit=100",
+        headers={"Authorization": f"Bearer {minted.json()['token']}"},
+    )
+    assert page.status_code == 200, page.text
+    assert {row["transaction_id"] for row in page.json()["added"]} == {
+        transaction.id
+        for transaction in _ledger_rows(ledger, facade.user("unit-user-1").tenant_id).values()
+    }
+    assert len(page.json()["added"]) == 3
+
+
+# --------------------------------------------------------------------
+# #26 — a connection is scoped to its chain
+# --------------------------------------------------------------------
+
+
+# pins: the same address on a second chain is a SECOND connection, not a
+#       ConflictError naming an id the caller already owns.
+def test_the_same_address_connects_on_two_chains():
+    source = PerChainSource({(CHAIN, ADDR_A): (100,), (CHAIN_POLYGON, ADDR_A): (300,)})
+    user = _facade(source).user("unit-user-1")
+
+    mainnet = user.connect_address(CHAIN, ADDR_A)
+    polygon = user.connect_address(CHAIN_POLYGON, ADDR_A)
+
+    assert (mainnet.id, polygon.id) == (CONN_1A, CONN_1A_POLYGON)
+    assert mainnet.chain_id == CHAIN
+    assert polygon.chain_id == CHAIN_POLYGON
+    assert [record.id for record in user.connections()] == [CONN_1A, CONN_1A_POLYGON]
+
+
+# pins: each chain-scoped connection carries its OWN sync cursor, so one
+#       chain's head never silently stands in for the other's.
+def test_two_chains_on_one_address_keep_independent_cursors():
+    source = PerChainSource(
+        {(CHAIN, ADDR_A): (100, 101), (CHAIN_POLYGON, ADDR_A): (300,)}
+    )
+    ledger, state = MemoryLedger(), MemorySyncState()
+    facade = _facade(source, ledger=ledger, state=state, page_size=2)
+    user = facade.user("unit-user-1")
+    user.connect_address(CHAIN, ADDR_A)
+    user.connect_address(CHAIN_POLYGON, ADDR_A)
+
+    report = facade.sync(budget=6)
+
+    rows = {row.connection_id: row for row in report.connections}
+    assert sorted(rows) == sorted([CONN_1A, CONN_1A_POLYGON])
+    assert rows[CONN_1A].live_cursor == 101
+    assert rows[CONN_1A_POLYGON].live_cursor == 300
+    assert state.get_state(TENANT_1, CONN_1A).live_cursor == 101
+    assert state.get_state(TENANT_1, CONN_1A_POLYGON).live_cursor == 300
+    assert report.transactions_ingested == 3
+    account_ids = [
+        event.transaction.account_id
+        for event in ledger.sync(TENANT_1, None, 100).events
+    ]
+    assert sorted(account_ids) == sorted([CONN_1A, CONN_1A, CONN_1A_POLYGON])
+
+
+# --------------------------------------------------------------------
+# #21 — a restarted worker syncs from the state port, not from memory
+# --------------------------------------------------------------------
+
+
+# pins: a FRESH facade bound over an existing state port enumerates the
+#       tenants that port holds, so a restarted worker does the stored
+#       connection's work instead of returning a success-shaped no_op.
+def test_a_fresh_facade_over_stored_state_syncs_instead_of_no_opping():
+    source = FakeSource({ADDR_A: (100, 101, 102)})
+    ledger, state, clock = MemoryLedger(), MemorySyncState(), FrozenClock(T0)
+    first = _facade(source, clock=clock, ledger=ledger, state=state, page_size=2)
+    first.user("unit-user-1").connect_address(CHAIN, ADDR_A)
+    del first  # the worker restarts; the host rebinds over its own state
+
+    restarted = _facade(source, clock=clock, ledger=ledger, state=state, page_size=2)
+    report = restarted.sync(budget=5)
+
+    assert report.no_op is False
+    assert [row.connection_id for row in report.connections] == [CONN_1A]
+    assert report.transactions_ingested == 3
+    assert len(_ledger_rows(ledger, TENANT_1)) == 3
+
+
+# pins: enumeration comes from the port even for a tenant this process
+#       has never seen — no user() call revives the connection.
+def test_a_tenant_never_named_in_this_process_is_still_synced():
+    source = FakeSource({ADDR_B: (200,)})
+    state = MemorySyncState()
+    state.add_connection(
+        TENANT_2,
+        ConnectionRecord(
+            id=CONN_2B, chain_id=CHAIN, address=ADDR_B, created_at_ms=T0
+        ),
+    )
+    ledger = MemoryLedger()
+    facade = _facade(source, ledger=ledger, state=state, page_size=2)
+
+    report = facade.sync(budget=5)
+
+    assert [row.connection_id for row in report.connections] == [CONN_2B]
+    assert report.transactions_ingested == 1
+    assert len(_ledger_rows(ledger, TENANT_2)) == 1
+
+
+# --------------------------------------------------------------------
+# #24 — an unseeded chain, and one failure that must cost only itself
+# --------------------------------------------------------------------
+
+
+# pins: an address on a chain the registry does not hold is refused AT
+#       CONNECT, so no connection can exist that every later sync() dies
+#       on; the refusal names the chain and costs zero requests.
+def test_an_unseeded_chain_is_refused_at_connect_time():
+    source = FakeSource({ADDR_A: (100,)})
+    user = _facade(source).user("unit-user-1")
+
+    with pytest.raises(UnknownChainError) as caught:
+        user.connect_address(UNSEEDED_CHAIN, ADDR_A)
+
+    assert UNSEEDED_CHAIN in str(caught.value)
+    assert source.txlist_calls == []
+    assert user.connections() == ()
+
+
+# pins: a seeded chain still connects — the membership check refuses the
+#       unknown, it does not refuse everything.
+def test_every_seeded_evm_chain_still_connects():
+    source = FakeSource({ADDR_A: ()})
+    user = _facade(source).user("unit-user-1")
+
+    for chain in (CHAIN, CHAIN_POLYGON, "eip155:8453"):
+        assert user.connect_address(chain, ADDR_A).chain_id == chain
+
+
+# pins: a connection whose source fails mid-tick costs only itself — its
+#       siblings still ingest, and the tick names it as failed rather
+#       than reporting clean success.
+def test_one_failing_connection_does_not_starve_its_siblings():
+    source = FakeSource({ADDR_A: (100, 101, 102), ADDR_B: (200,)}, fails_for=(ADDR_B,))
+    ledger = MemoryLedger()
+    facade = _facade(source, ledger=ledger, page_size=2)
+    user = facade.user("unit-user-1")
+    user.connect_address(CHAIN, ADDR_B)  # the doomed one goes FIRST
+    user.connect_address(CHAIN, ADDR_A)
+    source.armed = True  # the upstream goes down for one address only
+
+    report = facade.sync(budget=6)
+
+    rows = {row.connection_id: row for row in report.connections}
+    assert sorted(rows) == sorted([CONN_1A, CONN_1B])
+    assert rows[CONN_1B].failed is True
+    assert rows[CONN_1B].transactions_ingested == 0
+    assert rows[CONN_1A].failed is False
+    assert rows[CONN_1A].transactions_ingested == 3
+    assert report.failed_connections == (CONN_1B,)
+    assert report.no_op is False
+    assert report.transactions_ingested == 3
+    account_ids = {
+        event.transaction.account_id
+        for event in ledger.sync(TENANT_1, None, 100).events
+    }
+    assert account_ids == {CONN_1A}
+
+
+# pins: a 0.1.0 connection stored on a chain the registry never held
+#       fails alone — the connect-time refusal cannot reach rows already
+#       in a host's durable state, so isolation has to.
+def test_a_stored_connection_on_an_unseeded_chain_fails_alone():
+    source = FakeSource({ADDR_A: (100,), ADDR_B: (200,)})
+    ledger, state = MemoryLedger(), MemorySyncState()
+    state.add_connection(
+        TENANT_1,
+        ConnectionRecord(
+            id="conn_00000000000000ab",
+            chain_id=UNSEEDED_CHAIN,
+            address=ADDR_B,
+            created_at_ms=T0,
+        ),
+    )
+    facade = _facade(source, ledger=ledger, state=state, page_size=2)
+    facade.user("unit-user-1").connect_address(CHAIN, ADDR_A)
+
+    report = facade.sync(budget=6)
+
+    rows = {row.connection_id: row for row in report.connections}
+    assert rows["conn_00000000000000ab"].failed is True
+    assert rows[CONN_1A].failed is False
+    assert rows[CONN_1A].transactions_ingested == 1
+    assert report.failed_connections == ("conn_00000000000000ab",)
+    assert len(_ledger_rows(ledger, TENANT_1)) == 1
+
+
+# pins: a failing connection spends ONE unit of the shared budget, so N
+#       broken connections cannot issue N requests against a budget of 1.
+def test_a_failing_connection_still_spends_one_unit_of_the_budget():
+    source = FakeSource(
+        {ADDR_A: (100,), ADDR_B: (200,)}, fails_for=(ADDR_A, ADDR_B)
+    )
+    facade = _facade(source, page_size=2)
+    user = facade.user("unit-user-1")
+    user.connect_address(CHAIN, ADDR_A)
+    user.connect_address(CHAIN, ADDR_B)
+    source.armed = True
+
+    report = facade.sync(budget=1)
+
+    assert [row.connection_id for row in report.connections] == [CONN_1A]
+    assert report.failed_connections == (CONN_1A,)

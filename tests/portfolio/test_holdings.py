@@ -21,6 +21,7 @@ from pathlib import Path
 import httpx
 
 from auradefi.clock import FrozenClock
+from auradefi.errors import CurrencyMismatchError
 from auradefi.money.fiat import Money
 from auradefi.money.quantity import Quantity
 from auradefi.portfolio.holdings import BalanceSource, HoldingsService
@@ -312,3 +313,42 @@ def test_holdings_module_imports_no_httpx():
     assert not offenders, (
         f"portfolio assembly is transport-free — no httpx: {offenders}"
     )
+
+
+# --------------------------------------------------------- §5 #23 currency
+
+
+def test_a_non_usd_price_is_never_relabelled_usd():
+    # pins: the value carries the PRICE's currency, never a hardcoded "USD".
+    #       Stamping Money(..., "USD") over a EUR price produced a total off
+    #       by the FX rate, labelled USD, with nothing in `unpriced` and
+    #       nothing raised — the caller cannot tell it is wrong, which is
+    #       worse than a missing price. A EUR price is a host-oracle contract
+    #       violation (Inquirer: "every returned Money has currency USD"),
+    #       so the mislabelling must not be the thing that hides it.
+    source = StubSource([_record(ETH, "ETH", 10**18, 18)])
+    prices = RecordingPrices({ETH: Money(Decimal("2000"), "EUR")})
+    service = HoldingsService(source, prices, FrozenClock(1_700_000_000_000))
+
+    try:
+        report = service.holdings("eip155:1", "0xabc")
+    except CurrencyMismatchError:
+        return  # refusing outright is also correct — it is not silent
+    values = [holding.value for holding in report.holdings if holding.value]
+    assert values, "the record was priced, so it must have a value"
+    assert {value.currency for value in values} == {"EUR"}, (
+        f"a EUR price was relabelled: {[(v.amount, v.currency) for v in values]}"
+    )
+
+
+def test_a_usd_price_still_produces_a_usd_value():
+    # The control: carrying the currency through must not change the normal
+    # path, where every price is already USD.
+    source = StubSource([_record(ETH, "ETH", 10**18, 18)])
+    prices = RecordingPrices({ETH: _usd("2000")})
+    service = HoldingsService(source, prices, FrozenClock(1_700_000_000_000))
+
+    report = service.holdings("eip155:1", "0xabc")
+
+    assert report.holdings[0].value == _usd("2000")
+    assert report.total_value == _usd("2000")

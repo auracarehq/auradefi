@@ -22,13 +22,40 @@ No httpx here: replay only enqueues. The host's next
 
 from __future__ import annotations
 
+from typing import Protocol, runtime_checkable
+
 from auradefi.clock import Clock
-from auradefi.webhooks.deliver import WebhookStore
 from auradefi.webhooks.models import Delivery
 
 
+@runtime_checkable
+class ReplayStore(Protocol):
+    """The two members replay needs — not the whole concrete store.
+
+    Typed here rather than as ``deliver.WebhookStore`` because the only
+    caller, ``api/routes/admin.py``, passes ``deps.webhooks``, whose
+    declared type is the structural ``api.deps.WebhookSink``. No
+    host-supplied sink is an *instance* of ``WebhookStore``, so the
+    concrete annotation made the shipped call site unsatisfiable under
+    any type checker and only the shipped store happened to fit
+    (RELEASE_0.1.1 §5 Wave C). The Protocol cannot be imported from
+    ``api.deps``: ``ALLOWED_IMPORTS['webhooks']`` omits ``api``, and that
+    direction would be a cycle.
+    """
+
+    def create_replay(
+        self, project_id: str, delivery_id: str, clock: Clock
+    ) -> Delivery:
+        """The NEW PENDING delivery re-arming one of this project's rows."""
+        raise NotImplementedError
+
+    def dead_letter(self, project_id: str) -> tuple[Delivery, ...]:
+        """Deliveries that exhausted the pinned retry schedule."""
+        raise NotImplementedError
+
+
 def replay(
-    store: WebhookStore,
+    store: ReplayStore,
     project_id: str,
     delivery_id: str,
     clock: Clock,
@@ -43,7 +70,7 @@ def replay(
 
 
 def replay_dead_letter(
-    store: WebhookStore,
+    store: ReplayStore,
     project_id: str,
     clock: Clock,
 ) -> tuple[Delivery, ...]:

@@ -10,7 +10,10 @@ HTTP and never imports ``httpx`` or ``auradefi.prices.oracles``.
 Oracle implementation contract:
 
 * return only ids you can price — result keys are a subset of the input;
-* every returned :class:`~auradefi.money.fiat.Money` has currency ``"USD"``.
+* every returned :class:`~auradefi.money.fiat.Money` has currency ``"USD"`` —
+  ENFORCED by :class:`Inquirer`, which raises
+  :class:`~auradefi.errors.CurrencyMismatchError` on anything else rather
+  than letting a non-USD quote be relabelled downstream (§5 #23).
 
 :class:`Inquirer` composes oracles, first-wins:
 
@@ -29,6 +32,7 @@ from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 
 from auradefi.assets.caip import parse_caip19
+from auradefi.errors import CurrencyMismatchError
 from auradefi.money.fiat import Money
 
 
@@ -68,6 +72,32 @@ class Inquirer:
         for oracle in self._oracles:
             if not pending:
                 break
-            priced.update(oracle.usd_prices(pending))
+            priced.update(_checked_usd(oracle.usd_prices(pending), oracle))
             pending = [caip19 for caip19 in pending if caip19 not in priced]
         return priced
+
+
+def _checked_usd(
+    quotes: dict[str, Money], oracle: PriceOracle
+) -> dict[str, Money]:
+    """``quotes`` unchanged, or ``CurrencyMismatchError`` naming the oracle.
+
+    The oracle contract at the top of this module says every returned
+    ``Money`` has currency ``"USD"``. It was documented and never checked,
+    and oracles are HOST-SUPPLIED — so a EUR quote flowed through
+    ``portfolio.holdings``, which multiplied it by a quantity and stamped
+    the product ``"USD"``. The result was a portfolio total wrong by the
+    FX rate, labelled as dollars, with the asset absent from ``unpriced``
+    and nothing raised anywhere (RELEASE_0.1.1 §5 #23).
+
+    Checked here because this is the boundary the contract is written at:
+    the ONE place every composed oracle's output passes through.
+    """
+    for caip19, quote in quotes.items():
+        if quote.currency != "USD":
+            raise CurrencyMismatchError(
+                f"{type(oracle).__name__} returned {quote.currency!r} for "
+                f"{caip19!r}; an oracle must return USD (see the oracle "
+                "implementation contract in this module's docstring)"
+            )
+    return quotes

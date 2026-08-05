@@ -40,6 +40,7 @@ from auradefi.positions.models import (
     ProtocolModule,
 )
 from auradefi.positions.protocol import (
+    ContractDescriptor,
     ContractSet,
     DiscoveryContext,
     PositionAdapter,
@@ -372,3 +373,55 @@ class TestResolveSkipsAndPrefilter:
         positions = _resolve(adapter, reader, contracts)
         assert [p.id for p in positions] == [POS_RECEIPT_2]
         assert {address for address, _, _ in reader.calls} == {RECEIPT_2}
+
+
+class TestStaleDescriptorCostsOnePosition:
+    """RELEASE_0.1.1 §5 #31 — one unknown descriptor is not a wipe-out."""
+
+    def test_a_descriptor_with_no_receipt_is_skipped_not_raised(self):
+        # pins: descriptor sets are "persisted between discovery runs"
+        #       (ContractDescriptor's own docstring), so a descriptor can
+        #       outlive the receipt table that produced it — a delisted
+        #       receipt, a renamed adapter, a set written by an older
+        #       release. The unguarded index raised KeyError on the FIRST
+        #       such descriptor, and because resolve() builds its whole list
+        #       before returning, that removed EVERY Lido/Rocket Pool
+        #       position from net_worth rather than the one stale row. The
+        #       Aave adapter already does .get(...) + continue; this matches.
+        stale = ContractDescriptor(
+            adapter_id="stake-fork",
+            chain_id=CHAIN,
+            address="0x00000000000000000000000000000000000000ff",
+            category="receipt",
+        )
+        reader = RecordingReader(
+            {
+                (RECEIPT, "balanceOf", (HOLDER,)): ONE,
+                (RECEIPT, "getRate", ()): RATE,
+                (RECEIPT_2, "balanceOf", (HOLDER,)): ONE,
+            }
+        )
+        adapter = StakeForkAdapter()
+        live = _discover(adapter, RecordingReader({}))
+        contracts = ContractSet.of(*live, stale)
+
+        positions = _resolve(adapter, reader, contracts)
+
+        assert [p.id for p in positions] == [POS_RECEIPT, POS_RECEIPT_2], (
+            "one stale descriptor cost the entire staking slice, not one row"
+        )
+
+    def test_a_stale_descriptor_never_reaches_the_reader(self):
+        # pins: the skip happens BEFORE any contract call, so an unknown
+        #       descriptor costs no RPC either.
+        stale = ContractDescriptor(
+            adapter_id="stake-fork",
+            chain_id=CHAIN,
+            address="0x00000000000000000000000000000000000000ff",
+            category="receipt",
+        )
+        reader = RecordingReader({})
+        positions = _resolve(StakeForkAdapter(), reader, ContractSet.of(stale))
+
+        assert positions == []
+        assert reader.calls == []

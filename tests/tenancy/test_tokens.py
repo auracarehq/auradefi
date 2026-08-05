@@ -321,3 +321,136 @@ def test_token_claims_is_frozen():
 
 def test_token_claims_is_slotted():
     assert not hasattr(GOLDEN_CLAIMS, "__dict__")
+
+
+def _forge(payload: dict) -> str:
+    """A correctly-HMAC-signed token over an arbitrary payload.
+
+    The signature is genuine, so verification reaches the STRUCTURAL gate
+    rather than short-circuiting at "bad signature" — which is the only
+    way to exercise the claim-shape branches.
+    """
+    import hashlib
+    import hmac
+
+    def segment(obj: object) -> str:
+        raw = json.dumps(obj, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+    header = segment({"alg": "HS256", "typ": "JWT"})
+    body = segment(payload)
+    signing_input = f"{header}.{body}"
+    digest = hmac.new(
+        SECRET.encode("utf-8"), signing_input.encode("ascii"), hashlib.sha256
+    ).digest()
+    signature = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return f"{signing_input}.{signature}"
+
+
+def _claims(**overrides: object) -> dict:
+    payload = {
+        "exp": EXP_MS,
+        "external_user_id": "u-1",
+        "iat": IAT_MS,
+        "jti": JTI,
+        "project_id": "proj_test",
+        "scopes": ["accounts:read"],
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_a_genuinely_signed_token_still_needs_a_well_formed_scopes_claim():
+    # pins: `scopes` must be a LIST OF STRINGS. The signature is valid, so
+    #       this reaches the structural gate; without a test executing that
+    #       branch, deleting it leaves the suite green while a token whose
+    #       scopes are ints or nested objects flows into require_scope.
+    clock = FrozenClock(IAT_MS)
+    for bad in ([1, 2], "accounts:read", {"accounts:read": True}, [["nested"]], [None]):
+        with pytest.raises(AuthError):
+            verify_token(
+                _forge(_claims(scopes=bad)), signing_secret=SECRET, clock=clock
+            )
+
+
+def test_a_well_formed_scopes_claim_on_the_same_forge_verifies():
+    # The control: proves the failures above are the scopes branch and not
+    # a broken forge helper.
+    clock = FrozenClock(IAT_MS)
+    claims = verify_token(
+        _forge(_claims()), signing_secret=SECRET, clock=clock
+    )
+    assert claims.scopes == ("accounts:read",)
+
+
+def _sign_over(header: str, body: str) -> str:
+    """A genuine signature over two arbitrary (possibly junk) segments."""
+    import hashlib
+    import hmac
+
+    signing_input = f"{header}.{body}"
+    digest = hmac.new(
+        SECRET.encode("utf-8"), signing_input.encode("ascii"), hashlib.sha256
+    ).digest()
+    signature = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return f"{signing_input}.{signature}"
+
+
+def test_a_payload_segment_that_is_not_base64url_is_rejected_as_malformed():
+    # pins: the base64 decode guard is REACHED. The signature is genuine, so
+    #       rejection cannot be coming from the HMAC comparison — it is the
+    #       decode itself. Without a test here, deleting the except clause
+    #       lets binascii.Error escape as an unformatted 500 instead of 401.
+    header = base64.urlsafe_b64encode(
+        json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode()
+    ).rstrip(b"=").decode("ascii")
+    for junk in ("!!!!", "a@b$"):
+        with pytest.raises(AuthError):
+            verify_token(
+                _sign_over(header, junk),
+                signing_secret=SECRET,
+                clock=FrozenClock(IAT_MS),
+            )
+
+    # A non-ASCII segment cannot be HMAC-signed at all (the signing input is
+    # ascii), so it arrives unsigned — which is fine: rejection order is
+    # malformed BEFORE bad-signature, so this still lands on the decode
+    # guard, via the UnicodeEncodeError half of the same except clause.
+    with pytest.raises(AuthError):
+        verify_token(
+            f"{header}.····.{'A' * 43}",
+            signing_secret=SECRET,
+            clock=FrozenClock(IAT_MS),
+        )
+
+
+def test_iat_and_exp_must_be_real_ints_not_bools_or_strings():
+    # pins: the ms-epoch claims are ints and `True` is NOT one. Python makes
+    #       bool a subclass of int, so the explicit isinstance(..., bool)
+    #       rejection is the only thing standing between `"exp": true` and an
+    #       expiry that compares as 1ms after the epoch.
+    clock = FrozenClock(IAT_MS)
+    for field in ("exp", "iat"):
+        for bad in (True, False, "1767226200000", 1.0, None):
+            with pytest.raises(AuthError):
+                verify_token(
+                    _forge(_claims(**{field: bad})),
+                    signing_secret=SECRET,
+                    clock=clock,
+                )
+
+
+def test_the_three_string_claims_must_actually_be_strings():
+    # pins: external_user_id, jti and project_id are str. A numeric
+    #       project_id would otherwise reach _signing_secret as a non-str
+    #       key, and a non-str jti would land in the revocation set as a
+    #       value no revoke() call could ever match.
+    clock = FrozenClock(IAT_MS)
+    for field in ("external_user_id", "jti", "project_id"):
+        for bad in (1, None, ["u-1"], {"v": "u-1"}, True):
+            with pytest.raises(AuthError):
+                verify_token(
+                    _forge(_claims(**{field: bad})),
+                    signing_secret=SECRET,
+                    clock=clock,
+                )
