@@ -162,7 +162,10 @@ def test_app_metadata_is_pinned():
     app = create_app(deps)
     assert isinstance(app, FastAPI)
     assert app.title == "auradefi"
-    assert app.version == auradefi.__version__ == "0.1.0"
+    # The literal is the point: a half-bump (one file moved, the other not)
+    # is what release_check.sh refuses to ship, and this pins the app
+    # surface to the same value.
+    assert app.version == auradefi.__version__ == "0.1.1"
     assert app.docs_url == "/docs"
 
 

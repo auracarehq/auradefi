@@ -110,7 +110,22 @@ Stated plainly, because rule #10 cuts both ways.
   the adapters against a live chain.
 - **No multicall anywhere.** Token balances cost one request each.
 - **One price oracle** (DefiLlama), current prices only. No fallback feed and
-  no historical price service, so accounting marks are the caller's.
+  no historical price service: `prices/historian.py` and `prices/store.py` are
+  declared in the spec's layout and **absent**, along with the `coingecko`,
+  `manual` and `onchain_amm` oracles, so accounting marks are the caller's.
+- **No `jobs/` package.** The spec declares `scheduler.py`, `discover.py`,
+  `refresh.py`, `reprocess.py` and `backfill.py`; none of them ship. There is
+  no scheduler, no background worker and no reprocess path — the host owns
+  every tick, and a backfill is a `sync()` budget you spend yourself.
+- **Five of the nine declared `api/routes/` modules are absent**:
+  `accounts.py`, `holdings.py`, `positions.py`, `transactions.py` and
+  `webhooks.py`. What ships is `auth`, `connections`, `sync` and `admin` — so
+  holdings and positions have no HTTP surface of their own, and the webhook
+  admin routes live in `admin.py` rather than in a `webhooks.py`.
+- **`project/` ships only `scalar.py`.** `project/plaid.py` and
+  `project/native.py` are declared and absent; the Plaid envelope is
+  projected in `api/wire.py` instead, which means that projection is not
+  reusable outside the HTTP shell the way the layer contract intends.
 - **Two ledger backends**: in-memory and SQLModel/sqlite. Postgres should
   work through the same port; only sqlite is exercised. Tenancy, keys,
   quota, audit and webhook stores are **in-memory only**.

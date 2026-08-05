@@ -7,7 +7,7 @@ is one adapter among several, not the product.
 See docs/SPEC.md for the full design contract.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = ["Auradefi", "__version__"]
 

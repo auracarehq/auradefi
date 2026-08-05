@@ -8,11 +8,14 @@ follow SemVer once past 1.0.
 ## [0.1.1]
 
 A correctness release. 0.1.0 is published and **should not be used**: an
-independent adversarial review found nineteen verified defects, none of
-which failed a test (`docs/RELEASE_0.1.1.md` is the full accounting). This
-section covers the identity, persistence and sync-correctness half — waves A
-and B of that document's §5. Four of the six were **silent**: they lost
-transactions or returned empty results while reporting success.
+independent adversarial review found nineteen verified defects — #18 to #36 —
+and **none of them failed a test** (`docs/RELEASE_0.1.1.md` is the full
+accounting). All nineteen are fixed here, each with a regression test that
+fails against the unfixed code.
+
+Five were security, four lost transactions or returned empty results while
+reporting success, and the rest produced wrong numbers, unhandled 500s, or
+broke any host-supplied implementation of a declared interface.
 
 ### Upgrading — 0.1.0 embed data is NOT portable
 
@@ -70,8 +73,13 @@ unaffected.
   restarted strictly *below* the lowest block ingested, so when a page
   ended inside a block the rest of that block was never fetched, and
   `backfill_complete` still flipped to `True`. Permanent, unrecoverable,
-  silent. The boundary block is now inclusive and de-duplication is by
-  transaction id rather than by treating `block_number` as a unique cursor.
+  silent. The fix is not a boundary tweak: a `min(block)` cursor is
+  *coarser* than the row-level unit being paginated, so neither boundary
+  works — exclusive drops the split block, and inclusive re-reads page 1
+  every tick and never advances at all once one block holds more rows than
+  `page_size`. `SyncState` now carries the window end and the drained page
+  (`backfill_end`, `backfill_page`), so the walk is monotonic over a stable
+  ordered list and every row arrives exactly once.
 - **#21 — `sync()` no-opped after a restart.** Connections were enumerated
   from an in-process list, so a restarted worker returned
   `SyncReport(no_op=True)` — success-shaped — while ingesting nothing,
@@ -90,6 +98,114 @@ unaffected.
   `removed` flag, so a transaction orphaned by an earlier reorg and back
   on-chain **unchanged** landed in neither bucket and stayed `removed=True`
   forever. The stored `removed` flag is now part of the re-add decision.
+
+### Fixed — security
+
+- **#20 — `scopes: []` minted a full-privilege token.** `body.scopes or
+  key.scopes` treated an explicitly-empty list as "omitted", so a request
+  for a **zero**-privilege token returned one carrying every scope the API
+  key held. An empty list now means empty, and such a token is refused by
+  every scoped route.
+- **#33 — `POST /auth/revoke` was a cross-tenant authenticity oracle.** The
+  signing secret was selected from the token's own *unverified* `project_id`
+  claim, so a foreign token verified under its real owner's secret — and the
+  response then separated genuine-and-live (404), bad-signature (401
+  `AuthError`) and genuine-but-expired (401 `TokenExpiredError`). An attacker
+  with any free project and their own `users:admin` key could POST captured
+  JWTs and learn which were authentic and still live **for projects they hold
+  no credential for**, then replay only those; they cannot compute this
+  offline. Every non-owned outcome is now one status, one error type, one
+  body.
+- **#34 — an unauthenticated `RecursionError` became an unhandled 500.**
+  `_peek_project_id` guarded only `(ValueError, UnicodeDecodeError)`, so a
+  ~26 KB token of ~10,000 nested arrays raised `RecursionError` — a
+  `RuntimeError` — and escaped as an unformatted 500 instead of the pinned
+  401. Reachable with **no credentials at all** via `GET /users/me`, burning
+  a worker on a 10,000-frame unwind and leaking a stack trace per request.
+  Tokens are bounded before any decode (`MAX_TOKEN_CHARS = 1024`) and
+  `RecursionError` is caught — in the core verifier too, where the identical
+  guard had the identical hole.
+- **#25 — `rotate()` revived a revoked key.** No revoked/expired guard, so
+  rotating a revoked key id minted a **live** key with the revoked key's
+  project, environment and full scope set: any bulk rotation job silently
+  re-privileged a key an operator had revoked. Rotation now refuses a revoked
+  or expired key, only ever **shortens** `expires_at`, and both `revoke` and
+  `rotate` are tenant-gated — they previously looked the key up in a global
+  dict with no project filter, so any project could revoke any other's key.
+- **#30 — the audit log recorded a caller-controlled IP.** `_client_ip`
+  returned the first `X-Forwarded-For` hop verbatim, so any caller chose the
+  IP its own audit row would record — permanently, in a log with no mutation
+  surface. The hop count now comes from `Deps.trusted_proxy_hops` (default
+  **0**: socket peer only), the chain is read across *repeated* field lines
+  per RFC 9110 §5.3, and `AuditRecord` carries `ip_source` so a
+  header-derived value is never mistaken for a verified one.
+
+### Fixed — declared interfaces that lied
+
+- **#27 / #28 — `WebhookSink` promised less than the routes require.**
+  `create_replay` was undeclared (the replay route reaches it *indirectly*
+  through `webhooks.replay.replay`, so grepping for `webhooks.create_replay`
+  found nothing) and `register_endpoint` was typed as returning one object
+  while the route unpacks a 2-tuple. Every host-supplied sink got an
+  unhandled 500 there; the shipped store worked by accident. The seam is now
+  stated in full in the new `api/sinks.py`, with structural row Protocols
+  naming every attribute the wire projections read — a bare `object` return
+  is unimplementable from the declaration alone, which is what made the
+  whole class possible. `get_delivery` is deliberately *not* declared: no
+  route calls it, and an unused promise makes every host write dead code.
+- **#35 — `POST /auth/token` 500'd on wire-string scopes.** Line 113 read
+  `{scope.value for scope in key.scopes}` while the *very next line* already
+  used the tolerant `str(scope)`. `ApiKeyStore.issue` stored
+  `frozenset(scopes)` with no coercion and `has_scope` compares with `in`,
+  which succeeds for plain strings because `Scope` is a `StrEnum` — so a key
+  rehydrated from JSON or SQL authenticated everywhere and then
+  `AttributeError`ed here. Scopes are coerced at the store boundary and the
+  route is tolerant on both lines.
+
+### Fixed — wrong numbers and unmetered work
+
+- **#23 — a non-USD price was relabelled USD.** `portfolio/holdings.py`
+  stamped `Money(..., "USD")` without reading `price.currency`, so a EUR
+  oracle price produced a total wrong by the FX rate, labelled as dollars,
+  absent from `unpriced`, with nothing raised. `Inquirer` now enforces the
+  oracle contract its own docstring states (`CurrencyMismatchError`), and
+  holdings carries the price's currency through — a host may bind a bare
+  oracle rather than an `Inquirer`, so both halves are needed.
+- **#29 — the `rounded_basis` flag was discarded.** Every
+  `fraction_to_money` call site indexed `[0]` and dropped the `is_exact`
+  bit, and none of `AssetPnL`, `PnLReport` or `TaxLot` had a field to hold
+  it — so a figure accurate to 28 significant digits was indistinguishable
+  from one exactly right, and DECISIONS' "always flagged" promise was kept
+  by nothing. All three carry `flags` now, and the report flags if its own
+  total rounded *or* if anything underneath it did.
+- **#31 — one stale descriptor dropped the whole staking slice.**
+  `ReceiptTokenAdapter.resolve` indexed unguarded, so a `KeyError` on the
+  first unknown descriptor removed **every** Lido/Rocket Pool position from
+  `net_worth`. Now `.get(...)` + `continue`, matching the Aave adapter, and
+  the skip costs no RPC.
+- **#36 — a refused mint cost the caller nothing.** The three sibling
+  handlers consume quota immediately after authentication; `POST /auth/token`
+  deferred it and `raise ScopeError` returned first, so a tenant could drive
+  unlimited authenticated mints that always request a scope the key lacks —
+  each walking and HMAC-comparing every stored key — and decrement nothing.
+  Quota is consumed after authentication, before the privilege check, and a
+  refused mint still writes **no** audit row.
+- **#32 — a 422 burned quota.** `GET /crypto/sync` consumed quota before
+  `_resolved_limit` and the cursor decode, so a client with a hard-coded bad
+  limit drained the **project's** per-day window on requests it could never
+  succeed at, then 429'd every other user of that project. It now validates
+  first, the rule `POST /batch/holdings` already stated in `_checked_size`.
+
+### Fixed — honesty
+
+- **#17 — README understated its own gaps.** *What is not there* omitted the
+  whole `jobs/` package, five of the nine declared `api/routes/` modules,
+  `project/plaid.py` + `native.py`, and `prices/historian.py` + `store.py`.
+  All are now stated, and
+  `tests/style/test_spec_layout_matches_tree.py` diffs the shipped tree
+  against `docs/SPEC.md` §3.2 in **both** directions against a committed
+  inventory, so neither a module arriving nor one leaving can happen without
+  the prose being revisited.
 
 ### Documentation
 
