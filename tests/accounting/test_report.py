@@ -298,3 +298,73 @@ class TestRoundedBasisIsFlagged:
         assert result.flags == ()
         assert result.per_asset[ASSET].flags == ()
         assert all(lot.flags == () for lot in result.open_lots)
+
+
+class TestAcbPoolVersusLotsIsDiscoverable:
+    """Issue #16 — the divergence is deliberate; SILENCE about it was not.
+
+    Under `method="acb"`, `unrealized` subtracts the ACB POOL's cost while
+    each open lot reports its own remaining basis, and the two do not agree.
+    That is pinned in docs/DECISIONS.md ("ACB pooling") and STATUS.md, and it
+    is correct: the pool is what ACB costs with, the lots stay ground truth
+    for lot-level reporting.
+
+    What was missing is any way to notice at the point of use. A caller sums
+    `TaxLot.cost_basis`, compares it with what `unrealized` implies, finds a
+    gap, and concludes the library is broken. So the report now NAMES which
+    cost it used and exposes both figures.
+    """
+
+    #: 1 @ $10, 1 @ $20, 1 @ $15, then sell 1 @ $18. ACB consumes 45/3 = 15,
+    #: leaving a pool of 30; the lots left standing are the $20 and the $15,
+    #: summing to 35. The two differ by exactly 5, permanently.
+    POOL_BASIS = "30"
+    LOTS_BASIS = "35"
+
+    def test_acb_names_the_pool_as_the_basis_source(self):
+        # pins: the report says WHICH cost `unrealized` subtracted. Without
+        #       this a caller cannot tell a pooled figure from a lot-summed
+        #       one, and the two legitimately differ under ACB.
+        result = report(process(CLASSIC, "acb"), 5_000, {ASSET: usd(25)})
+        assert result.basis_source == "pool"
+
+    @pytest.mark.parametrize("method", ["fifo", "lifo", "hifo"])
+    def test_lot_methods_name_the_lots_as_the_basis_source(self, method):
+        # The control: only ACB pools. For every other method the two figures
+        # agree, and the label must say so rather than being cosmetic.
+        result = report(process(CLASSIC, method), 5_000, {ASSET: usd(25)})
+        assert result.basis_source == "lots"
+        assert result.unrealized_basis == result.open_lots_basis
+
+    def test_both_bases_are_exposed_and_differ_under_acb(self):
+        # pins: BOTH numbers are reachable, so the gap is inspectable instead
+        #       of being a discrepancy the caller has to reverse-engineer.
+        result = report(process(CLASSIC, "acb"), 5_000, {ASSET: usd(25)})
+
+        assert result.unrealized_basis == usd(self.POOL_BASIS)
+        assert result.open_lots_basis == usd(self.LOTS_BASIS)
+        assert result.unrealized_basis != result.open_lots_basis, (
+            "the fixture must actually reach the divergence it documents"
+        )
+
+    def test_unrealized_is_the_mark_less_the_pool_not_less_the_lots(self):
+        # pins: which of the two figures `unrealized` is derived from. 2 units
+        #       marked at $25 = $50; minus the pool's 30 is 20, minus the
+        #       lots' 35 would be 15. This is the assertion that would catch
+        #       a "fix" that quietly switched ACB to lot-summed basis.
+        result = report(process(CLASSIC, "acb"), 5_000, {ASSET: usd(25)})
+
+        assert result.unrealized == usd("20")
+        assert result.unrealized != usd("15")
+
+    def test_open_lots_basis_is_none_when_any_open_lot_is_unpriced(self):
+        # pins: the sum does not silently treat an unknown basis as zero —
+        #       profile rule "incomplete data is DECLARED, never defaulted".
+        events = (
+            buy(1_000, units(1), usd(10), "tx_priced"),
+            buy(2_000, units(1), None, "tx_unpriced"),
+        )
+        result = report(process(events, "acb"), 3_000, {ASSET: usd(25)})
+
+        assert any(lot.cost_basis is None for lot in result.open_lots)
+        assert result.open_lots_basis is None
