@@ -48,16 +48,22 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from auradefi.accounting.lots import Lot, exact_mul, fraction_to_money
-
-#: The one flag this module emits, pinned in docs/DECISIONS.md
-#: ("Fraction->Money boundary … always flagged").
-ROUNDED_BASIS = "rounded_basis"
 from auradefi.errors import CurrencyMismatchError
 from auradefi.money.fiat import Money
 from auradefi.money.quantity import Quantity
 
 if TYPE_CHECKING:  # a report READS replay state; the dependency is one-way
     from auradefi.accounting.pnl import PnLState
+
+#: The one flag this module emits, pinned in docs/DECISIONS.md
+#: ("Fraction->Money boundary … always flagged").
+ROUNDED_BASIS = "rounded_basis"
+
+#: What ``PnLReport.unrealized`` subtracted. ACB costs from a per-asset
+#: running POOL; every other method costs from the lots themselves, and
+#: only in the pool case do the two figures legitimately differ (#16).
+BASIS_FROM_POOL = "pool"
+BASIS_FROM_LOTS = "lots"
 
 #: Currency a report falls back to when NOTHING in the stream was priced.
 #: An unpriced stream still has to report a zero, and a zero needs a
@@ -159,6 +165,22 @@ class PnLReport:
     ``open_lots`` is sorted by ``(asset_id, opened_at_ms, lot_id)``: a
     total order with no ties, so the wire output is byte-stable across
     runs even when two lots were opened in the same millisecond.
+
+    UNDER ``method="acb"``, ``unrealized`` AND ``TaxLot.cost_basis`` DO NOT
+    AGREE, and that is correct. ACB costs from a per-asset running POOL, so
+    a disposal consumes ``pool_cost × take/pool`` and leaves the pool
+    reduced proportionally; the lots behind it are untouched and keep
+    reporting their own remaining basis, because they stay ground truth for
+    lot-level reporting (docs/DECISIONS.md, "ACB pooling"). Buy 1 at 10, 1
+    at 20 and 1 at 15, sell one, and the pool holds 30 while the surviving
+    lots sum to 35 — a permanent, intended gap of 5.
+
+    Summing ``TaxLot.cost_basis`` and comparing it with what ``unrealized``
+    implies is therefore the wrong check, and it is an easy one to reach for.
+    :attr:`basis_source` names which cost ``unrealized`` actually subtracted,
+    and :attr:`unrealized_basis` and :attr:`open_lots_basis` expose both
+    figures, so the difference is inspectable rather than something a caller
+    has to reverse-engineer and mistake for a bug.
     """
 
     as_of_ms: int
@@ -169,6 +191,31 @@ class PnLReport:
     per_asset: Mapping[str, AssetPnL]
     open_lots: tuple[TaxLot, ...]
     flags: tuple[str, ...] = ()
+    #: ``"pool"`` under ACB, ``"lots"`` for every lot-tracking method — which
+    #: cost :attr:`unrealized` subtracted. Never cosmetic: under ``"pool"``
+    #: it is the ONLY signal that summing the lots will give another number.
+    basis_source: str = BASIS_FROM_LOTS
+    #: The cost :attr:`unrealized` actually subtracted, or ``None`` when
+    #: ``unrealized`` is ``None``. Under ACB this is the pool's cost.
+    unrealized_basis: Money | None = None
+
+    @property
+    def open_lots_basis(self) -> Money | None:
+        """Sum of every open lot's ``cost_basis``, or ``None`` if any is.
+
+        The lot-side counterpart to :attr:`unrealized_basis`. Equal to it
+        under every lot-tracking method and deliberately NOT equal under
+        ACB. ``None`` when any open lot is unpriced — an unknown basis is
+        declared, never summed as zero.
+        """
+        if not self.open_lots:
+            return Money(Decimal(0), self.realized.currency)
+        total = Decimal(0)
+        for lot in self.open_lots:
+            if lot.cost_basis is None:
+                return None
+            total += lot.cost_basis.amount
+        return Money(total, self.realized.currency)
 
 
 def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLReport:
@@ -224,6 +271,9 @@ def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLRep
     per_asset: dict[str, AssetPnL] = {}
     rows: list[tuple[str, int, str, TaxLot]] = []
     total: Fraction | None = Fraction(0)
+    # Accumulated alongside `total` and with the SAME None-propagation, so
+    # the reported basis can never disagree with the figure derived from it.
+    total_basis: Fraction | None = Fraction(0)
     for asset_id, ledger in state.ledgers.items():
         open_lots = ledger.open_lots
         held, basis = _held(open_lots, state.scales.get(asset_id, 0))
@@ -238,8 +288,13 @@ def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLRep
             gap = Fraction(exact_mul(mark.amount, held.as_decimal())) - basis
         if gap is None:
             total = None
+            total_basis = None
         elif total is not None:
             total += gap
+        if total_basis is not None:
+            # Nothing held means nothing was costed: contribute zero rather
+            # than a stale pool figure, matching the gap's own zero above.
+            total_basis += Fraction(0) if held.raw == 0 else (basis or Fraction(0))
         # The `is_exact` bit is CAPTURED, not indexed away: DECISIONS pins
         # that this boundary "is always flagged", and every site here used
         # to drop it, so a rounded figure read as an exact one (§5 #29).
@@ -273,9 +328,16 @@ def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLRep
         ROUNDED_BASIS in slice_.flags for slice_ in per_asset.values()
     ):
         report_flags = (ROUNDED_BASIS,)
+    basis_money = (
+        None
+        if total_money is None or total_basis is None
+        else fraction_to_money(total_basis, currency)[0]
+    )
     return PnLReport(
         as_of_ms, state.method, realized, missing, total_money,
         MappingProxyType(per_asset), tuple(row[3] for row in rows), report_flags,
+        BASIS_FROM_POOL if state.method == "acb" else BASIS_FROM_LOTS,
+        basis_money,
     )
 
 

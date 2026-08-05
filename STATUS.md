@@ -86,6 +86,14 @@ first commit of 0.1.2.
    (`docs/DECISIONS.md`, "ACB pooling"; demonstrated in
    `docs/books/11_accounting.ipynb`).
 
+   The report now **says which one it used**: `basis_source` is `"pool"`
+   under ACB and `"lots"` for every lot-tracking method, and
+   `unrealized_basis` and `open_lots_basis` expose both figures. Summing
+   `TaxLot.cost_basis` and comparing it against what `unrealized` implies
+   is the wrong check, and it was previously the easiest one to reach for —
+   the gap is now a value you can read rather than a discrepancy you
+   reverse-engineer (#16).
+
 2. **`positions/` is fixture-driven, pending a multicall reader.** The
    `ContractReader` seam ships and every adapter is pinned to
    block-20,450,000 golden vectors, but no concrete on-chain reader exists
