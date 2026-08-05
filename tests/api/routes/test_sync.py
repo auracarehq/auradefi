@@ -381,3 +381,66 @@ def test_a_bad_batch_body_is_422(batch_wired, body):
     response = client.post("/batch/holdings", json=body, headers=_bearer(plaintext))
     assert response.status_code == 422
     assert response.json()["error"]["type"] == "ValidationError"
+
+
+# --------------------------------------------------------------------------
+# RELEASE_0.1.1 §5 #32 — a 422 must not burn quota
+
+
+def test_a_rejected_limit_costs_the_caller_no_quota():
+    # pins: GET /crypto/sync validates `limit` BEFORE consuming quota, the
+    #       rule POST /batch/holdings already states in _checked_size ("an
+    #       over-sized batch costs the caller nothing"). Consuming first let
+    #       a client with a hard-coded bad limit drain the project's per-day
+    #       window and then 429 EVERY OTHER USER of that project — a 422 the
+    #       client can never succeed at, charged every time it retries.
+    deps, project, clock = _build(limits=QuotaLimits(500, 5_000, 50_000))
+    record, plaintext = deps.keys.issue(
+        project.id, Environment.TEST, ALL_SCOPES, clock
+    )
+    client = TestClient(create_app(deps))
+    token = _token(client, plaintext)
+    before = deps.quota.snapshot(project.id)["day"].remaining
+
+    response = client.get("/crypto/sync?limit=99999", headers=_bearer(token))
+
+    assert response.status_code == 422
+    assert response.json()["error"]["type"] == "ValidationError"
+    after = deps.quota.snapshot(project.id)["day"].remaining
+    assert after == before, (
+        f"a 422 consumed quota: {before} -> {after}. A client with a bad "
+        "hard-coded limit would drain the project's window and 429 everyone."
+    )
+
+
+def test_a_rejected_cursor_costs_the_caller_no_quota():
+    # pins: the same rule for the cursor decode, which also runs after the
+    #       consume in the shipped order.
+    deps, project, clock = _build(limits=QuotaLimits(500, 5_000, 50_000))
+    _record, plaintext = deps.keys.issue(
+        project.id, Environment.TEST, ALL_SCOPES, clock
+    )
+    client = TestClient(create_app(deps))
+    token = _token(client, plaintext)
+    before = deps.quota.snapshot(project.id)["day"].remaining
+
+    response = client.get("/crypto/sync?cursor=not-a-cursor", headers=_bearer(token))
+
+    assert response.status_code == 422
+    after = deps.quota.snapshot(project.id)["day"].remaining
+    assert after == before, f"a bad cursor consumed quota: {before} -> {after}"
+
+
+def test_an_accepted_request_still_consumes_exactly_one_unit():
+    # The control: moving the consume must not stop charging real work.
+    deps, project, clock = _build(limits=QuotaLimits(500, 5_000, 50_000))
+    _record, plaintext = deps.keys.issue(
+        project.id, Environment.TEST, ALL_SCOPES, clock
+    )
+    client = TestClient(create_app(deps))
+    token = _token(client, plaintext)
+    before = deps.quota.snapshot(project.id)["day"].remaining
+
+    assert client.get("/crypto/sync", headers=_bearer(token)).status_code == 200
+
+    assert deps.quota.snapshot(project.id)["day"].remaining == before - 1
