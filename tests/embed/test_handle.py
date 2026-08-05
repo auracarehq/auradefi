@@ -1,7 +1,7 @@
 """``UserHandle`` after the split out of ``facade.py``.
 
 The move was mechanical, so this file pins the properties that a mechanical
-move could quietly break — not the connect-time error contract, which
+move could quietly break, not the connect-time error contract, which
 ``tests/embed/test_facade.py`` and ``tests/contract/test_embedding.py``
 already own and exercise through the facade.
 
@@ -45,7 +45,7 @@ class TestConstruction:
         assert first.tenant_id == second.tenant_id
 
     def test_creating_a_handle_performs_no_io(self, aura):
-        """`user()` is a pure call — nothing stored, nothing requested."""
+        """`user()` is a pure call: nothing stored, nothing requested."""
         aura.user("host-user-1")
         assert aura.user("host-user-1").connections() == ()
 

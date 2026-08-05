@@ -1,9 +1,9 @@
-"""api/errors.py — the pinned status table and the ONE exception handler.
+"""api/errors.py: the pinned status table and the ONE exception handler.
 
 The table is DECISIONS "HTTP error table", verbatim and ordered. The two
 boundary facts this file exists to keep honest:
 
-* a route raising ``ValueError`` is NOT converted — a bug is not an API
+* a route raising ``ValueError`` is NOT converted. A bug is not an API
   contract, and TestClient re-raises it;
 * ``existing_connection_id`` (SPEC §7.1, Vezgo-verbatim) is emitted by the
   handler from ``ConflictError.existing_id``, never by route-level magic,
@@ -65,7 +65,7 @@ ERRORS_SOURCE = (
     Path(__file__).resolve().parents[2] / "src" / "auradefi" / "api" / "errors.py"
 )
 
-# DECISIONS "HTTP error table" — order is part of the contract: every
+# DECISIONS "HTTP error table". Order is part of the contract: every
 # subclass precedes its base, so a table walk and an MRO walk agree.
 PINNED_TABLE = [
     (ValidationError, 422),
@@ -248,7 +248,7 @@ def test_the_deliberate_mro_overrides():
     assert issubclass(ScopeError, AuthError)
     assert status_for(ScopeError("x")) == 403
     assert status_for(AuthError("x")) == 401
-    # CursorError is a LedgerError but 422 — a mistyped ?cursor= is the
+    # CursorError is a LedgerError but 422. A mistyped ?cursor= is the
     # client's fault; TenantIsolationError, its sibling, stays 500.
     assert status_for(CursorError("x")) == 422
     assert status_for(TenantIsolationError("x")) == 500

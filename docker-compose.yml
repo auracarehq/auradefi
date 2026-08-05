@@ -1,5 +1,5 @@
 services:
-  # Runs the full offline test suite — the SPEC §13 acceptance criterion.
+  # Runs the full offline test suite: the SPEC §13 acceptance criterion.
   test:
     build:
       context: .

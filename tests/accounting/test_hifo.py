@@ -1,9 +1,9 @@
-"""HIFO consumption-order selector — SPEC §9 pluggable methods.
+"""HIFO consumption-order selector. SPEC §9 pluggable methods.
 
 The plan is the whole contract, on the terms ``fifo``/``lifo`` state:
 ordered ``(lot, take)`` pairs, no mutation, no cost math, no exception for
 shortage. What HIFO adds is the ORDER, and the order is a pinned
-stability guarantee — every expected plan below is a hardcoded literal
+stability guarantee. Every expected plan below is a hardcoded literal
 derived by hand from ``Fraction(cost_total.amount) /
 Fraction(quantity_original.raw)``, descending, unpriced last, ties
 oldest-first then earlier input position.
@@ -11,7 +11,7 @@ oldest-first then earlier input position.
 Lots are local stubs: ``select`` is structurally typed and
 docs/internal/DECISIONS.md ("Duplication waiver extension") forbids the runtime
 import of ``accounting.lots``/``fifo``/``lifo``. One test does import the
-real ``Lot`` — locally — because a restated walk that reads the wrong
+real ``Lot``, locally, because a restated walk that reads the wrong
 field names is exactly the failure the waiver risks.
 """
 
@@ -116,7 +116,7 @@ def units(raw: int, decimals: int = 0) -> Quantity:
 
 
 def test_unit_cost_is_cost_total_over_original_quantity_exactly():
-    # 10 USD spread over 3 base units is 10/3 — a rational no Decimal holds.
+    # 10 USD spread over 3 base units is 10/3. A rational no Decimal holds.
     assert hifo.unit_cost(lot("lot_a", T1, 3, "10")) == Fraction(10, 3)
 
 
@@ -229,7 +229,7 @@ def test_the_key_is_exact_where_float_and_context_division_both_tie():
     # float(10)/3 == float('3.33...') == 3.3333333333333335, and
     # Decimal('10')/Decimal(3) at the default 28-digit context IS the
     # other value. Both lossy keys tie, then hand the win to the older
-    # lot — which is the wrong lot, silently, forever.
+    # lot, which is the wrong lot, silently, forever.
     exact_ten_thirds = lot("lot_exact", T2, 3, "10")
     twenty_eight_threes = lot("lot_lossy", T1, 1, "3.3333333333333333333333333333")
 
@@ -249,7 +249,7 @@ def test_the_key_is_exact_where_float_and_context_division_both_tie():
 
 
 def test_10_pow_77_lots_order_by_exact_unit_cost():
-    # 10**30/10**77 vs (10**30 + 1)/10**77 — one cent-of-a-cent apart, 77
+    # 10**30/10**77 vs (10**30 + 1)/10**77: one cent-of-a-cent apart, 77
     # digits down. Exact rationals still separate them.
     plain = lot("lot_plain", T1, HUGE, "1E+30", decimals=WEI)
     dearer = lot("lot_dear", T2, HUGE, "1000000000000000000000000000001", decimals=WEI)

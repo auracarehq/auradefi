@@ -19,7 +19,7 @@ METHOD_NAMES = ("upsert", "sync", "get", "mark_removed")
 
 
 class _CompleteBackend:
-    """Structurally complete — never inherits from LedgerPort (rule #12)."""
+    """Structurally complete, never inherits from LedgerPort (rule #12)."""
 
     def upsert(self, tenant_id, txns):
         raise NotImplementedError

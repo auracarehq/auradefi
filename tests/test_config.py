@@ -1,4 +1,4 @@
-"""Foundation: Settings — frozen, env-loadable, never required (SPEC §13)."""
+"""Foundation: Settings: frozen, env-loadable, never required (SPEC §13)."""
 
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ def test_empty_project_id_rejected():
 
 
 def test_trusted_proxy_hops_defaults_to_zero_and_reads_from_env():
-    # pins: the default trusts NO proxy — a header-derived client IP is
+    # pins: the default trusts NO proxy: a header-derived client IP is
     #       never the audited source unless the deployment opts in
     assert Settings().trusted_proxy_hops == 0
     settings = Settings.from_env(env={"AURADEFI_TRUSTED_PROXY_HOPS": "2"})

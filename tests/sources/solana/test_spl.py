@@ -12,7 +12,7 @@ Every golden below is hand-derived, never computed by the code under test:
   * ``Decimal("0.00000005") * 2`` prints ``"1.0E-7"`` via ``str`` but
     ``"0.00000010"`` via ``format(_, "f")``; the pinned answer is
     ``"0.0000001"``. A ``str()``-based sum fails this test.
-  * ``Decimal("100") + Decimal("150") == 250`` must stay ``"250"`` — a
+  * ``Decimal("100") + Decimal("150") == 250`` must stay ``"250"``: a
     naive ``rstrip("0")`` yields ``"25"`` and is caught here.
 
 The 10**77-scale equalities do NOT survive a float roundtrip, so they
@@ -247,7 +247,7 @@ class TestParseTokenAccounts:
         assert record.quantity == Quantity(250000000, 6)
         assert record.ui_amount_string == "250"
         assert record.scaled_ui is False
-        # The identity holds here — hand-derived, not computed by the code.
+        # The identity holds here: hand-derived, not computed by the code.
         assert str(record.quantity) == "250"
 
     def test_token_2022_scaled_ui_amount_breaks_the_identity(self):
@@ -257,7 +257,7 @@ class TestParseTokenAccounts:
         assert record.ui_amount_string == "2"
         assert record.scaled_ui is True
         # raw/10**decimals says 1; the RPC displays 2. String comparison
-        # alone finds it (DECISIONS pin) — no extensions list needed.
+        # alone finds it (DECISIONS pin), no extensions list needed.
         assert str(record.quantity) == "1"
 
     def test_rows_are_parsed_in_order(self):
@@ -313,7 +313,7 @@ class TestParseTokenAccounts:
 
 
 class TestUiAmountFloatIsNeverRead:
-    """The float member may be absent, wrong or garbage — same result."""
+    """The float member may be absent, wrong or garbage: same result."""
 
     @staticmethod
     def _baseline() -> TokenAccountRecord:
@@ -483,7 +483,7 @@ class TestAggregateByMint:
             _record(mint=T22_MINT, raw=1000000000, decimals=9, ui="2", scaled=True),
             _record(mint=USDC_MINT),
         ]
-        # "E" (0x45) sorts before "S" (0x53) — base58, case-sensitive.
+        # "E" (0x45) sorts before "S" (0x53): base58, case-sensitive.
         assert [b.mint for b in aggregate_by_mint(records)] == [USDC_MINT, T22_MINT]
 
     def test_interleaved_accounts_group_by_exact_mint(self):
@@ -525,7 +525,7 @@ class TestAggregateScaledUiAmount:
         assert balance.ui_amount_string == "2"
 
     def test_scaled_sum_never_emits_scientific_notation(self):
-        # str(Decimal("0.00000005") * 2) == "1.0E-7" — format(_, "f") is
+        # str(Decimal("0.00000005") * 2) == "1.0E-7". Format(_, "f") is
         # pinned precisely so this cannot leak to a display string.
         records = [
             _record(mint=T22_MINT, raw=1, decimals=9, ui="0.00000005", scaled=True),

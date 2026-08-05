@@ -1,7 +1,7 @@
 """AssetRegistry: both-ways addressing, idempotent registration,
 conflict on rebinding (SPEC §4.2).
 
-Expected ids are the same hardcoded golden literals as test_models.py —
+Expected ids are the same hardcoded golden literals as test_models.py,
 never derived by calling the code under test.
 """
 
@@ -313,7 +313,7 @@ def test_assets_returns_tuple_sorted_by_id():
     registry.register(_weth())
     listed = registry.assets()
     assert isinstance(listed, tuple)
-    # '5cd' < '99f' < 'ed0' — pinned, independent of registration order.
+    # '5cd' < '99f' < 'ed0': pinned, independent of registration order.
     assert [a.id for a in listed] == [AST_WETH, AST_USDC_TRI, AST_ETH]
 
 

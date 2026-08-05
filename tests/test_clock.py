@@ -1,4 +1,4 @@
-"""Foundation: Clock port — ms epoch ints, everywhere, always (SPEC §4.4)."""
+"""Foundation: Clock port: ms epoch ints, everywhere, always (SPEC §4.4)."""
 
 from __future__ import annotations
 

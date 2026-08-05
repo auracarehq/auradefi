@@ -1,28 +1,28 @@
 """Lot ledger, taxable events, and the exact-math boundary (SPEC §9, §3.3).
 
 ``accounting/`` is PURE: it reads ledger values and money values and does
-arithmetic on them. No I/O, no HTTP client, no clock — an event's time
+arithmetic on them. No I/O, no HTTP client, no clock. An event's time
 comes from the transaction that produced it, never from ``now()``. That
 is what makes arbitrary-date PnL replayable rather than pinned to
 pre-computed marks (SPEC §9, the thing Zerion cannot do).
 
 This module holds the primitives every costing method shares:
 
-* :class:`AcquisitionEvent` / :class:`DisposalEvent` — the taxable events
+* :class:`AcquisitionEvent` / :class:`DisposalEvent`: the taxable events
   :func:`derive_events` distils out of ``LedgerTransaction`` rows.
   ``Direction.SELF`` entries, transactions listed in
   ``internal_transfer_ids``, and reorg-removed transactions produce
   NOTHING: without ``is_internal_transfer`` every self-transfer reads as
   income and every tax report is wrong (SPEC §9).
-* :class:`Lot` / :class:`LotLedger` — the open lots of ONE asset,
+* :class:`Lot` / :class:`LotLedger`: the open lots of ONE asset,
   consumed through a pluggable ``selector``. FIFO/LIFO/HIFO/ACB live in
   sibling modules and plug in here; they never import one another.
-* :func:`exact_mul` and :func:`fraction_to_money` — every internal lot
+* :func:`exact_mul` and :func:`fraction_to_money`. Every internal lot
   computation is exact rational arithmetic; rounding exists only at the
   ``Fraction`` -> ``Money`` boundary and is always flagged.
 
 Duplication waiver (DECISIONS.md): :func:`exact_mul` is a value-identical
-restatement of ``positions.drill.exact_mul`` — the layer contract forbids
+restatement of ``positions.drill.exact_mul``: the layer contract forbids
 ``accounting`` -> ``positions``. Both trees pin the same golden vectors,
 so drift is a red test rather than a debate.
 """
@@ -51,7 +51,7 @@ SIGNIFICANT_DIGITS = 28
 
 def _require_positive(quantity: Quantity) -> None:
     """Raise ``ValidationError`` unless ``quantity`` is a ``Quantity`` with
-    ``raw > 0`` — zero or negative units are a caller bug, not a movement."""
+    ``raw > 0``. Zero or negative units are a caller bug, not a movement."""
     if not isinstance(quantity, Quantity):
         raise ValidationError(f"quantity must be a Quantity, got {quantity!r}")
     if quantity.raw <= 0:
@@ -63,7 +63,7 @@ class AcquisitionEvent:
     """Units of one asset entered the account at ``at_ms``.
 
     ``cost`` is the fee-INCLUSIVE total paid, carried only when the
-    caller supplied it — pricing stays outside this module, so ``None``
+    caller supplied it. Pricing stays outside this module, so ``None``
     means "basis unknown", never "basis zero". ``quantity.raw`` must be
     ``> 0`` (``ValidationError`` otherwise): an event of nothing is a
     caller bug, and a negative acquisition is a disposal.
@@ -105,7 +105,7 @@ class DisposalEvent:
 #: Either taxable event, in one chronologically ordered stream.
 AccountingEvent = AcquisitionEvent | DisposalEvent
 
-#: Direction -> event class; SELF is absent on purpose — moving your own
+#: Direction -> event class; SELF is absent on purpose. Moving your own
 #: coins is not a taxable event (SPEC §9).
 _EVENT_BY_DIRECTION = {Direction.IN: AcquisitionEvent, Direction.OUT: DisposalEvent}
 
@@ -121,7 +121,7 @@ class Lot:
 
     ``cost_total`` is the fee-inclusive Money as supplied;
     ``cost_remaining`` is the un-disposed part of it as an EXACT
-    ``Fraction`` — the whole point of the domain is that basis never
+    ``Fraction``: the whole point of the domain is that basis never
     drifts through repeated proration. Both are ``None`` together when
     the acquisition was unpriced.
     """
@@ -136,7 +136,7 @@ class Lot:
     source_tx_id: str
 
 
-#: ``selector(open_lots, needed) -> [(lot, take), ...]`` — the plan a
+#: ``selector(open_lots, needed) -> [(lot, take), ...]``: the plan a
 #: costing method returns. Lots arrive in open order, already filtered to
 #: those with units remaining.
 LotSelector = Callable[[Sequence[Lot], Quantity], Sequence[tuple[Lot, Quantity]]]
@@ -152,7 +152,7 @@ def lot_id(source_tx_id: str, asset_id: str, seq: int) -> str:
     ``"lot_" + sha256(f"{source_tx_id}|{asset_id}|{seq}".encode())
     .hexdigest()[:16]``, where ``seq`` is the zero-based ordinal among
     acquisitions sharing ``(source_tx_id, asset_id)``. It is a wire
-    contract — Plaid's ``institution_lot_id`` — so the same acquisition
+    contract, Plaid's ``institution_lot_id``, so the same acquisition
     always reports the same id across runs and across backends.
     """
     digest = hashlib.sha256(f"{source_tx_id}|{asset_id}|{seq}".encode())
@@ -184,7 +184,7 @@ class LotLedger:
 
     @property
     def lots(self) -> tuple[Lot, ...]:
-        """Every lot ever opened, in the order it was opened —
+        """Every lot ever opened, in the order it was opened:
         exhausted ones included, so lot history stays reportable."""
         return tuple(self._lots)
 
@@ -198,7 +198,7 @@ class LotLedger:
 
         ``lot_id`` follows the pin, with ``seq`` counting acquisitions
         that share ``(source_tx_id, asset_id)`` over this ledger's whole
-        lifetime — exhausted lots still occupy their ordinal, so ids are
+        lifetime: exhausted lots still occupy their ordinal, so ids are
         never reused. ``quantity_remaining`` starts at the full
         ``quantity``; ``cost_remaining`` starts at
         ``Fraction(event.cost.amount)``, or ``None`` when unpriced.
@@ -236,7 +236,7 @@ class LotLedger:
         self, needed: Quantity, selector: LotSelector
     ) -> list[tuple[Lot, Quantity]]:
         """The selector's plan, fully validated BEFORE anything is
-        decremented — a half-applied plan would corrupt basis silently."""
+        decremented. A half-applied plan would corrupt basis silently."""
         plan = list(selector(self.open_lots, needed))
         budgets = {id(lot): lot.quantity_remaining.raw for lot in self._lots}
         total = 0
@@ -274,7 +274,7 @@ class LotLedger:
         Returns ``(consumed, shortfall)``. ``shortfall`` is
         ``needed`` minus everything taken and is the second half of the
         contract, NOT an error: a disposal exceeding held lots NEVER
-        raises (DECISIONS "Shortfall semantics") — pre-history is a
+        raises (DECISIONS "Shortfall semantics"). Pre-history is a
         data-quality fact, and the engine books the uncovered remainder
         as a zero-cost synthetic flagged ``missing_basis``.
 
@@ -308,22 +308,22 @@ def derive_events(
 
     Per entry: ``Direction.IN`` yields an ``AcquisitionEvent`` with
     ``cost=None``, ``Direction.OUT`` a ``DisposalEvent`` with
-    ``proceeds=None`` — this module carries totals only when a caller
+    ``proceeds=None``. This module carries totals only when a caller
     supplies them, so pricing stays out of the accounting layer.
 
     Three things produce NO event at all:
 
-    * ``Direction.SELF`` entries — moving your own coins is not income;
+    * ``Direction.SELF`` entries, moving your own coins is not income;
     * every entry of a transaction whose ``id`` is in
-      ``internal_transfer_ids`` — the whole transaction is skipped, both
+      ``internal_transfer_ids``, the whole transaction is skipped, both
       legs, which is what ``is_internal_transfer`` is for;
-    * every entry of a ``removed=True`` transaction — a reorged-away
+    * every entry of a ``removed=True`` transaction, a reorged-away
       transaction never happened.
 
     ``at_ms`` is ``confirmed_at`` when it is not ``None``, else
     ``initiated_at`` (DECISIONS "Accounting event time"). The result is
     sorted by ``at_ms`` STABLY, so entries sharing a timestamp keep the
-    order they arrived in — replay is deterministic.
+    order they arrived in. Replay is deterministic.
     """
     events: list[AccountingEvent] = []
     for transaction in transactions:
@@ -334,7 +334,7 @@ def derive_events(
             at_ms = transaction.initiated_at
         for entry in transaction.entries:
             build = _EVENT_BY_DIRECTION.get(entry.direction)
-            if build is None:  # Direction.SELF — not a taxable event
+            if build is None:  # Direction.SELF, not a taxable event
                 continue
             events.append(
                 build(at_ms, entry.asset_id, entry.quantity, None, transaction.id)
@@ -353,7 +353,7 @@ def exact_mul(a: Decimal, b: Decimal) -> Decimal:
     ``Decimal('35841.70')``, trailing zero preserved.
 
     Value-identical to ``positions.drill.exact_mul`` under the
-    duplication waiver — accounting may not import positions.
+    duplication waiver. Accounting may not import positions.
     """
     a_sign, a_digits, a_exponent = a.as_tuple()
     b_sign, b_digits, b_exponent = b.as_tuple()
@@ -368,8 +368,8 @@ def fraction_to_money(value: Fraction, currency: str = "USD") -> tuple[Money, bo
 
     Returns ``(money, is_exact)``. When ``value`` reduced has a
     denominator of the form ``2**a * 5**b`` the decimal expansion
-    terminates: the Money is EXACT at whatever length that takes — 35
-    significant digits if that is what ``1/2**50`` needs — and
+    terminates: the Money is EXACT at whatever length that takes, 35
+    significant digits if that is what ``1/2**50`` needs, and
     ``is_exact`` is ``True``. The exact branch scales by
     ``10 ** max(a, b)``, the shortest terminating form, so the amount
     carries no padding zeros: ``Fraction(3, 4)`` is ``Decimal("0.75")``.

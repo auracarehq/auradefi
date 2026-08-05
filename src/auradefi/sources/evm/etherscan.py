@@ -5,26 +5,26 @@ base URL. A source turns raw chain bytes into typed records: this module
 knows HTTP and the Etherscan envelope, and knows nothing about positions
 or fiat (SPEC §3.3).
 
-Request flow for :meth:`EtherscanV2.balances` — the CAIP-2 ``chain_id``
+Request flow for :meth:`EtherscanV2.balances`: the CAIP-2 ``chain_id``
 reference ``N`` becomes the ``chainid`` query param, and the input address
 is lowercased before use:
 
-1. ``module=account&action=balance&address=<addr>&tag=latest`` — native
+1. ``module=account&action=balance&address=<addr>&tag=latest``: native
    balance as a wei string.
 2. Discovery: ``module=account&action=tokentx&address=<addr>&startblock=0&
-   endblock=99999999&page=<n from 1>&offset=<page_size>&sort=asc`` —
+   endblock=99999999&page=<n from 1>&offset=<page_size>&sort=asc``,
    fetch the next page while a page returned exactly ``page_size`` rows
-   (July 2026 cut: max 1,000 records per request — paginate correctly
+   (July 2026 cut: max 1,000 records per request, paginate correctly
    from day one). Collect DISTINCT ``contractAddress`` values, lowercased.
    Rows whose ``tokenDecimal`` is not a base-10 integer string are skipped
-   additively — a bad spam row never crashes the scan.
+   additively: a bad spam row never crashes the scan.
 3. ``module=account&action=tokenbalance&contractaddress=<c>&address=<addr>
    &tag=latest`` for each discovered contract, in ascending lexicographic
    order of the lowercased contract address (deterministic for cassettes).
 
 ``apikey=<api_key>`` is appended only when ``api_key`` is not ``None``.
 NO retry, NO rate limiting (out of Phase 1 scope). No network at import
-time. Amounts parse via ``int()`` from the result STRINGS — never through
+time. Amounts parse via ``int()`` from the result STRINGS, never through
 float (SPEC rules #1/#2).
 """
 
@@ -72,7 +72,7 @@ def _parse_discovery_row(row: object) -> tuple[str, str | None, int] | None:
 
     Additive by design: a row that is not a dict, lacks a string
     ``contractAddress``, or whose ``tokenDecimal`` is not a base-10
-    integer string is skipped — a bad spam row never crashes the scan.
+    integer string is skipped: a bad spam row never crashes the scan.
     A non-string ``tokenSymbol`` degrades to ``None``, not a skip.
     """
     if not isinstance(row, dict):
@@ -192,7 +192,7 @@ class EtherscanV2:
 
     @staticmethod
     def _amount(value: object) -> int:
-        """An unsigned base-10 amount string as ``int`` — never via float."""
+        """An unsigned base-10 amount string as ``int``, never via float."""
         if not isinstance(value, str) or _DIGITS.fullmatch(value) is None:
             raise SourceError(f"malformed amount in etherscan result: {value!r}")
         return int(value)

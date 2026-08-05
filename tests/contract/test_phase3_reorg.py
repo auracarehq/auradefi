@@ -1,5 +1,5 @@
 """THE PHASE-3 GATE (SPEC §11 Phase 3; §6.4): a reorg fixture produces
-``removed`` + re-``added`` — at the RICH level.
+``removed`` + re-``added``: at the RICH level.
 
 Composes the full pipeline end to end:
 
@@ -15,7 +15,7 @@ the algorithm pinned in docs/internal/DECISIONS.md
     eip155:1 | 0x + 'cc'*32 | acct_1  ->  txn_557113c18fb02870   (C)
 
 Cursor literals are ``f"{seq:020d}"`` (DECISIONS.md "Cursor token"),
-hardcoded — never computed via ``encode_cursor``.
+hardcoded, never computed via ``encode_cursor``.
 
 This file lives under tests/contract/ (mirror-exempt): each contract test
 exists because the failure it guards has burned somebody (SPEC §13).
@@ -56,7 +56,7 @@ TXN_C = "txn_557113c18fb02870"
 TXN_D = "txn_a30f49051566e03d"
 ALL_IDS = (TXN_A, TXN_B, TXN_C, TXN_D)
 
-# f"{seq:020d}" — hardcoded per DECISIONS.md "Cursor token".
+# f"{seq:020d}": hardcoded per DECISIONS.md "Cursor token".
 CURSOR_4 = "00000000000000000004"
 CURSOR_6 = "00000000000000000006"
 CURSOR_7 = "00000000000000000007"
@@ -218,7 +218,7 @@ def test_gate_sync_after_reorg_returns_exactly_removed_plus_added():
 def test_gate_resurrection_re_add_of_c():
     # pins: C, orphaned by the reorg and now canonical again with a
     #       BYTE-IDENTICAL payload, is planned as a re-add and reaches the
-    #       client as ADDED — never stranded at removed=True forever.
+    #       client as ADDED, never stranded at removed=True forever.
     ledger, _, _ = _reorged()
     assert ledger.get(TENANT, TXN_C).removed is True
 

@@ -8,7 +8,7 @@
 #   VERBOSE=1 bash scripts/run_examples.sh    # with each example's output
 #
 # An example needing an optional extra that is not installed is SKIPPED and
-# said so — never silently counted as passing.
+# said so: never silently counted as passing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -52,7 +52,7 @@ for example in "${examples[@]}"; do
 
   module="$(requires_for "$name")"
   if [ -n "$module" ] && ! "$PY" -c "import $module" >/dev/null 2>&1; then
-    echo "SKIPPED — needs 'pip install auradefi$(extra_for "$name")'"
+    echo "SKIPPED: needs 'pip install auradefi$(extra_for "$name")'"
     skipped=$((skipped + 1))
     continue
   fi

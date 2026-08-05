@@ -2,11 +2,11 @@
 
 Every function here maps already-fetched domain objects to plain ``dict``
 bodies. **PURE**: this module imports no web framework, no HTTP client and
-performs no I/O — so the whole output contract is unit-testable from
+performs no I/O, so the whole output contract is unit-testable from
 fixtures, with no app, no client and no cassette (SPEC rule #11: the HTTP
 API is a thin shell over an importable core).
 
-It also does NOT import ``auradefi.portfolio`` — that domain is absent
+It also does NOT import ``auradefi.portfolio``. That domain is absent
 from ``api``'s row in ``tests/style/test_layering.py``. ``holdings_wire``
 is therefore duck-typed over anything shaped like
 ``auradefi.portfolio.models.HoldingsReport``.
@@ -55,7 +55,7 @@ CAPABILITY_NAMES: tuple[str, ...] = (
 def transaction_wire(txn: LedgerTransaction) -> dict[str, Any]:
     """Project one ``LedgerTransaction`` to its HTTP body.
 
-    Exactly eight keys, always present — a ``None`` ``block_number`` or
+    Exactly eight keys, always present: a ``None`` ``block_number`` or
     ``confirmed_at`` serialises as JSON ``null``, never as an omitted key
     (a consumer must be able to tell "unconfirmed" from "field missing")::
 
@@ -69,7 +69,7 @@ def transaction_wire(txn: LedgerTransaction) -> dict[str, Any]:
          "entries": [{"asset_id", "direction", "quantity"}, ...]}
 
     Entries keep the transaction's own order. Each entry's ``quantity``
-    is ``quantity_to_wire(entry.quantity)`` — the four-field dict
+    is ``quantity_to_wire(entry.quantity)``: the four-field dict
     ``{'raw', 'decimals', 'numeric', 'float'}`` whose ``raw`` is a
     STRING (rule #2) and whose ``numeric`` is exact with no scientific
     notation at any magnitude.
@@ -98,7 +98,7 @@ def transaction_wire(txn: LedgerTransaction) -> dict[str, Any]:
 def sync_envelope(page: SyncPage) -> dict[str, Any]:
     """Project a ``SyncPage`` into Plaid's exact ``/crypto/sync`` envelope.
 
-    Exactly five keys — ``added``, ``modified``, ``removed``,
+    Exactly five keys: ``added``, ``modified``, ``removed``,
     ``next_cursor``, ``has_more`` (SPEC §6.4)::
 
         added    = [transaction_wire(e.transaction) for ADDED events]
@@ -109,18 +109,18 @@ def sync_envelope(page: SyncPage) -> dict[str, Any]:
 
     ``added`` and ``removed`` preserve the page's ascending
     last-modified order (SPEC §6.4: last-modified order, NOT transaction
-    date — that is what lets a two-year-old row reappear).
+    date, that is what lets a two-year-old row reappear).
 
     ``modified`` is ALWAYS a FRESH empty list, and nothing can ever land
     in it: ``SyncEventKind`` has exactly two members, a changed payload
     re-emits as ADDED with a bumped seq, and a reorg is REMOVED plus a
     re-ADDED. The key exists solely to keep Plaid's envelope shape
     intact for a client that iterates all three arrays. Freshness is
-    part of the contract — a shared module-level ``[]`` would let one
+    part of the contract. A shared module-level ``[]`` would let one
     caller's mutation leak into the next response.
 
     Pure: no I/O. Raises :class:`auradefi.errors.ValidationError` on an
-    event kind that is neither ADDED nor REMOVED — a backend that invents
+    event kind that is neither ADDED nor REMOVED: a backend that invents
     a third kind is refused loudly rather than having its event guessed
     into ``added``.
     """
@@ -131,7 +131,7 @@ def sync_envelope(page: SyncPage) -> dict[str, Any]:
         # is a StrEnum and SyncEvent is an unvalidated frozen dataclass, so
         # a third-party LedgerPort backend (rule #12 makes those first
         # class) that rebuilds `kind` from a database text column yields
-        # the plain string "removed" — equal but not identical. Under a
+        # the plain string "removed": equal but not identical. Under a
         # catch-all `else: added` that deletion would be projected as an
         # add, and the client would keep a transaction the ledger dropped:
         # silently wrong numbers, the exact failure mode this codebase
@@ -149,7 +149,7 @@ def sync_envelope(page: SyncPage) -> dict[str, Any]:
             raise ValidationError(f"unknown sync event kind: {event.kind!r}")
     return {
         "added": added,
-        # A fresh list, and nothing can populate it — see the docstring.
+        # A fresh list, and nothing can populate it. See the docstring.
         "modified": [],
         "removed": removed,
         "next_cursor": page.next_cursor,
@@ -178,10 +178,10 @@ def coverage_payload(
     the chain's binding as normalised by :func:`_bound_capabilities`.
 
     The flags come ONLY from what the host bound into ``Deps``. There is
-    no hardcoded family table and no prose (SPEC §12 risk 6: *"Docs lie
-    — including your own. Generate the coverage matrix from live
+    no hardcoded family table and no prose (SPEC §12 risk 6: *"Docs lie,
+    including your own. Generate the coverage matrix from live
     capability checks, never from prose."*). An unbound chain therefore
-    reports all five ``False`` — an honest under-claim, which is the
+    reports all five ``False``: an honest under-claim, which is the
     entire point of rule #10; an invented ``True`` is the failure mode
     being designed out, including for a MALFORMED binding (see
     :func:`_bound_capabilities`). Binding a name outside
@@ -216,20 +216,20 @@ def _bound_capabilities(binding: object) -> frozenset[str]:
     Only a *collection of names* can grant a flag. A ``str`` (or
     ``bytes``) binding is treated as NO binding, because ``name in
     "no xpub support here"`` is SUBSTRING membership and would report
-    ``xpub: True`` for a value asserting the exact opposite — the
+    ``xpub: True`` for a value asserting the exact opposite: the
     invented ``True`` that rule #10 and SPEC §12 risk 6 exist to
     prevent. Any binding that is not iterable, and any non-string member
     inside one, is dropped for the same reason: the honest answer to a
     malformed binding is five ``False``, never a hit.
 
-    Never raises — a host's typing mistake must not 500 a coverage
+    Never raises. A host's typing mistake must not 500 a coverage
     request, it must under-claim.
     """
     if binding is None or isinstance(binding, (str, bytes, bytearray)):
         return frozenset()
     if isinstance(binding, Mapping):
         # A Mapping carries its verdict in the VALUES, and `list(mapping)`
-        # would throw them away and keep the keys — so a host binding this
+        # would throw them away and keep the keys, so a host binding this
         # endpoint's own output shape ({"balances": True, "xpub": False})
         # would report all five True, inverting an explicit deny into an
         # invented claim. Honour the values; anything not exactly True is
@@ -255,7 +255,7 @@ def batch_result(chain: str, address: str, result: Any) -> dict[str, Any]:
     """One successful batch item (SPEC §7.3, Allium partial success).
 
     ``{"status": "ok", "chain": chain, "address": address, "result":
-    result}`` — four keys, no ``"error"`` key. ``chain`` and ``address``
+    result}``: four keys, no ``"error"`` key. ``chain`` and ``address``
     are echoed VERBATIM from the request so a caller can zip the
     response back onto its own input without reparsing.
 
@@ -270,15 +270,15 @@ def batch_result(chain: str, address: str, result: Any) -> dict[str, Any]:
 
 
 def batch_error(chain: str, address: str, exc: Exception) -> dict[str, Any]:
-    """One failed batch item — one bad address never fails the request.
+    """One failed batch item. One bad address never fails the request.
 
     ``{"status": "error", "chain": chain, "address": address, "error":
-    {"type": type(exc).__name__, "message": str(exc)}}`` — four keys, no
+    {"type": type(exc).__name__, "message": str(exc)}}``: four keys, no
     ``"result"`` key, so ``result``/``error`` are mutually exclusive and
     a client can branch on presence alone. ``chain`` and ``address`` are
     echoed verbatim.
 
-    Pure: no I/O, never raises — the exception is DATA here, already
+    Pure: no I/O, never raises. The exception is DATA here, already
     caught by the caller.
     """
     return {
@@ -297,7 +297,7 @@ def batch_warning(
 ) -> dict[str, Any]:
     """One entry for the batch ``warnings[]`` array (SPEC §7.3).
 
-    ``{"code", "message", "chain", "address"}`` — exactly four keys,
+    ``{"code", "message", "chain", "address"}``: exactly four keys,
     always present. ``chain``/``address`` are JSON ``null`` for a
     request-scoped warning, never omitted.
 
@@ -317,7 +317,7 @@ def batch_envelope(
 ) -> dict[str, Any]:
     """Wrap batch items and warnings: EXACTLY ``{"items", "warnings"}``.
 
-    Both values are fresh ``list`` objects in the given order — items
+    Both values are fresh ``list`` objects in the given order. Items
     stay the same length and order as the request (SPEC §7.3), so index
     ``i`` of the response always answers index ``i`` of the request.
 
@@ -327,14 +327,14 @@ def batch_envelope(
 
 
 def holdings_wire(report: Any) -> dict[str, Any]:
-    """Project a holdings report to its HTTP body — DUCK-TYPED.
+    """Project a holdings report to its HTTP body. DUCK-TYPED.
 
     ``report`` is anything exposing ``address``, ``chain_id``,
     ``as_of_ms``, ``total_value`` (Money-shaped), ``unpriced`` (iterable
     of CAIP-19 strings) and ``holdings`` (iterable of objects exposing
     ``caip19``, ``symbol``, ``quantity``, ``price``, ``value``).
     ``auradefi.portfolio.models.HoldingsReport`` satisfies it, but is
-    deliberately NOT imported — ``portfolio`` is absent from ``api``'s
+    deliberately NOT imported. ``Portfolio`` is absent from ``api``'s
     row in the layering gate. No ``isinstance`` check exists here.
 
     Returns::
@@ -352,7 +352,7 @@ def holdings_wire(report: Any) -> dict[str, Any]:
     ``{"amount": "0", ...}``. Only an ABSENT price becomes ``null``.
 
     Holdings keep the report's order. An unpriced holding carries
-    ``price``/``value`` of ``None`` — present, never omitted. NO
+    ``price``/``value`` of ``None``: present, never omitted. NO
     rounding, and no float outside ``quantity['float']``, the one
     documented-lossy display field.
 

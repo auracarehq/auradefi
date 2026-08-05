@@ -3,9 +3,9 @@
 MOTIVATING FINDING (0.1.1 wave 2, `CHANGELOG.md:6`, spec-fidelity, major):
 `docs/internal/RELEASE_0.1.1.md` §5 wave A says, verbatim, "Update `docs/internal/DECISIONS.md`
 in the same change, and note in `CHANGELOG.md` that any 0.1.0 data is not
-portable to 0.1.1." DECISIONS.md got its three `(0.1.1)` bullets — the embed
+portable to 0.1.1." DECISIONS.md got its three `(0.1.1)` bullets: the embed
 id derivation, the sync loop, the `SyncStatePort` break. CHANGELOG.md got
-nothing: the file still ended at `## [0.1.0] — in progress`. The work order's
+nothing: the file still ended at `## [0.1.0]. In progress`. The work order's
 acceptance list named only DECISIONS.md, so the second half of a two-artefact
 clause had no owner, and nothing in the suite noticed.
 
@@ -13,7 +13,7 @@ WHY THE CLASS IS DANGEROUS. DECISIONS.md is read by us; CHANGELOG.md is the
 only one of the pair a *host* reads. When a release re-derives a persisted id
 (0.1.1 re-derives every embed connection id, and with it every library-ingested
 `transaction_id`), a host that never learns of it upgrades in place and its old
-rows go silently unaddressable — the exact silent-data-loss shape the release
+rows go silently unaddressable: the exact silent-data-loss shape the release
 was cut to remove. The pinned decision existing internally makes that worse,
 not better: it proves we knew.
 
@@ -21,7 +21,7 @@ THE RULE, mechanically. Every version marked `(X.Y.Z)` on a DECISIONS.md
 pinned-algorithm bullet must own a `## [X.Y.Z]` section in CHANGELOG.md; and
 when such a bullet declares data **not portable**, that CHANGELOG section must
 say so in words a host can find by searching for "portab". Nothing here reads
-source or runs code — it is a text-level companion-artefact check, so it stays
+source or runs code. It is a text-level companion-artefact check, so it stays
 fast and cannot go stale against a refactor.
 """
 
@@ -146,12 +146,12 @@ _DEFECT_DECISIONS = (
     "- **Embed id derivation** (0.1.1): 0.1.0 embed connection ids are\n"
     "  **not portable** to 0.1.1 (they re-derive on the next connect).\n"
 )
-_DEFECT_CHANGELOG = "# Changelog\n\n## [Unreleased]\n\n## [0.1.0] — in progress\n"
+_DEFECT_CHANGELOG = "# Changelog\n\n## [Unreleased]\n\n## [0.1.0]: in progress\n"
 _FIXED_CHANGELOG = (
     "# Changelog\n\n## [Unreleased]\n\n## [0.1.1]\n\n"
     "Embed connection ids and the library-ingested transaction ids hashed\n"
     "over them re-derive: 0.1.0 data is not portable to 0.1.1.\n\n"
-    "## [0.1.0] — in progress\n"
+    "## [0.1.0]: in progress\n"
 )
 
 

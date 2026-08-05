@@ -1,9 +1,9 @@
-"""The Sandbox environment — bundled, keyless, offline, and in the wheel.
+"""The Sandbox environment: bundled, keyless, offline, and in the wheel.
 
 Sandbox is the first thing a developer touches, so its failure modes are
 documentation failures. What this file pins:
 
-1. the recording SHIPS — a wheel missing it makes `pip install auradefi`
+1. the recording SHIPS. A wheel missing it makes `pip install auradefi`
    plus five lines fail for the one audience with no way to debug it;
 2. it is KEYLESS. The cassette key includes query params, so a recording
    made with a key only replays when that key is passed. A fake key baked

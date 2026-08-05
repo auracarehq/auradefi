@@ -1,4 +1,4 @@
-"""Asset groups with a single fallback (SPEC §4.2 — OneBalance's ob:usdc).
+"""Asset groups with a single fallback (SPEC §4.2, OneBalance's ob:usdc).
 
 One "USDC" row across N chains, with an explicit ``single`` fallback
 bucket so NOTHING falls out of the model: every asset the caller passes
@@ -33,7 +33,7 @@ from auradefi.errors import (
 
 
 class GroupKind(StrEnum):
-    """How a group came to exist — exactly these two (SPEC §4.2)."""
+    """How a group came to exist: exactly these two (SPEC §4.2)."""
 
     GROUP = "group"
     SINGLE = "single"
@@ -74,14 +74,14 @@ def group_assets(
     ``explicit`` maps a group symbol to the member asset ids; every such
     group has ``kind=GroupKind.GROUP`` (even with one member). Every
     asset NOT claimed by an explicit group lands in its own
-    ``GroupKind.SINGLE`` group carrying that asset's symbol — nothing
+    ``GroupKind.SINGLE`` group carrying that asset's symbol: nothing
     falls out of the model. ``explicit=None`` and ``explicit={}`` are
     equivalent.
 
     Membership is set-shaped: repeating a member id inside one explicit
     group is idempotent (the id and ``asset_ids`` are functions of the
     member SET), and repeating an identical ``Asset`` value in
-    ``assets`` yields one group, not two — so summing over the output
+    ``assets`` yields one group, not two, so summing over the output
     never double-counts.
 
     Deterministic: the output tuple is sorted by group id, and each
@@ -101,7 +101,7 @@ def group_assets(
         DecimalsMismatchError: if the implementations across ALL members
             of one explicit group do not share a single ``decimals``
             value (aggregation would be meaningless). SINGLE fallback
-            groups are exempt — they aggregate nothing.
+            groups are exempt: they aggregate nothing.
     """
     by_id = _index_by_id(assets)
     groups: list[AssetGroup] = []
@@ -151,7 +151,7 @@ def _index_by_id(assets: Sequence[Asset]) -> dict[str, Asset]:
     """Index assets by id, collapsing identical repeats.
 
     Raises:
-        ValidationError: if two UNEQUAL assets share one id — resolving
+        ValidationError: if two UNEQUAL assets share one id. Resolving
             that silently would make the output input-order dependent.
     """
     by_id: dict[str, Asset] = {}

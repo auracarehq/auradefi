@@ -1,7 +1,7 @@
 """ChainRegistry: CAIP-2 is the ONLY key; five pinned seed chains (SPEC §4.2).
 
-Every seed row is asserted field-by-field against hardcoded literals —
-these are wire-format contracts, not derived values.
+Every seed row is asserted field-by-field against hardcoded literals.
+These are wire-format contracts, not derived values.
 """
 
 from __future__ import annotations

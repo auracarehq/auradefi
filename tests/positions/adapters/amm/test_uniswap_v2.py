@@ -56,7 +56,7 @@ SRC = (
 
 
 class DictReader:
-    """Dict-backed fake keyed (address_lower, fn, args) — no I/O."""
+    """Dict-backed fake keyed (address_lower, fn, args), no I/O."""
 
     def __init__(
         self, responses: dict[tuple[str, str, tuple], object]
@@ -223,7 +223,7 @@ class TestResolve:
     def test_pro_rata_is_integer_floor_never_rounding(self):
         # lp=1: token0 exact quotient is 0.0000611764705…  -> floor 0
         #       token1 exact quotient is 17058.8235294117… -> floor 17058
-        # (rounding would give 17059 — the discriminator).
+        # (rounding would give 17059: the discriminator).
         # Derived independently:
         #   1 * 52_000_000_000_000 // 850_000_000_000_000_000 == 0
         #   1 * 14_500_000_000_000_000_000_000

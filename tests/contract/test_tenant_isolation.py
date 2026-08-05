@@ -1,11 +1,11 @@
-"""THE PHASE 2 GATE: two tenants cannot see each other's data — with a
+"""THE PHASE 2 GATE: two tenants cannot see each other's data, with a
 test that TRIES (SPEC §11 phase 2, §13 contract tests).
 
 Every test here is an attempted leak. The world is built maximally
 confusable on purpose: tenant A and tenant B use the IDENTICAL
 ``external_user_id`` string and the IDENTICAL connection descriptor, so
-any scoping mistake — a global dict, a message that echoes the other
-project, a shared signing secret, an org-scoped quota — turns a test
+any scoping mistake, a global dict, a message that echoes the other
+project, a shared signing secret, an org-scoped quota, turns a test
 red. Deliberately unmirrored (tests/contract/ is mirror-exempt): this
 file guards the phase, not one module.
 
@@ -42,7 +42,7 @@ SECRET_A = "aa" * 32
 SECRET_B = "bb" * 32
 HEX_DIGITS = set("0123456789abcdef")
 
-# The SAME strings for both tenants — maximally adversarial.
+# The SAME strings for both tenants: maximally adversarial.
 EXTERNAL_ID = "host-user-1"
 DESCRIPTOR = "0xAbCd000000000000000000000000000000000001"
 
@@ -89,7 +89,7 @@ def scripted_entropy(ids, secret_hexes):
 
 
 def make_world():
-    """(a) Two orgs, two projects, one user + one connection each —
+    """(a) Two orgs, two projects, one user + one connection each:
     identical external ids and descriptors across the tenant boundary."""
     clock = FrozenClock(T0)
     store = TenancyStore(
@@ -178,7 +178,7 @@ def test_a_token_minted_for_tenant_a_never_verifies_under_tenant_bs_secret():
         verify_token(
             token, signing_secret=world.proj_b.signing_secret, clock=world.clock
         )
-    # Plain AuthError — not expired, not revoked: a forged/foreign token
+    # Plain AuthError, not expired, not revoked: a forged/foreign token
     # must be indistinguishable from garbage.
     assert exc_info.type is AuthError
 
@@ -192,7 +192,7 @@ def test_smuggling_as_connection_id_into_b_reads_exactly_like_missing():
         world.store.get_connection(world.proj_b.id, world.conn_a.id)
     with pytest.raises(NotFoundError) as missing:
         world.store.get_connection(world.proj_b.id, ABSENT_CONN)
-    # Same class — a real-elsewhere id must not be distinguishable from a
+    # Same class. A real-elsewhere id must not be distinguishable from a
     # nonexistent one.
     assert cross.type is missing.type is NotFoundError
     # And the message never mentions tenant A's project.

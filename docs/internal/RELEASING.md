@@ -3,7 +3,7 @@
 Everything below is prepared automatically; the two **publish** steps are
 manual because they need your credentials.
 
-## 1. Verify — the full gate
+## 1. Verify: the full gate
 
 Run all four. Each prints its own PASSED/summary line; none may be
 assumed.
@@ -17,7 +17,7 @@ bash scripts/run_books.sh             # every PyBook executed headlessly
 `release_check.sh` builds the sdist + wheel, runs `twine check`, verifies
 the wheel's contents (`py.typed` in, `tests/` out), installs the wheel into
 a **fresh** venv with only core dependencies, and runs
-`examples/quickstart.py` against it — which is why the quickstart must
+`examples/quickstart.py` against it, which is why the quickstart must
 degrade gracefully when the `[sql]` and `[api]` extras are absent.
 
 ```bash
@@ -51,7 +51,7 @@ git tag -a v0.1.0 -m "auradefi 0.1.0"
 git push origin v0.1.0
 ```
 
-## 3. Publish to PyPI (manual — needs your token)
+## 3. Publish to PyPI (manual: needs your token)
 
 ```bash
 # TestPyPI first, always:
@@ -66,7 +66,7 @@ Use a project-scoped API token (`__token__` / `pypi-...`), never a
 password. First upload claims the `auradefi` name (verified free
 2026-08-02).
 
-## 4. Publish the container (manual — needs registry login)
+## 4. Publish the container (manual: needs registry login)
 
 ```bash
 docker build -t ghcr.io/auracarehq/auradefi:0.1.0 -t ghcr.io/auracarehq/auradefi:latest .
@@ -78,7 +78,7 @@ docker push ghcr.io/auracarehq/auradefi:latest
 
 - Move the `[0.1.0]` section in `CHANGELOG.md` from "in progress" to dated.
 - Bump `version` in `pyproject.toml` **and** `__version__` in
-  `src/auradefi/__init__.py` together — `scripts/release_check.sh` asserts
+  `src/auradefi/__init__.py` together: `scripts/release_check.sh` asserts
   the installed wheel reports the expected version, so a half-bumped
   release fails the gate rather than shipping.
 - Re-run `bash scripts/run_books.sh` if any public API changed: a notebook

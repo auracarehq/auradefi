@@ -3,22 +3,22 @@ row, §4.2 bip122).
 
 Keyless: Esplora has no API key. The ``httpx.Client`` is REQUIRED and
 injected (cassettes plug in); construction and import perform no I/O.
-NO retry, NO rate limiting. The client never validates address syntax —
-whatever string it is handed goes straight into the URL path.
+NO retry, NO rate limiting. The client never validates address syntax.
+Whatever string it is handed goes straight into the URL path.
 
 ``GET {base}/address/{address}`` → :class:`AddressStats` parsed from
-``chain_stats`` ONLY (``mempool_stats`` is IGNORED — Esplora ships sats
+``chain_stats`` ONLY (``mempool_stats`` is IGNORED, Esplora ships sats
 as JSON ints, safe below 2**53; SPEC rule #2 governs OUR output, not
 vendor parsing). ``GET {base}/address/{address}/utxo`` → ordered
 ``tuple[Utxo, ...]``; UTXOs are money, so a malformed row raises
-``SourceError`` — strict, unlike etherscan's additive spam-skip.
+``SourceError``: strict, unlike etherscan's additive spam-skip.
 Transport failure, non-2xx, non-JSON, and missing fields all raise
 ``SourceError`` (auradefi.errors).
 
 :func:`scan` is the gap-limit scanner, derivation-agnostic: it receives
 a ``derive(chain, start, count)`` callable (the residual signature of
 ``functools.partial(xpub.derive_addresses, xpub_str, kind)``) and never
-sees an extended key — keys never leave the box (SPEC §10). Semantics
+sees an extended key. Keys never leave the box (SPEC §10). Semantics
 are PINNED in DECISIONS "Gap-limit scan".
 """
 
@@ -55,7 +55,7 @@ def _parse_utxo(row: object) -> Utxo:
     """One ``{txid, vout, value, status: {confirmed}}`` row, STRICT.
 
     UTXOs are money: a row that is not an object, lacks a field, or fails
-    :class:`Utxo` validation raises ``SourceError`` — never skipped.
+    :class:`Utxo` validation raises ``SourceError``, never skipped.
     """
     if not isinstance(row, dict):
         raise SourceError(f"esplora utxo row is not an object: {row!r}")
@@ -109,7 +109,7 @@ class Esplora:
         """``GET {base}/address/{address}/utxo`` → Utxos, response order.
 
         Rows are ``{txid, vout, value, status: {confirmed}}``. A
-        malformed row raises ``SourceError`` — UTXOs are money, strict.
+        malformed row raises ``SourceError``. UTXOs are money, strict.
         """
         body = self._get(f"/address/{address}/utxo")
         if not isinstance(body, list):
@@ -142,7 +142,7 @@ def scan(
     """BIP44 gap-limit scan over ``derive`` (DECISIONS "Gap-limit scan").
 
     ``derive(chain, start, count)`` returns the addresses for indices
-    ``start .. start + count - 1``, exactly ``count`` of them — a batch
+    ``start .. start + count - 1``, exactly ``count`` of them: a batch
     of any other length is a broken counterparty and raises
     ``ValidationError``. ``ValidationError`` if ``gap < 1``,
     BEFORE any HTTP. For chain 0 then 1: derive batches of exactly
@@ -150,7 +150,7 @@ def scan(
     is used iff ``chain_stats.tx_count > 0``; the consecutive-unused run
     counter resets on every used address; the chain STOPS immediately
     when the run reaches ``gap`` (mid-batch: later batch addresses are
-    never queried). Every used address — including balance 0, swept —
+    never queried). Every used address, including balance 0, swept,
     yields an ``AddressBalance(address, chain, index, confirmed_sats,
     tx_count)``. Output is ordered chain 0 then 1, index ascending.
     Never calls ``/utxo``; never sees an xpub.

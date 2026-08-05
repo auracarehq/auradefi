@@ -1,8 +1,8 @@
-"""Adapter registry — registration is explicit, not filename magic (SPEC §4.5).
+"""Adapter registry. Registration is explicit, not filename magic (SPEC §4.5).
 
 Zapper's ``@PositionTemplate()`` decorator read the **call stack** to derive
 identity from the file path and swallowed failures in a bare
-``catch { console.error(e) }`` — a mis-named file silently produced a fetcher
+``catch { console.error(e) }``: a mis-named file silently produced a fetcher
 with ``appId === undefined``. Here registration is declared in code and a
 duplicate id is a loud ``ConflictError``, never a silent replace.
 
@@ -20,9 +20,9 @@ from auradefi.positions.protocol import PositionAdapter
 
 class AdapterRegistry:
     """Mutable registry of position adapters, keyed strictly by ``adapter.id``
-    (the DefiLlama protocol slug — the join key, SPEC §5.4).
+    (the DefiLlama protocol slug: the join key, SPEC §5.4).
 
-    Instances are independent — registering into one never affects another.
+    Instances are independent: registering into one never affects another.
     A fresh registry is empty; there is no default shipped set.
     """
 
@@ -34,7 +34,7 @@ class AdapterRegistry:
         """Register ``adapter`` under ``adapter.id``.
 
         Raises:
-            ConflictError: if ``adapter.id`` is already registered — ANY
+            ConflictError: if ``adapter.id`` is already registered. ANY
                 duplicate id, even re-registering the identical object;
                 never a silent replace (SPEC §4.5). Carries
                 ``existing_id == adapter.id``. The existing registration
@@ -69,7 +69,7 @@ class AdapterRegistry:
 
     def for_chain(self, chain_id: str) -> tuple[PositionAdapter, ...]:
         """The adapters with ``chain_id in adapter.chains``, sorted by
-        ``id``. Unknown chains yield ``()`` — never an error."""
+        ``id``. Unknown chains yield ``()``, never an error."""
         return tuple(
             adapter
             for adapter in self.adapters()

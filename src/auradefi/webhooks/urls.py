@@ -1,6 +1,6 @@
 """Structural validation of a webhook endpoint URL (SPEC §7.3, rule #8).
 
-Structural ONLY — there is no IP allowlist and no manual whitelisting
+Structural ONLY. There is no IP allowlist and no manual whitelisting
 step anywhere in this package; Vezgo authenticates webhooks by source-IP
 allowlist and Zerion requires support to whitelist each callback URL, and
 neither failure mode exists here. Localhost, RFC1918 hosts, bracketed
@@ -9,7 +9,7 @@ policy, we own the syntax.
 
 What this module additionally rejects is anything ``httpx`` would refuse
 or silently rewrite, because :func:`auradefi.webhooks.models.endpoint_id`
-hashes the exact string and the deliverer POSTs it verbatim — a URL that
+hashes the exact string and the deliverer POSTs it verbatim: a URL that
 httpx rewrites would be signed for one receiver and delivered to another.
 """
 
@@ -21,7 +21,7 @@ from auradefi.errors import ValidationError
 
 
 #: Characters RFC 3986 allows in an authority (userinfo, host, port), and
-#: the subset httpx re-emits verbatim in USERINFO — it percent-escapes
+#: the subset httpx re-emits verbatim in USERINFO: it percent-escapes
 #: ``;=@[]`` there. Anything else it would reject or silently escape.
 _AUTHORITY_CHARS = frozenset(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~%!$&'()*+,;=:@[]"
@@ -50,7 +50,7 @@ def _authority_is_verbatim(authority: str, scheme: str) -> bool:
     Brackets mean an IPv6 literal ``ipaddress`` accepts, optionally
     followed by ``:port``; anything else is a name with at most one
     colon, canonical digits after it, and no upper case. ``[::1/x``
-    fails because httpx raises ``InvalidURL`` on it — NOT an
+    fails because httpx raises ``InvalidURL`` on it, NOT an
     ``httpx.HTTPError``, so it would escape ``Deliverer.tick``; ``H.t``,
     ``h.t:080``, ``h.t:80``, ``@h.t`` and ``u;s@h.t`` fail because httpx
     lower-cases a name, strips a leading zero, DELETES the scheme's
@@ -84,11 +84,11 @@ def validate_endpoint_url(url: str) -> str:
     Structural only (rule #8: no IP allowlist, no manual whitelisting):
     the scheme must be ``http`` or ``https`` and a well-formed authority
     must follow ``://``. Localhost, RFC1918 hosts, bracketed IPv6
-    literals, and odd ports are all accepted — the host owns its own
+    literals, and odd ports are all accepted. The host owns its own
     egress policy.
 
-    Syntax is not policy, though. The WHOLE string — authority, path,
-    query and fragment — reaches ``httpx.Client.post`` verbatim, so what
+    Syntax is not policy, though. The WHOLE string, authority, path,
+    query and fragment, reaches ``httpx.Client.post`` verbatim, so what
     httpx cannot parse (``https://[::1/x``, any character below 0x20 →
     ``InvalidURL``) or silently rewrites (``/ x`` → ``/%20x``, ``/é`` →
     ``/%C3%A9``, ``/a/../b`` → ``/b``: another receiver) is out too.

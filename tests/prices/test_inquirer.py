@@ -3,7 +3,7 @@
 Behaviour pinned: deduplicate preserving first occurrence; oracles
 queried in construction order; each subsequent oracle asked only for the
 still-unpriced ids; remaining oracles skipped once everything is priced;
-unpriced ids ABSENT from the result — never an error; syntactically
+unpriced ids ABSENT from the result, never an error; syntactically
 invalid CAIP-19 raises CaipParseError BEFORE any oracle call. The seam
 is structural: inquirer.py imports no oracle module and no httpx.
 """
@@ -232,7 +232,7 @@ def test_a_non_usd_quote_is_refused_and_names_the_oracle():
     # pins: the oracle contract this module documents ("every returned Money
     #       has currency USD") is ENFORCED, not merely stated. Unenforced, a
     #       EUR quote reached portfolio.holdings, which multiplied it by a
-    #       quantity and stamped the product "USD" — a total wrong by the FX
+    #       quantity and stamped the product "USD": a total wrong by the FX
     #       rate, labelled as dollars, absent from `unpriced`, nothing
     #       raised. Oracles are host-supplied, so this boundary is the one
     #       place every composed oracle's output passes through.

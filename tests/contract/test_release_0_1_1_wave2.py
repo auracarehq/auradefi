@@ -1,8 +1,8 @@
-"""Acceptance gate — release 0.1.1, wave 2 (RELEASE_0.1.1 §5, waves A and B).
+"""Acceptance gate: release 0.1.1, wave 2 (RELEASE_0.1.1 §5, waves A and B).
 
 Done when #18, #19, #21, #22, #24 and #26 are each closed with a regression
-test that fails against the unfixed code (§6). Four of the six are SILENT —
-they lose transactions or return empty results while reporting success — so
+test that fails against the unfixed code (§6). Four of the six are SILENT,
+they lose transactions or return empty results while reporting success, so
 every test below asserts a VALUE a caller can observe: the rows read back,
 the id handed out, the flag the report shows. Never the absence of an error.
 
@@ -76,7 +76,7 @@ def _hash(seed: int) -> str:
 
 def _facade(ledger, source, clock, *, settings=None, state=None, page_size=2):
     """Bind the facade as README.md documents, optionally over a host
-    SyncStatePort — whose constructor keyword no published document names, so a
+    SyncStatePort: whose constructor keyword no published document names, so a
     small set of spellings is probed."""
     settings = settings if settings is not None else Settings(sync_min_interval_s=60)
     if state is None:
@@ -131,7 +131,7 @@ class HostSource:
         # per-chain: without it a fixture cannot express "this address has
         # DIFFERENT history on mainnet and polygon", and a test claiming to
         # pin chain independence would silently serve both chains the same
-        # rows — which is not a scenario the product can ever be in.
+        # rows, which is not a scenario the product can ever be in.
         self._rows: dict[tuple[str | None, str], tuple] = {}
         for key, pairs in rows.items():
             if isinstance(key, tuple):
@@ -183,7 +183,7 @@ class HostPrices:
 
 def test_19_facade_and_api_address_the_same_ledger_tenant():
     # pins: rows ingested by the embed facade configured for project X are the
-    #       rows GET /crypto/sync returns for a user token of project X — one
+    #       rows GET /crypto/sync returns for a user token of project X: one
     #       derivation, so a library write is an HTTP read.
     clock, tenancy = FrozenClock(T0), TenancyStore()
     ledger, keys = MemoryLedger(), ApiKeyStore()
@@ -242,7 +242,7 @@ def test_26_same_address_on_two_chains_is_two_connections():
     mainnet_rows = ((500, _hash(0x261)), (501, _hash(0x262)), (502, _hash(0x263)))
     polygon_rows = ((100, _hash(0x264)), (101, _hash(0x265)), (102, _hash(0x266)))
     # Keyed PER CHAIN. Keyed by address alone, both connections would fetch
-    # all six rows — the mainnet sync would ingest every hash first, and the
+    # all six rows. The mainnet sync would ingest every hash first, and the
     # polygon sync would then re-present the same hashes and be deduplicated
     # against rows already stamped with the mainnet connection id. The test
     # would fail with six mainnet-owned rows and read as "#26 is unfixed",
@@ -329,7 +329,7 @@ def test_24_unseeded_chain_is_refused_at_connect_time():
 
 
 def test_24_one_failing_connection_does_not_starve_its_siblings():
-    # pins: a connection whose source fails mid-sync costs only itself — its
+    # pins: a connection whose source fails mid-sync costs only itself: its
     #       siblings still ingest, and the report does not claim clean success.
     clock, ledger = FrozenClock(T0), MemoryLedger()
     healthy, broken = "0x" + "2a" * 20, "0x" + "2b" * 20
@@ -411,7 +411,7 @@ def test_22_a_removed_transaction_returning_unchanged_is_re_added():
 
 
 def test_no_pre_existing_regression_test_was_deleted_or_weakened():
-    # pins: 0.1.1 adds tests and retires none — the two tests §5 #22 names and
+    # pins: 0.1.1 adds tests and retires none: the two tests §5 #22 names and
     #       the end_user_id half of the embed/tenancy cross-pin all survive.
     expected = {
         "tests/contract/test_phase3_reorg.py": ("test_gate_resurrection_re_add_of_c",),

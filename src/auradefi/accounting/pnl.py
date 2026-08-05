@@ -1,11 +1,11 @@
-"""Incremental PnL over the lot ledger — the replay engine (SPEC §9).
+"""Incremental PnL over the lot ledger: the replay engine (SPEC §9).
 
 Zerion pre-computes PnL at fixed marks and errors out when more than
 3,000 transactions sit between a requested date and the nearest one, so
 arbitrary-date PnL is effectively unavailable on an active wallet.
 :func:`pnl_at` answers it by REPLAY instead: one pass over the events at
 or before the cutoff, then a report. Nothing is pre-computed, no clock is
-read, and a date is merely where the replay stops — which is why any
+read, and a date is merely where the replay stops, which is why any
 instant costs the same as any other.
 
 This module is the ADVANCING half of the engine; the projection that
@@ -13,15 +13,15 @@ turns its state into an answer lives in
 :mod:`auradefi.accounting.report`, and the dependency runs one way only.
 What is here:
 
-* :data:`METHODS` — the pluggability. SPEC §9 names four costing
+* :data:`METHODS`: the pluggability. SPEC §9 names four costing
   methods, and indexing this table with anything else raises
   ``ValidationError`` rather than leaking a ``KeyError``.
-* :class:`PnLState` / :func:`process` — incremental and snapshotable.
+* :class:`PnLState` / :func:`process`: incremental and snapshotable.
   Replaying head then tail into one state must report identically to
   replaying head + tail in a single pass, which is what makes a long
   history reportable at many cutoffs without re-reading it each time.
-* :class:`DisposalRecord` — one disposal's realised outcome, flagged.
-* ``_ReplayLedger`` — the optimisation that keeps the whole thing inside
+* :class:`DisposalRecord`: one disposal's realised outcome, flagged.
+* ``_ReplayLedger``. The optimisation that keeps the whole thing inside
   the phase 9 budget (SPEC §11).
 
 Two pins govern the numbers. FIFO/LIFO/HIFO take cost from the pieces the
@@ -29,13 +29,13 @@ selector actually consumed; ACB takes it from the per-asset
 :class:`~auradefi.accounting.acb.AcbPool`, an overlay whose average is
 what that method costs with, while lots remain ground truth for open-lot
 reporting (DECISIONS "ACB pooling"). And outrunning the units held never
-raises — pre-history is a data-quality fact, booked as a zero-cost
-synthetic and flagged (DECISIONS "Shortfall semantics") — while an
+raises, pre-history is a data-quality fact, booked as a zero-cost
+synthetic and flagged (DECISIONS "Shortfall semantics"), while an
 unknown propagates as ``None`` rather than becoming a zero (DECISIONS
 "None-propagation (PnL)").
 
 Pure: ``auradefi.money``, ``auradefi.accounting`` and the standard
-library. No I/O, no clock — an event's time comes from the transaction
+library. No I/O, no clock. An event's time comes from the transaction
 that produced it.
 
 :func:`report`, :class:`PnLReport` and :data:`DEFAULT_CURRENCY` are
@@ -92,7 +92,7 @@ class _MethodTable(dict[str, LotSelector]):
 
 
 #: The four costing methods SPEC §9 names, mapped to the selector
-#: functions themselves — the methods live in sibling modules and are
+#: functions themselves. The methods live in sibling modules and are
 #: plugged in here, never imported by one another. Indexing with any
 #: other name raises ``ValidationError``.
 METHODS: Mapping[str, LotSelector] = _MethodTable(
@@ -107,7 +107,7 @@ class DisposalRecord:
     ``cost_basis`` is where the exact rational basis crosses the
     ``Fraction`` -> ``Money`` boundary; when that conversion had to round,
     ``flags`` carries ``"rounded_basis"`` (DECISIONS "Fraction->Money
-    boundary"). It is ``None`` — flagged ``"missing_cost"`` — when a
+    boundary"). It is ``None``, flagged ``"missing_cost"``, when a
     consumed lot was unpriced.
 
     ``realized`` is ``proceeds - cost_basis`` only when BOTH are known,
@@ -116,7 +116,7 @@ class DisposalRecord:
     gain (DECISIONS "None-propagation (PnL)").
 
     ``missing_basis`` is the separate, orthogonal fact that the disposal
-    outran the units held — the uncovered remainder was booked at zero
+    outran the units held. The uncovered remainder was booked at zero
     cost and flagged ``"missing_basis"`` (DECISIONS "Shortfall
     semantics"). A shortfall does NOT make ``realized`` unknown; it makes
     it optimistic, and says so.
@@ -137,15 +137,15 @@ class DisposalRecord:
 
 @dataclass(slots=True)
 class PnLState:
-    """Replay state — the accumulator :func:`process` advances in place.
+    """Replay state: the accumulator :func:`process` advances in place.
 
     MUTABLE by the same deliberate deviation from the frozen-value house
     style that :class:`~auradefi.accounting.lots.Lot` and
     :class:`~auradefi.accounting.acb.AcbPool` make: replay decrements
     lots, and a state that copied itself per event would rebuild the
     whole ledger 50,000 times. Everything a caller receives OUT of the
-    engine — :class:`DisposalRecord`, and everything in
-    :mod:`auradefi.accounting.report` — is frozen.
+    engine, :class:`DisposalRecord`, and everything in
+    :mod:`auradefi.accounting.report`, is frozen.
 
     ``currency`` is ``None`` until the first priced ``Money`` fixes it,
     after which every priced value in the stream must agree
@@ -166,8 +166,8 @@ class PnLState:
     scales: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        """``ValidationError`` unless ``method`` is one of :data:`METHODS`
-        — a state built for a method that does not exist would fail much
+        """``ValidationError`` unless ``method`` is one of :data:`METHODS`:
+        a state built for a method that does not exist would fail much
         later, mid-replay, with lots already consumed."""
         METHODS[self.method]  # the lookup IS the validation
 
@@ -177,8 +177,8 @@ class _ReplayLedger(LotLedger):
 
     Same lot ids, same proration, same exception types as the base class,
     but a disposal costs O(open lots) rather than O(lots ever opened).
-    The base class rescans the whole history twice per disposal — once to
-    build ``open_lots`` for the selector, once to build the budget dict —
+    The base class rescans the whole history twice per disposal, once to
+    build ``open_lots`` for the selector, once to build the budget dict,
     which is quadratic over a replay: three times slower at 50,000
     events, and over the phase 9 budget (SPEC §11). The perf gate exists
     precisely because a quadratic engine passes every golden vector while
@@ -195,7 +195,7 @@ class _ReplayLedger(LotLedger):
         self, needed: Quantity, selector: LotSelector
     ) -> list[tuple[Lot, Quantity]]:
         """Drop spent lots, then validate the selector's plan IN FULL
-        before anything is decremented — a half-applied plan would
+        before anything is decremented. A half-applied plan would
         corrupt basis silently.
 
         Membership is checked by asset identity and remaining units
@@ -233,7 +233,7 @@ def process(
 ) -> PnLState:
     """Replay ``events`` into ``state`` (a fresh one when ``None``).
 
-    An acquisition opens a lot — and, under ``"acb"``, joins the pool; a
+    An acquisition opens a lot, and, under ``"acb"``, joins the pool; a
     disposal consumes the selector's plan and books a
     :class:`DisposalRecord`. The state is advanced IN PLACE and also
     returned, so ``process(tail, m, process(head, m))`` reports
@@ -245,9 +245,9 @@ def process(
     never materialises the events it discards.
 
     Raises ``ValidationError`` for an unknown ``method``, for a ``method``
-    disagreeing with ``state.method`` — a lot ledger cannot switch
+    disagreeing with ``state.method``, a lot ledger cannot switch
     costing method mid-stream, because the lots it already consumed were
-    chosen by the old one — and for an event older than
+    chosen by the old one, and for an event older than
     ``state.last_at_ms``: input must be monotonic, since a lot ledger
     cannot un-consume. Equal timestamps are allowed and keep caller
     order, which is what makes replay deterministic when a block's
@@ -258,7 +258,7 @@ def process(
         state = PnLState(method)
     elif state.method != method:
         raise ValidationError(
-            f"state replays {state.method!r}, not {method!r} — a lot ledger "
+            f"state replays {state.method!r}, not {method!r}: a lot ledger "
             f"cannot switch costing method mid-stream"
         )
     selector = METHODS[method]
@@ -328,7 +328,7 @@ def _dispose(
     """Consume the plan and book one disposal.
 
     Under ``"acb"`` the basis comes from the pool's average, capped at
-    the units the pool actually holds — per-lot portions are meaningless
+    the units the pool actually holds. Per-lot portions are meaningless
     once cost has been pooled, so the lots are still consumed (they stay
     ground truth for open-lot reporting) but do not supply the number.
     Under the other three methods the basis is the exact sum of the
@@ -336,7 +336,7 @@ def _dispose(
     consumed lot was unpriced rather than under-counting a partial sum.
 
     Flags are appended in the order the facts land: shortfall, rounding,
-    unknown cost, unknown proceeds. A shortfall never raises — it books
+    unknown cost, unknown proceeds. A shortfall never raises: it books
     the uncovered units at zero cost (DECISIONS "Shortfall semantics").
     """
     _fix_currency(state, event.proceeds)
@@ -379,12 +379,12 @@ def pnl_at(
     at_ms: int,
     marks: Mapping[str, Money],
 ) -> PnLReport:
-    """PnL at an ARBITRARY date — the thing Zerion cannot do (SPEC §9).
+    """PnL at an ARBITRARY date. The thing Zerion cannot do (SPEC §9).
 
     Replays only the events at or before ``at_ms``, in ONE pass, and
     reports as of that cutoff. Exactly equivalent to filtering the stream
     by time, calling :func:`process` and then
-    :func:`~auradefi.accounting.report.report` — no marks are
+    :func:`~auradefi.accounting.report.report`, no marks are
     pre-computed at fixed dates, and no cutoff is privileged over any
     other, so a date 3,000 transactions from the nearest month end costs
     what any other date costs.

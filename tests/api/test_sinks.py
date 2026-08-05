@@ -1,8 +1,8 @@
 """The webhook seam states everything its consumers read (§5 Wave C).
 
 These tests are about the DECLARATION, not about any implementation. The
-behavioural proof — a sink written from these Protocols alone, driven
-through every webhook route — lives in
+behavioural proof, a sink written from these Protocols alone, driven
+through every webhook route, lives in
 ``tests/contract/seams/test_wave1_webhook_sink.py``. What is pinned here
 is the property that made #27 and #28 possible in the first place: a
 declared interface may not promise less than its callers require, and it
@@ -38,7 +38,7 @@ def _declared_members(protocol: type) -> frozenset[str]:
 
 
 def test_the_sink_declares_exactly_the_members_the_routes_call():
-    # pins: not a member fewer (that is #27 — an unhandled 500 for every
+    # pins: not a member fewer (that is #27: an unhandled 500 for every
     #       host-supplied sink) and not a member more (dead code every host
     #       must write to satisfy isinstance).
     assert _declared_members(WebhookSink) == _SINK_MEMBERS
@@ -53,7 +53,7 @@ def test_get_delivery_is_not_promised():
 
 def test_no_member_returns_a_bare_object():
     # pins: a bare `object` return is unimplementable from the declaration
-    #       alone — it names no attribute, so a host cannot know what to
+    #       alone: it names no attribute, so a host cannot know what to
     #       build, and every attribute it omits is another 500.
     bare = []
     for name in sorted(_SINK_MEMBERS):
@@ -95,7 +95,7 @@ def test_the_row_protocols_name_every_attribute_the_wires_read():
 def test_the_seam_module_imports_no_webhooks_package():
     # pins: the seam stays bindable by a host that never installed the
     #       shipped stores. Naming webhooks.models here would state the
-    #       return shapes correctly and re-couple the seam doing it —
+    #       return shapes correctly and re-couple the seam doing it, 
     #       tests/api/test_deps.py pins the same property for api/deps.py.
     #       Over the IMPORT GRAPH, not the source text: the docstring
     #       names `auradefi.webhooks` to say what it deliberately does not

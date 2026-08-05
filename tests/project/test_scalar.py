@@ -2,12 +2,12 @@
 
 Every expected value below was derived independently from the pinned
 integer hour formula ``(initiated_at // 3_600_000) % 24`` and from
-``float()`` semantics via python3 — never by calling the code under test:
+``float()`` semantics via python3, never by calling the code under test:
 
 * ``1_700_000_000_000 // 3_600_000 % 24 == 22``
 * ``(1_700_000_000 + 3600*k)*1000`` for k=0..6 -> hours 22,23,0,1,2,3,4
 * ``float(Decimal('123456789012345678.123456789'))
-  == 1.2345678901234568e+17`` (int back: 123456789012345680 — lossy)
+  == 1.2345678901234568e+17`` (int back: 123456789012345680: lossy)
 
 The float assertions here are NOT money-equality defects: the scalar
 projection's wire format IS float, documented LOSSY and display-only in
@@ -32,7 +32,7 @@ AS_OF_MS = 1_754_000_000_000  # ms epoch (SPEC §4.4), matches the frozen clock
 ADDRESS = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"
 CHAIN = "eip155:1"
 
-# Pinned order — a hardcoded stability contract, not a comprehension.
+# Pinned order: a hardcoded stability contract, not a comprehension.
 PINNED_NAMES = (
     "portfolio_value_usd",
     "transaction_count",
@@ -158,7 +158,7 @@ def test_hour_boundary_huge_timestamp_pinned_by_integer_formula():
 def test_two_transactions_same_hour_accumulate():
     # Both inside hour 22. Base sits 800s into its bucket
     # (1_700_000_000_000 % 3_600_000 == 800_000), so +40min keeps the
-    # second at offset 3200s < 3600s — same bucket, derived via python3:
+    # second at offset 3200s < 3600s: same bucket, derived via python3:
     # ((1_700_000_000_000 + 40*60*1000) // 3_600_000) % 24 == 22.
     transactions = (_tx(1_700_000_000_000), _tx(1_700_000_000_000 + 40 * 60 * 1000))
     values = _by_name(scalar_metrics(_report(), transactions))
@@ -228,7 +228,7 @@ def test_zero_counts_are_float_zero_not_int_zero():
 
 
 def test_a_list_input_still_returns_a_tuple_of_float_metrics():
-    # Sequence in, tuple out — the return container is part of the wire
+    # Sequence in, tuple out. The return container is part of the wire
     # contract and must not track the caller's container type.
     metrics = scalar_metrics(_report("1"), [_tx(1_700_000_000_000)])
     assert type(metrics) is tuple
@@ -262,7 +262,7 @@ def test_module_ast_imports_only_stdlib_and_the_two_model_modules():
             elif base not in allowed_internal:
                 offenders.append(base)
     assert not offenders, (
-        "project/scalar.py is PURE (SPEC §3.3) — only stdlib, "
+        "project/scalar.py is PURE (SPEC §3.3): only stdlib, "
         f"auradefi.portfolio.models, auradefi.ledger.models: {offenders}"
     )
 
@@ -298,7 +298,7 @@ def test_projection_is_deterministic_and_list_equals_tuple():
 
 
 def test_every_hour_saturates_over_24_consecutive_hourly_transactions():
-    # k=0..23 from 1_700_000_000_000 walks hours 22,23,0,1,…,21 — the
+    # k=0..23 from 1_700_000_000_000 walks hours 22,23,0,1,…,21: the
     # full ring exactly once, derived independently via python3.
     transactions = tuple(
         _tx((1_700_000_000 + 3600 * k) * 1000) for k in range(24)

@@ -1,4 +1,4 @@
-"""Chain families — the only taxonomy above individual chains (SPEC §4.2).
+"""Chain families: the only taxonomy above individual chains (SPEC §4.2).
 
 A family groups chains that share an address format, an RPC shape, and a
 source-adapter implementation strategy (SPEC §10: chains ship as source

@@ -15,7 +15,7 @@ from typing import Protocol, runtime_checkable
 class Clock(Protocol):
     """The time port: one method, integer milliseconds.
 
-    A host may bind anything with this shape — a frozen clock, a replay
+    A host may bind anything with this shape: a frozen clock, a replay
     clock, a clock skewed to another timezone's business day. It is a
     ``Protocol``, so there is nothing to inherit.
     """

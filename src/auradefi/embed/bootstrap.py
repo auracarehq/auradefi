@@ -3,18 +3,18 @@
 ``Auradefi`` takes every collaborator as a port, which is the right design
 and was, on its own, a bad first experience: because nothing shipped a
 default, the shortest working program began with a source adapter, a price
-adapter and a store — about forty lines before the first number. Ports are
+adapter and a store: about forty lines before the first number. Ports are
 for the hosts that need them, not a toll on the ones that don't.
 
 This module builds the two default sets:
 
-* :func:`sandbox_ports` — the bundled recording. No keys, no network, no
+* :func:`sandbox_ports`: the bundled recording. No keys, no network, no
   configuration; the numbers are constants because they are a recording.
-* :func:`env_ports` — live infrastructure from ``Settings``: Etherscan V2
+* :func:`env_ports`. Live infrastructure from ``Settings``: Etherscan V2
   for chain data, DefiLlama for prices, in-memory storage.
 
 Both return a plain kwargs mapping for ``Auradefi(...)``, which is what
-lets a caller override exactly one port and keep the rest — the documented
+lets a caller override exactly one port and keep the rest. The documented
 "bring your own database" path is ``from_env(ledger=MyLedger())``, and it
 is one dict update rather than a special case.
 
@@ -63,7 +63,7 @@ def open_sandbox(
     the facade module has no line budget left, and the connect step needs
     the recording's own constants, which live beside the recording.
 
-    Pre-connecting is what makes the five-line quickstart honest —
+    Pre-connecting is what makes the five-line quickstart honest.
     ``holdings()`` over zero connections is an empty tuple, and a first
     example that indexes into it would fail. The connect issues the same
     one-row liveness probe a live connect does, which the recording holds.
@@ -79,8 +79,8 @@ def open_sandbox(
 def sandbox_ports() -> dict[str, Any]:
     """Ports wired onto the bundled recording (no keys, no network).
 
-    One replay client serves both hosts the recording covers — Etherscan
-    for chain data, DefiLlama for prices — exactly as a host would share
+    One replay client serves both hosts the recording covers, Etherscan
+    for chain data, DefiLlama for prices, exactly as a host would share
     one client between them. The clock is frozen at the instant the
     traffic was recorded, so every derived value (``as_of_ms``, the sync
     throttle, ids hashed over time) is reproducible run to run.
@@ -110,7 +110,7 @@ def env_ports(settings: Settings | None = None) -> dict[str, Any]:
     are picked up. The key is OPTIONAL: without one, Etherscan's keyless
     tier applies and the ``apikey`` param is omitted entirely.
 
-    Storage is in-memory and not durable — see this module's docstring for
+    Storage is in-memory and not durable. See this module's docstring for
     why a database URL is not read here. Prices come from DefiLlama, which
     is keyless and covers six EVM chains; Bitcoin and Solana have no price
     source in this package at all, so those assets come back unpriced

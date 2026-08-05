@@ -2,7 +2,7 @@
 # Every agent reads this first. If something an agent needs is not here,
 # it stops and reports blocked_on rather than guessing.
 
-project:
+Project:
   name: auradefi
   spec: docs/internal/SPEC.md
   decisions: docs/internal/DECISIONS.md
@@ -11,9 +11,9 @@ project:
   # `mode: fix` and `spec: docs/internal/RELEASE_0.1.1.md`: the source already existed,
   # red meant the SHIPPED behaviour was wrong, the bug was the mutant, and
   # tests asserting the defect as contract were normal. See docs/internal/loop.md,
-  # "Fix-release mode" — running that release without this key cost a
+  # "Fix-release mode": running that release without this key cost a
   # hand-written override block in all eleven work-order contracts.
-  mode: greenfield
+  Mode: greenfield
 
 layout:
   source_root: src/auradefi
@@ -21,10 +21,10 @@ layout:
   style_gates: tests/style
   # NOT tests/seams. tests/style/test_placement.py exempts only
   # style/golden/cassettes/contract from its source-mirror rule, so a
-  # top-level tests/seams/ fails that gate on its very first file — which is
+  # top-level tests/seams/ fails that gate on its very first file: which is
   # what happened on 0.1.1, inside a 3,000-test suite. This is the case the
   # profile preflight in loop.md exists to catch before any agent runs.
-  seam_tests: tests/contract/seams
+  Seam_tests: tests/contract/seams
   mirror: "{source_root}/a/b.py <-> {test_root}/a/test_b.py"
   errors_module: src/auradefi/errors.py
 
@@ -38,27 +38,27 @@ commands:
 language:
   unimplemented: "raise NotImplementedError"
   mutation_style: >
-    Edit the smallest expression that implements the pin — a comparison
+    Edit the smallest expression that implements the pin: a comparison
     operator, a guard condition, a dict key, a boundary offset. Never delete
     a whole function (that produces an import error, not a behaviour
     difference, and any test would "catch" it).
 
 # How to inventory boundaries. seam-auditor runs these and builds its
 # worklist from the union. Add patterns as the project grows.
-seam_patterns:
+Seam_patterns:
   interfaces: "grep -rn 'runtime_checkable\\|Protocol)\\|@abstractmethod' {source_root}"
   derivations: "grep -rnE 'def (derive_|make_)|def [a-z_]*_id\\(' {source_root}"
   wire_formats: "grep -rn '_wire\\|_envelope\\|to_json\\|from_json' {source_root}"
   currency_units: "grep -rn 'Money(\\|Quantity(\\|currency' {source_root}"
 
 # Project non-negotiables, quoted to every agent verbatim.
-rules:
+Rules:
   - "Money and amounts use Decimal/int. A float equality on money is a defect."
   - "A raw on-chain amount is a JSON string, never a JSON integer."
   - "All timestamps are millisecond-epoch integers."
   - "Only exception classes declared in errors_module may be raised."
   - "Domain __init__.py files are docstring-only; never add exports to them."
-  - "Files target 300 lines, 400 hard, with no allowlist — split the module."
+  - "Files target 300 lines, 400 hard, with no allowlist: split the module."
   - "No new third-party dependencies. stdlib first, always."
   - "Incomplete data is DECLARED (data_quality), never defaulted to zero."
   - "The suite runs offline: no network, no API keys, recorded fixtures only."

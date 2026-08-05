@@ -2,11 +2,11 @@
 (SPEC §6.3, §11 phase 4, §13 contract tests).
 
 SPEC §6.3 verbatim: "an Aave position supplying 10 ETH and borrowing
-5,000 USDC emits two synthetic Holdings — +10 ETH and a NEGATIVE-
+5,000 USDC emits two synthetic Holdings. +10 ETH and a NEGATIVE-
 quantity USDC Holding. A Plaid-only client sums institution_value and
 gets the right net worth." The negative quantity is the ONLY way to
 make the naive sum correct (consistent with tax_lots position_type:
-SHORT). Get the sign convention wrong and nothing errors — net worth is
+SHORT). Get the sign convention wrong and nothing errors. Net worth is
 silently wrong (§6.1's named casualty). So the invariant is asserted
 here by exact Decimal equality, twice, under two price sets.
 
@@ -116,7 +116,7 @@ def test_two_synthetic_holdings_plus_ten_eth_minus_five_thousand_usdc():
 
     usdc = by_asset[USDC]
     assert usdc.quantity == Decimal("-5000")
-    assert usdc.quantity < 0  # strictly negative — the Plaid extension
+    assert usdc.quantity < 0  # strictly negative: the Plaid extension
     assert usdc.institution_price.amount == Decimal("0.999839")
     assert usdc.institution_price.amount > 0  # price NEVER goes negative
     assert usdc.institution_value.amount == Decimal("-4999.195000")

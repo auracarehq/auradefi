@@ -103,13 +103,13 @@ def rewrite_links(body: str, source: str, depth: int) -> str:
     ``../docs/internal/SPEC.md`` written inside ``examples/README.md``
     resolves the same way GitHub resolves it. ``depth`` is how many
     directories deep the OUTPUT page sits, so every emitted link stays
-    relative — the site is served from a subpath (`/auradefi/`) and
+    relative. The site is served from a subpath (`/auradefi/`) and
     root-relative links break.
 
     A link with no published page becomes a GitHub blob URL. That is
     correct for source files and for the design documents in
-    :data:`INTERNAL_DOCS`, and it is a SILENT failure for anything else —
-    a page that should be on the site quietly becomes an outbound link.
+    :data:`INTERNAL_DOCS`, and it is a SILENT failure for anything else.
+    A page that should be on the site quietly becomes an outbound link.
     :func:`unpublished_targets` exists so a gate can catch that; nothing
     here can tell the two cases apart on its own.
     """
@@ -243,7 +243,7 @@ def render_example(path: Path, output: str | None, note: str | None) -> tuple[st
     chunks.append("<h2>The whole file</h2>")
     chunks.append(
         f'<p class="meta"><a href="{BLOB}/examples/{path.name}">'
-        f"{path.name} on GitHub</a> — self-contained, offline, "
+        f"{path.name} on GitHub</a>: self-contained, offline, "
         "asserts its own output.</p>"
     )
     chunks.append(_pygments(text, "python"))

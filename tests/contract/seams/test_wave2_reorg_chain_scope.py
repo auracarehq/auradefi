@@ -1,12 +1,12 @@
-"""SEAM AUDIT — wave 0.1.1-wave2: what feeds ``plan_reorg`` its stored view.
+"""SEAM AUDIT: wave 0.1.1-wave2: what feeds ``plan_reorg`` its stored view.
 
 Order ``ledger-reorg``'s declared seam names the write side of
-``plan_reorg`` — "the ledger upsert path … which you do NOT own". This
+``plan_reorg``: "the ledger upsert path … which you do NOT own". This
 file audits the READ side, which nobody named: ``plan_reorg``'s first
 argument is called ``existing_for_chain``, and the port a host is given
 (``src/auradefi/ledger/port.py``) declares no chain-scoped read at all.
 Its only enumeration is ``sync(tenant_id, cursor=None)``, which is
-TENANT-wide by design ("no call may read or write across tenants" — the
+TENANT-wide by design ("no call may read or write across tenants", the
 scope rule is per tenant, never per chain).
 
 ``plan_reorg`` neither filters by ``chain_id`` nor validates that its
@@ -66,7 +66,7 @@ def test_a_mainnet_reorg_does_not_orphan_a_polygon_transaction():
     ``sync(tenant_id, None)`` is the only enumeration ``LedgerPort``
     declares. Feeding it to ``plan_reorg`` for a mainnet fork USED TO put
     an untouched Polygon transaction into ``remove_ids``, and the backend
-    marked it removed — a row still canonical on its own chain vanished
+    marked it removed: a row still canonical on its own chain vanished
     from the host's ledger with no error anywhere. #26 made that the
     normal case, not an exotic one, by letting one address be watched on
     two chains into one tenant.

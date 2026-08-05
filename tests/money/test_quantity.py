@@ -1,7 +1,7 @@
 """Quantity: exact base-unit amounts (SPEC §4.1, rule #2).
 
 Golden strings below were derived independently with context-free Decimal
-tuple construction (Decimal((sign, digits, -decimals))) — never with the
+tuple construction (Decimal((sign, digits, -decimals))), never with the
 code under test.
 """
 
@@ -106,7 +106,7 @@ def test_as_decimal_negative_and_zero():
         (10**77, 0, "1" + "0" * 77),
         (HUGE, 77, "1." + "0" * 76 + "1"),
         (10**18, 18, "1"),
-        (100, 0, "100"),  # Decimal('100').normalize() emits '1E+2' — banned
+        (100, 0, "100"),  # Decimal('100').normalize() emits '1E+2': banned
         (0, 18, "0"),
         (5, 0, "5"),
         (1_234_567_890_123_456_789, 18, "1.234567890123456789"),

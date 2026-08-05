@@ -1,9 +1,9 @@
-"""Default port sets — the promise that `pip install` plus five lines works.
+"""Default port sets: the promise that `pip install` plus five lines works.
 
 `Auradefi.sandbox()` and `.from_env()` exist so that binding ports is a
 choice rather than an entry fee. That promise is only kept if:
 
-1. **sandbox works with nothing configured** — no env vars, no keys, no
+1. **sandbox works with nothing configured**, no env vars, no keys, no
    network. The autouse socket guard makes the last part real;
 2. **every port stays overridable.** The whole point is that "bring your
    own database" is one keyword, not a fork of the wiring;
@@ -143,7 +143,7 @@ class TestEnvPorts:
         assert "NOT durable" in Auradefi.from_env.__doc__
 
     def test_chain_data_and_prices_share_one_client(self):
-        """One connection pool, one timeout — as the docs teach a host to do."""
+        """One connection pool, one timeout: as the docs teach a host to do."""
         ports = bootstrap.env_ports(Settings(http_timeout_s=7.0))
         oracle_client = ports["prices"]._oracles[0]._client
         assert oracle_client is ports["source"].client

@@ -1,11 +1,11 @@
 """Uniswap V3 adapter (SPEC §5.4, §4.3; DECISIONS.md pinned TickMath).
 
 Concentrated liquidity: each NFT held via the position manager is ONE
-``CONTRACT_POSITION`` (SPEC §4.3 — you cannot add an NFT position to
+``CONTRACT_POSITION`` (SPEC §4.3, you cannot add an NFT position to
 MetaMask). All chain reads go through ``ctx.reader``.
 
 ``discover`` (SPEC §5.1) emits the single position-manager descriptor
-(``category='amm-nft-manager'``) — enumeration is per-user, so it lives
+(``category='amm-nft-manager'``). Enumeration is per-user, so it lives
 in ``resolve``::
 
     n = call(manager, 'balanceOf', (address,))
@@ -24,7 +24,7 @@ Emitted position: ``position_type=DEPOSIT``,
 ``range=Range(tickLower, tickUpper, in_range)`` with
 ``in_range = tickLower <= tick < tickUpper`` (strict upper bound).
 Underlyings: SUPPLIED amount0/amount1 (a zero side is omitted) then
-CLAIMABLE tokensOwed0/1 when nonzero — all RAW (no prices, SPEC §5.3).
+CLAIMABLE tokensOwed0/1 when nonzero: all RAW (no prices, SPEC §5.3).
 
 The math is pinned in DECISIONS.md and exposed here as module-level
 pure functions; golden vectors in the test tree hardcode their outputs.
@@ -83,7 +83,7 @@ _U256_MAX = (1 << 256) - 1
 
 
 def get_sqrt_ratio_at_tick(tick: int) -> int:
-    """sqrt(1.0001^tick) * 2^96 — canonical Uniswap V3 TickMath.
+    """sqrt(1.0001^tick) * 2^96: canonical Uniswap V3 TickMath.
 
     The integer algorithm verbatim: per-bit 128.128 magic-constant
     products over ``abs(tick)``, ratio inverted for ``tick > 0``, then
@@ -115,7 +115,7 @@ def amounts_for_liquidity(
     tick_lower: int,
     tick_upper: int,
 ) -> tuple[int, int]:
-    """(amount0_raw, amount1_raw) for a position — pinned (DECISIONS.md).
+    """(amount0_raw, amount1_raw) for a position: pinned (DECISIONS.md).
 
     With ``sqrtA = get_sqrt_ratio_at_tick(tick_lower)``, ``sqrtB =
     get_sqrt_ratio_at_tick(tick_upper)``, ``sqrtP = sqrt_price_x96``
@@ -130,7 +130,7 @@ def amounts_for_liquidity(
                                         // sqrtB) // sqrtP
                              amount1 = L * (sqrtP - sqrtA) // 2**96
 
-    Integer floor everywhere — never rounding.
+    Integer floor everywhere, never rounding.
     """
     sqrt_a = get_sqrt_ratio_at_tick(tick_lower)
     sqrt_b = get_sqrt_ratio_at_tick(tick_upper)

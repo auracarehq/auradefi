@@ -1,7 +1,7 @@
 """HIFO (highest-in, first-out) consumption-order selector (SPEC §9).
 
 Same terms as ``auradefi.accounting.fifo``: ``select`` returns an ordered
-consumption **plan** — advice, not an effect. It mutates nothing, computes
+consumption **plan**: advice, not an effect. It mutates nothing, computes
 no basis and prorates nothing; proration and lot mutation live in
 ``LotLedger.consume``. Wave independence is structural: only
 ``opened_at_ms``, ``quantity_original``, ``quantity_remaining`` and
@@ -12,19 +12,19 @@ shared (docs/internal/DECISIONS.md "Duplication waiver extension").
 HIFO consumes the most expensive basis first, which minimises realised
 gain. The order is pinned:
 
-1. lots with a known ``cost_total`` sort BEFORE lots without one — an
+1. lots with a known ``cost_total`` sort BEFORE lots without one. An
    unknown basis is consumed only after every priced lot is exhausted,
    because an unknown must never displace a known;
 2. among priced lots, DESCENDING unit cost;
 3. ties break oldest-first (``opened_at_ms`` ascending), then by the
-   earlier position in ``lots`` — one reproducible plan per input.
+   earlier position in ``lots``: one reproducible plan per input.
 
 The key is the exact rational :func:`unit_cost`, never a float and never a
 context-precision ``Decimal`` division: at the default 28 digits both of
 those collapse ``10/3`` onto ``3.3333333333333333333333333333`` and
 silently misorder the plan. Exact division is legitimate because a
 selector only ever sees ONE asset's lots, so the quotient is only ever
-compared with quotients of the same kind — no rounding is required, and
+compared with quotients of the same kind, no rounding is required, and
 none happens.
 
 Pure: ``auradefi.money`` semantics plus the standard library.
@@ -45,7 +45,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only; never imported at runtime
 
 
 def unit_cost(lot: Lot) -> Fraction | None:
-    """The lot's exact basis per base unit — HIFO's ordering key.
+    """The lot's exact basis per base unit. HIFO's ordering key.
 
     ``Fraction(lot.cost_total.amount) / Fraction(lot.quantity_original.raw)``,
     an exact rational. The divisor is the ORIGINAL quantity, not the
@@ -54,7 +54,7 @@ def unit_cost(lot: Lot) -> Fraction | None:
     ``LotLedger.consume`` prorates with, so ordering and costing can never
     disagree.
 
-    Public because it is the pinned key, not an implementation detail — a
+    Public because it is the pinned key, not an implementation detail: a
     change to it reorders every HIFO plan ever computed.
 
     Returns ``None`` iff ``lot.cost_total is None``. Raises
@@ -87,12 +87,12 @@ def select(lots: Sequence[Lot], needed: Quantity) -> list[tuple[Lot, Quantity]]:
     Returns ``(lot, take)`` pairs in consumption order. Every ``take`` is
     a positive ``Quantity`` at ``needed.decimals``; a lot contributing
     nothing never appears. The lot objects returned are the very objects
-    passed in — identity is what lets the caller mutate them — and
+    passed in, identity is what lets the caller mutate them, and
     ``lots`` itself is never reordered in place.
 
     Shortage is never an error: when the live lots hold less than
     ``needed`` the plan sums to exactly the total held, and the caller
-    books the shortfall (DECISIONS "Shortfall semantics" — pre-history is
+    books the shortfall (DECISIONS "Shortfall semantics", pre-history is
     a data-quality fact, not an exception). ``needed.raw <= 0`` yields
     ``[]`` and no lot is inspected at all.
 
@@ -101,7 +101,7 @@ def select(lots: Sequence[Lot], needed: Quantity) -> list[tuple[Lot, Quantity]]:
     carries different ``decimals`` than ``needed``. Drained lots
     (``raw == 0``) and negative-remaining lots are filtered by the
     ``raw > 0`` test *before* any arithmetic or any keying touches them,
-    so neither their scale nor their unit cost is ever computed —
+    so neither their scale nor their unit cost is ever computed:
     a drained zero-quantity lot cannot raise out of :func:`unit_cost`.
     """
     if needed.raw <= 0:
@@ -120,12 +120,12 @@ def _live(lots: Sequence[Lot]) -> list[Lot]:
 
 
 def _rank(candidate: Lot) -> tuple[int, Fraction, int]:
-    """``(unpriced?, -unit cost, opened_at_ms)`` — ascending IS HIFO order.
+    """``(unpriced?, -unit cost, opened_at_ms)``. Ascending IS HIFO order.
 
     The leading flag puts every priced lot ahead of every unpriced one, so
     the placeholder the unpriced branch carries is only ever compared with
     other placeholders. Negating the exact rational turns one ascending
-    sort into a descending one — no second pass, no lossy key.
+    sort into a descending one, no second pass, no lossy key.
     """
     cost = unit_cost(candidate)
     if cost is None:
@@ -137,7 +137,7 @@ def _dearest_first(live: list[Lot]) -> list[Lot]:
     """``live`` in HIFO order: dearest priced lot first, unpriced last.
 
     ``sorted`` is stable, so lots tying on the whole of :func:`_rank` keep
-    their input order — one reproducible plan per input — and the result
+    their input order, one reproducible plan per input, and the result
     is a new list, so the caller's sequence is never reordered in place.
     """
     return sorted(live, key=_rank)

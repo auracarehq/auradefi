@@ -1,6 +1,6 @@
 """EVM family helpers: CAIP-2 <-> numeric chain id, address hygiene (SPEC §4.2).
 
-CAIP-2 is the only chain key — ``eip155:1``, never ``ethereum`` /
+CAIP-2 is the only chain key: ``eip155:1``, never ``ethereum`` /
 ``eth-mainnet`` / ``1`` (the vendor name zoo SPEC §4.2 bans). stdlib only.
 """
 
@@ -21,7 +21,7 @@ _ADDRESS_PATTERN = re.compile(r"0x[0-9a-fA-F]{40}")
 def caip2_from_chain_id(chain_id: int) -> str:
     """Return the CAIP-2 identifier ``eip155:{chain_id}`` for a chain id.
 
-    ``chain_id`` must be a positive integer (arbitrary precision — Python
+    ``chain_id`` must be a positive integer (arbitrary precision, Python
     ints have no ceiling and neither does this function).
 
     Raises:
@@ -74,6 +74,6 @@ def is_address(value: object) -> bool:
     """Predicate form of :func:`normalize_address`.
 
     True iff ``value`` is a string of ``0x`` + 40 hex digits. Never
-    raises, whatever the input — including non-string junk.
+    raises, whatever the input, including non-string junk.
     """
     return isinstance(value, str) and _ADDRESS_PATTERN.fullmatch(value) is not None

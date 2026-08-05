@@ -2,8 +2,8 @@
 
 MOTIVATING DEFECT. `metadata` mapped every Python `int` to SQLAlchemy
 `Integer`, which is **int4** on PostgreSQL. Two of those columns hold
-millisecond epochs — `initiated_at` was 1_754_000_000_000, over the int4
-ceiling by 816x — so the first insert against Postgres would have failed with
+millisecond epochs, `initiated_at` was 1_754_000_000_000, over the int4
+ceiling by 816x, so the first insert against Postgres would have failed with
 "integer out of range". 3,348 tests passed anyway, because the suite runs on
 SQLite, whose INTEGER affinity is already 8 bytes. A green suite coexisted
 with a backend the README said "should work" on Postgres and could not.
@@ -39,7 +39,7 @@ SCHEMA_DIR = REPO / "docs" / "schema"
 #: Columns whose values do not fit in 32 bits, and why.
 WIDE_COLUMNS = {
     "auradefi_ledger_transactions": {
-        "initiated_at": "millisecond epoch — 1.75e12, int4 ceiling is 2.1e9",
+        "initiated_at": "millisecond epoch: 1.75e12, int4 ceiling is 2.1e9",
         "confirmed_at": "millisecond epoch",
         "last_modified_seq": "monotonic per-tenant counter, unbounded",
         "block_number": "block heights grow without a ceiling",
@@ -69,7 +69,7 @@ def test_the_committed_ddl_matches_the_models() -> None:
         capture_output=True, text=True, cwd=REPO,
     )
     assert finished.returncode == 0, (
-        "the committed schema no longer matches ledger/backends/models.py — "
+        "the committed schema no longer matches ledger/backends/models.py: "
         "run `python scripts/emit_schema.py` and commit the result:\n"
         + finished.stdout + finished.stderr
     )
@@ -118,10 +118,10 @@ def test_only_the_ledger_claims_tables() -> None:
 
     Tenancy, keys, quota, audit, webhooks and embed sync-state are in-memory
     in this release. A third `auradefi_` table appearing means the docs and
-    the migration story both need editing — which is the point of failing.
+    the migration story both need editing, which is the point of failing.
 
     Filtered by the `auradefi_` prefix rather than compared to the whole
-    registry, because `metadata` IS `SQLModel.metadata` — a global that also
+    registry, because `metadata` IS `SQLModel.metadata`. A global that also
     holds every table the HOST defines. That sharing is why the prefix exists
     and why the `.sql` files matter: `create_all()` on this object creates
     the host's SQLModel tables too, and the emitted DDL creates exactly two.
@@ -131,7 +131,7 @@ def test_only_the_ledger_claims_tables() -> None:
     from auradefi.ledger.backends.models import metadata
 
     assert metadata is SQLModel.metadata, (
-        "the registry stopped being shared, which is good news — update the "
+        "the registry stopped being shared, which is good news: update the "
         "schema documentation, which warns hosts that it is"
     )
     ours = {name for name in metadata.tables if name.startswith("auradefi_")}

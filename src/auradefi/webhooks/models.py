@@ -2,20 +2,20 @@
 
 SPEC §7.3 and rule #8. Everything in this module is a PUBLIC STABILITY
 CONTRACT pinned in docs/internal/DECISIONS.md ("Webhook ids", "Webhook retry
-schedule") — changing a byte here breaks every receiver that verifies a
+schedule"). Changing a byte here breaks every receiver that verifies a
 signature or de-duplicates on a delivery id.
 
 Pinned, to the byte:
 
 * ``canonical_json(obj) = json.dumps(obj, separators=(",", ":"),
-  sort_keys=True)`` — compact, key-sorted, ``ensure_ascii`` left at its
+  sort_keys=True)``, compact, key-sorted, ``ensure_ascii`` left at its
   default so non-ASCII is ``\\uXXXX``-escaped;
 * ``endpoint_id  = "whe_" + sha256(f"{project_id}|{url}")[:16]``;
 * ``event_id     = "evt_" + sha256(f"{project_id}|{name}|{created_at_ms}|
   {canonical_json(data)}")[:16]``;
 * ``delivery_id  = "dlv_" + sha256(f"{endpoint_id}|{event_id}|
   {replay_ordinal}")[:16]`` (ordinal 0 original, +1 per replay);
-* the delivery body is ``canonical_json`` over EXACTLY five keys —
+* the delivery body is ``canonical_json`` over EXACTLY five keys,
   ``{created_at_ms, data, delivery_id, event_id, type}``. No attempt
   counter, on purpose: retries re-send byte-identical bytes (a receiver's
   de-dup is trivial) and a replay differs in ``delivery_id`` alone;
@@ -26,11 +26,11 @@ Pinned, to the byte:
 Rule #8, named casualty: Vezgo authenticates webhooks by SOURCE-IP
 ALLOWLIST and Zerion requires support to hand-whitelist each callback
 URL. Neither exists here. :mod:`auradefi.webhooks.urls` is purely
-STRUCTURAL — ``http://127.0.0.1:9000/hook`` registers fine. It rejects
+STRUCTURAL: ``http://127.0.0.1:9000/hook`` registers fine. It rejects
 SYNTAX, never a destination: a URL httpx cannot parse or would rewrite
 is not policy, it is a POST to somewhere other than as registered.
 
-stdlib only; all timestamps are ms-epoch ints.
+Stdlib only; all timestamps are ms-epoch ints.
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ class EventName(StrEnum):
     """The seven webhook events (SPEC §7.3 "Rich event set").
 
     Vezgo ships two terminal events; this is the whole lifecycle. The
-    set is closed — a new member is a public API change.
+    set is closed. A new member is a public API change.
     """
 
     CONNECTION_CREATED = "connection.created"
@@ -83,7 +83,7 @@ RETRY_SCHEDULE_MS: tuple[int, ...] = (
     0, 60_000, 300_000, 1_800_000, 7_200_000, 86_400_000
 )
 
-#: Total attempts before dead-lettering — one per schedule slot.
+#: Total attempts before dead-lettering: one per schedule slot.
 MAX_ATTEMPTS: int = len(RETRY_SCHEDULE_MS)
 
 #: The five body keys, sorted (``canonical_json`` sorts them anyway).
@@ -117,7 +117,7 @@ class Event:
     """One emitted event; the payload every delivery of it re-sends.
 
     ``created_at_ms`` is the EVENT's creation time and is what lands in
-    the body — a replay created hours later still carries this value, so
+    the body: a replay created hours later still carries this value, so
     the replay body differs from the original in ``delivery_id`` alone.
     """
 
@@ -156,14 +156,14 @@ def canonical_json(obj: Any) -> str:
     """``json.dumps(obj, separators=(",", ":"), sort_keys=True)``.
 
     The one serialisation used for id derivation and for the signed
-    body. Compact separators, sorted keys, default ``ensure_ascii`` —
+    body. Compact separators, sorted keys, default ``ensure_ascii``:
     pinned in DECISIONS, so nothing here may be "improved".
     """
     return json.dumps(obj, separators=(",", ":"), sort_keys=True)
 
 
 def _short_digest(material: str) -> str:
-    """First 16 hex chars of the UTF-8 sha256 — every id's tail."""
+    """First 16 hex chars of the UTF-8 sha256: every id's tail."""
     return hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
 
 
@@ -209,7 +209,7 @@ def snapshot_payload(data: Mapping[str, Any]) -> Mapping[str, Any]:
 
     :func:`event_id` is a content address over the payload and every
     retry must re-send byte-identical bytes, so the store may never hold
-    a mapping the caller — or anything handed an :class:`Event` later —
+    a mapping the caller, or anything handed an :class:`Event` later,
     can still write to. Mappings become ``MappingProxyType`` and lists
     become tuples all the way down.
 
@@ -231,7 +231,7 @@ def parse_event_name(value: str) -> EventName:
     """Return the :class:`EventName` member whose value is ``value``.
 
     An unknown name raises :class:`auradefi.errors.ValidationError`
-    (never ``KeyError``/``ValueError``) — the subscription list arrives
+    (never ``KeyError``/``ValueError``). The subscription list arrives
     from HTTP.
     """
     try:
@@ -260,7 +260,7 @@ def event_id(
     {canonical_json(data)}".encode())[:16]``.
 
     ``name`` interpolates as its wire value (StrEnum). Identical inputs
-    give an identical id — that determinism is what makes ``emit``
+    give an identical id. That determinism is what makes ``emit``
     idempotent. A payload already frozen by :func:`snapshot_payload`
     hashes identically to the plain mapping it was taken from.
     """
@@ -282,7 +282,7 @@ def delivery_body(event: Event, delivery: Delivery) -> str:
 
     ``canonical_json`` over exactly ``{created_at_ms: event
     .created_at_ms, data: event.data, delivery_id: delivery.id,
-    event_id: event.id, type: event.name}`` — five keys, no attempt
+    event_id: event.id, type: event.name}``: five keys, no attempt
     counter, so every retry re-sends byte-identical bytes.
     """
     return canonical_json(
@@ -300,7 +300,7 @@ def due_at_ms(created_at_ms: int, attempt: int) -> int | None:
     """When attempt number ``attempt`` (zero-based) is due.
 
     ``created_at_ms + RETRY_SCHEDULE_MS[attempt]``, or ``None`` once
-    ``attempt >= MAX_ATTEMPTS`` — the chain is exhausted and the
+    ``attempt >= MAX_ATTEMPTS``. The chain is exhausted and the
     delivery dead-letters. A negative ``attempt`` raises
     :class:`auradefi.errors.ValidationError`.
     """

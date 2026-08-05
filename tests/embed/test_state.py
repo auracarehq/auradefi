@@ -3,7 +3,7 @@
 MemoryLedger's tenant hygiene, copied: every method validates
 ``tenant_id`` first (non-str / empty / whitespace →
 ``TenantIsolationError``), and one tenant's records are invisible to
-every other tenant — with a test that tries.
+every other tenant, with a test that tries.
 
 ``tenants()`` (RELEASE_0.1.1 §5 #21) is the deliberate exception to
 "``tenant_id`` first": it IS the enumeration, and it is what lets a
@@ -45,7 +45,7 @@ def make_record(**overrides) -> ConnectionRecord:
 
 
 class HostSyncState:
-    """A host's own duck-typed implementation — matching shape only."""
+    """A host's own duck-typed implementation: matching shape only."""
 
     def get_state(self, tenant_id: str, connection_id: str) -> SyncState:
         return SyncState()
@@ -67,7 +67,7 @@ class LegacySyncState:
     """The 0.1.0 four-method shape: no way to ENUMERATE tenants.
 
     Bound to a restarted worker it could only answer "which connections
-    does tenant X have?" — a question nothing could ask, because the
+    does tenant X have?". A question nothing could ask, because the
     tenant list lived in the dead process (RELEASE_0.1.1 §5 #21).
     """
 
@@ -101,7 +101,7 @@ class TestProtocol:
         assert not isinstance(NotAPort(), SyncStatePort)
 
     # pins: tenant enumeration is part of the port contract, so a store that
-    #       cannot list its tenants is not a SyncStatePort — the shape that
+    #       cannot list its tenants is not a SyncStatePort: the shape that
     #       forced sync() to read an in-process list (§5 #21).
     def test_a_store_that_cannot_enumerate_tenants_is_not_a_port(self):
         assert not isinstance(LegacySyncState(), SyncStatePort)
@@ -198,12 +198,12 @@ class TestConnections:
 
 
 class TestTenants:
-    """RELEASE_0.1.1 §5 #21 — the store, not the process, knows the tenants.
+    """RELEASE_0.1.1 §5 #21: the store, not the process, knows the tenants.
 
     ``tenants()`` is the one method with no ``tenant_id`` first argument:
     it IS the enumeration, and a caller that already knew the tenant
     would have no use for it. Isolation stays with the four scoped
-    methods — knowing a tenant exists reveals none of its records.
+    methods. Knowing a tenant exists reveals none of its records.
     """
 
     # pins: an empty store enumerates no tenants, so a first-ever boot
@@ -221,7 +221,7 @@ class TestTenants:
         store.add_connection(TENANT_A, make_record())
         assert store.tenants() == (TENANT_A,)
 
-    # pins: every tenant appears exactly once, in first-seen order — the
+    # pins: every tenant appears exactly once, in first-seen order: the
     #       order sync() then spends its shared budget in.
     def test_tenants_are_listed_once_in_first_seen_order(self):
         store = MemorySyncState()
@@ -230,7 +230,7 @@ class TestTenants:
         store.add_connection(TENANT_A, make_record(id=CONN_2))
         assert store.tenants() == (TENANT_A, TENANT_B)
 
-    # pins: a tenant known only through a stored cursor is enumerable too —
+    # pins: a tenant known only through a stored cursor is enumerable too, 
     #       state written for a tenant is state a later tick must be able to
     #       find.
     def test_a_tenant_known_only_through_stored_state_is_listed(self):
@@ -238,7 +238,7 @@ class TestTenants:
         store.put_state(TENANT_B, CONN_1, SyncState(live_cursor=42))
         assert store.tenants() == (TENANT_B,)
 
-    # pins: enumeration reveals the tenant list and nothing else — one
+    # pins: enumeration reveals the tenant list and nothing else: one
     #       tenant's records stay invisible to every other tenant (rule #6).
     def test_enumeration_leaks_no_records_across_tenants(self):
         store = MemorySyncState()

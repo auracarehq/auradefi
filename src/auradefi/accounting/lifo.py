@@ -1,6 +1,6 @@
 """LIFO (last-in, first-out) consumption-order selector (SPEC §9).
 
-One public function — ``select`` — returning an ordered consumption
+One public function, ``select``, returning an ordered consumption
 **plan**, on exactly the terms ``auradefi.accounting.fifo`` states: no
 mutation, no cost math, no proration (those live in
 ``LotLedger.consume``), and no runtime cross-module import. Only
@@ -28,7 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only; never imported at runtime
 def select(lots: Sequence[Lot], needed: Quantity) -> list[tuple[Lot, Quantity]]:
     """Plan the LIFO consumption of ``needed`` across ``lots``.
 
-    Order: descending ``opened_at_ms`` — newest first — with ties broken
+    Order: descending ``opened_at_ms``, newest first, with ties broken
     by the *later* position in ``lots``; i.e. the exact reverse of FIFO's
     ascending ``(opened_at_ms, input position)``. The walk takes
     ``min(unmet need, lot.quantity_remaining)`` from every lot whose
@@ -38,12 +38,12 @@ def select(lots: Sequence[Lot], needed: Quantity) -> list[tuple[Lot, Quantity]]:
     Returns ``(lot, take)`` pairs in consumption order. Every ``take`` is
     a positive ``Quantity`` at ``needed.decimals``; a lot contributing
     nothing never appears. The lot objects returned are the very objects
-    passed in — identity is what lets the caller mutate them — and
+    passed in, identity is what lets the caller mutate them, and
     ``lots`` itself is never reordered in place.
 
     Shortage is never an error: when the live lots hold less than
     ``needed`` the plan sums to exactly the total held, and the caller
-    books the shortfall (DECISIONS: shortfall semantics — pre-history is a
+    books the shortfall (DECISIONS: shortfall semantics, pre-history is a
     data-quality fact, not an exception). ``needed.raw <= 0`` yields
     ``[]`` and no lot is inspected at all.
 
@@ -62,7 +62,7 @@ def select(lots: Sequence[Lot], needed: Quantity) -> list[tuple[Lot, Quantity]]:
 def _newest_first(lots: Sequence[Lot]) -> list[Lot]:
     """``lots`` in the exact reverse of FIFO order.
 
-    Reversing a stable ascending sort — rather than sorting descending —
+    Reversing a stable ascending sort, rather than sorting descending,
     is what puts the *later* input position first on tied timestamps.
     The result is a new list; ``lots`` is never reordered in place.
     """

@@ -2,7 +2,7 @@
 
 The HTTP half of the Solana source. ``spl.py`` is pure and knows no
 network; this module knows the JSON-RPC envelope and knows nothing about
-positions or fiat (SPEC §3.3). ``helius.py`` is deferred — the public RPC
+positions or fiat (SPEC §3.3). ``helius.py`` is deferred. The public RPC
 is the only transport here.
 
 Every request is a POST of exactly
@@ -13,11 +13,11 @@ to a single URL. NO retry, NO rate limiting, no ``commitment`` param
 (out of scope). No network at import time and none in a constructor: the
 ``httpx.Client`` is REQUIRED and injected so cassettes plug in.
 
-Base58 case is SIGNIFICANT on Solana — no string here is ever lowercased
+Base58 case is SIGNIFICANT on Solana, no string here is ever lowercased
 (docs/internal/DECISIONS.md, asset-id pin), unlike the EVM source which
 canonicalizes hex to lower case.
 
-Amounts and slots parse as ``int`` — never through float (SPEC rules
+Amounts and slots parse as ``int``, never through float (SPEC rules
 #1/#2). ``blockTime`` is carried in upstream SECONDS verbatim; converting
 to the ms-epoch house unit is a decode/ledger concern, mirroring the
 pinned Etherscan ``timeStamp`` rule.
@@ -47,7 +47,7 @@ class SignatureRecord:
 
     ``block_time`` is the upstream ``blockTime`` in SECONDS, verbatim, or
     ``None`` when the node reports null. ``failed`` is ``err is not
-    None`` — the error payload itself is not carried, only the fact.
+    None``. The error payload itself is not carried, only the fact.
     """
 
     signature: str
@@ -60,7 +60,7 @@ def _signature_record(row: object) -> SignatureRecord:
     """One ``getSignaturesForAddress`` row as a record, or ``SourceError``.
 
     ``bool`` is rejected for the integer members before the ``int``
-    check — ``bool`` is an ``int`` subclass, and a slot of ``True`` is a
+    check. ``Bool`` is an ``int`` subclass, and a slot of ``True`` is a
     malformed row, never a height. A missing ``err`` reads as success; a
     missing ``blockTime`` reads as ``None``.
     """
@@ -97,7 +97,7 @@ class SolanaRpc:
         """The address's native balance in lamports.
 
         Calls ``getBalance`` with params ``[address]``. The result must
-        be an object whose ``value`` is a non-``bool`` ``int >= 0`` — an
+        be an object whose ``value`` is a non-``bool`` ``int >= 0``. An
         upstream JSON integer, read as an ``int`` and never through
         float.
 
@@ -121,9 +121,9 @@ class SolanaRpc:
     def get_token_accounts_by_owner(self, address: str) -> list:
         """The owner's SPL token-account rows, UNPARSED, both programs.
 
-        Issues TWO calls in this pinned order — ``[address, {"programId":
+        Issues TWO calls in this pinned order, ``[address, {"programId":
         TOKEN_PROGRAM}, {"encoding": "jsonParsed"}]`` then the same with
-        :data:`TOKEN_2022_PROGRAM` — and returns their ``result.value``
+        :data:`TOKEN_2022_PROGRAM`, and returns their ``result.value``
         lists concatenated in that order. Rows are handed back exactly as
         received: parsing is :mod:`auradefi.sources.solana.spl`'s job.
 
@@ -154,7 +154,7 @@ class SolanaRpc:
         page sends ``[address, {"limit": limit, "before": <the previous
         page's LAST record's signature>}]``. Records append in received
         order. The loop STOPS when a page returns fewer than ``limit``
-        rows — zero included — which is the only terminator.
+        rows, zero included, which is the only terminator.
 
         Each row must be an object carrying a ``signature`` str, a
         non-``bool`` ``int`` ``slot``, a ``blockTime`` that is a
@@ -246,7 +246,7 @@ class SolanaBalances:
         """Native SOL first (when non-zero), then one record per mint.
 
         Mints are ordered ascending by base58 mint (case-sensitive) and
-        zero-raw holdings are omitted — see
+        zero-raw holdings are omitted. See
         :func:`auradefi.sources.solana.spl.build_balances`.
 
         Raises:

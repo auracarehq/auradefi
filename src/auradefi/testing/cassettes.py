@@ -15,7 +15,7 @@ committed. A cassette is a JSON file:
 method + host + path + sorted query string; repeated identical requests
 replay their recorded interactions in order, and the final one repeats so
 idempotent polling works. Any request with no recorded match raises
-CassetteMissError — the offline guarantee fails loudly, never by letting a
+CassetteMissError. The offline guarantee fails loudly, never by letting a
 live call escape.
 
 Hosts embedding auradefi may use this module to test their own integration

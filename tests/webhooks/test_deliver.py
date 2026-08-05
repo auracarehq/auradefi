@@ -3,14 +3,14 @@
 Zerion retries 3x over ~60s and then drops the event, and hand-whitelists
 each callback URL; Vezgo authenticates by source-IP allowlist. This suite
 pins the opposite: six attempts over exactly 24h from an injected client,
-a dead-letter row that survives, and NO allowlist anywhere — a webhook to
+a dead-letter row that survives, and NO allowlist anywhere: a webhook to
 ``http://127.0.0.1:9000/hook`` registers like any other.
 
 All HTTP is ``httpx.MockTransport``; the autouse socket guard in
 tests/conftest.py fails the run if anything reaches a real socket.
 
 Golden ids/bodies/signatures were derived INDEPENDENTLY via ``python3
--c`` from the algorithms pinned in docs/internal/DECISIONS.md — see the module
+-c`` from the algorithms pinned in docs/internal/DECISIONS.md. See the module
 docstring of tests/webhooks/test_models.py for the formulas. With
 ``entropy = lambda n: "ab" * n`` the endpoint secret is ``"ab" * 32``.
 """
@@ -65,7 +65,7 @@ GOLDEN_BODY = (
     '"event_id":"evt_490b3195618c4099",'
     '"type":"connection.created"}'
 )
-# sign("ab"*32, 1754000000000, GOLDEN_BODY) — derived independently.
+# sign("ab"*32, 1754000000000, GOLDEN_BODY): derived independently.
 GOLDEN_SIGNATURE = "v1=e12eb2b0c8ad2d8b52078c3500f4a1b8e330d41d65d0d8f56ce1503240a5012d"
 
 # A NESTED payload, for the mutation tests: a shallow copy of the caller's
@@ -107,7 +107,7 @@ GOLDEN_LIST_SIGNATURE = (
 )
 
 # The five things JSON cannot carry, each rejected by emit with
-# ValidationError — never the bare TypeError json.dumps raises at signing
+# ValidationError, never the bare TypeError json.dumps raises at signing
 # time, by which point the delivery row is already persisted.
 NON_JSON_PAYLOADS = [
     pytest.param({"amount": Decimal("1.5")}, id="decimal"),
@@ -138,7 +138,7 @@ MALFORMED_URLS = ("https://[::1/x", "https:// /x", "https://a b.com/x", "http://
 # does not catch these, so they escape tick unless it says so explicitly.
 NON_HTTP_ERRORS = (httpx.InvalidURL, httpx.StreamError, httpx.CookieConflict)
 
-# created_at_ms + RETRY_SCHEDULE_MS[k] — the six attempt times.
+# created_at_ms + RETRY_SCHEDULE_MS[k]: the six attempt times.
 DUE_TIMES = (
     1_754_000_000_000,
     1_754_000_060_000,
@@ -157,8 +157,8 @@ def _httpx_error(error: type[Exception], request: httpx.Request) -> Exception:
     """Build ``error`` the way httpx itself constructs it.
 
     ``httpx.RequestError`` subclasses carry the request; ``InvalidURL``,
-    ``StreamError`` and ``CookieConflict`` — none of which are
-    ``httpx.HTTPError`` subclasses — take a message alone.
+    ``StreamError`` and ``CookieConflict``, none of which are
+    ``httpx.HTTPError`` subclasses, take a message alone.
     """
     if issubclass(error, httpx.RequestError):
         return error("connection refused", request=request)
@@ -267,7 +267,7 @@ def test_a_bad_url_is_rejected_and_creates_nothing():
 @pytest.mark.parametrize("url", MALFORMED_URLS)
 def test_a_malformed_host_never_reaches_the_store(url):
     # These are the URLs that detonate later, not now: "https://[::1/x"
-    # makes httpx raise InvalidURL — NOT an httpx.HTTPError — from inside
+    # makes httpx raise InvalidURL, NOT an httpx.HTTPError, from inside
     # tick, and "https:// /x" is silently POSTed to "https://%20/x", a
     # different receiver than the one registered.
     store = _store()
@@ -512,7 +512,7 @@ def test_the_body_survives_the_caller_mutating_the_payload_between_retries():
     ``emit`` takes a Mapping the caller keeps a reference to. A shallow
     ``dict(data)`` copies the top level only, so a nested mutation lands
     straight in the stored event and every later retry POSTs different
-    bytes under the same delivery id — the receiver's de-dup and the
+    bytes under the same delivery id: the receiver's de-dup and the
     signature both break. Same for anything ``get_event`` hands back.
     """
     store, _, _ = _registered()
@@ -547,8 +547,8 @@ def test_the_stored_payload_refuses_a_write_outright():
     accepts the write and still POSTs the original bytes. That tolerance
     is what let a plain deep-copied ``dict`` pass, so this pins the
     stronger contract the snapshot actually provides: every write through
-    an :class:`Event`'s payload — top level, nested mapping, nested list,
-    and deletion — raises ``TypeError``, and the payload is unchanged.
+    an :class:`Event`'s payload, top level, nested mapping, nested list,
+    and deletion, raises ``TypeError``, and the payload is unchanged.
     """
     store, _, _ = _registered()
     payload = {"connection_id": "conn_abc123", "meta": {"kind": "address"}, "xs": [1, 2]}
@@ -576,7 +576,7 @@ def test_the_stored_payload_refuses_a_write_outright():
 @pytest.mark.parametrize("payload", NON_JSON_PAYLOADS)
 def test_emit_rejects_a_payload_json_cannot_carry(payload):
     # ValidationError at the boundary the CALLER controls, not a bare
-    # TypeError out of json.dumps at signing time — by then the row is
+    # TypeError out of json.dumps at signing time. By then the row is
     # persisted and the failure surfaces inside the host's cron drain.
     store, _, _ = _registered()
     with pytest.raises(ValidationError):

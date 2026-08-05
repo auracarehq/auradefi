@@ -16,7 +16,7 @@ depends on:
   where it stopped and never has to re-read history;
 * **a reorg is expressible.** A transaction that leaves the canonical
   chain is emitted as `removed`, and if it comes back it is re-`added`
-  under the same id — never mutated in place, never quietly deleted.
+  under the same id, never mutated in place, never quietly deleted.
 
 Every id here is derived, so two independent workers ingesting the same
 transaction write the same row.
@@ -109,7 +109,7 @@ with tempfile.TemporaryDirectory() as tmp:
     try:
         ledger.get(BOB, batch[0].id)
     except NotFoundError as exc:
-        print(f"\nBob asking for Alice's transaction: {type(exc).__name__} — {exc}")
+        print(f"\nBob asking for Alice's transaction: {type(exc).__name__}: {exc}")
 
     # ------------------------------------------------------------- 5. the reorg
     # Block 18,000,003 is re-mined and transaction 3 lands in a later block.
@@ -131,7 +131,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert [event.kind for event in reorg_events] == [SyncEventKind.ADDED]
     resurrected = ledger.get(ALICE, batch[2].id)
     assert resurrected.block_number == 18_000_009 and resurrected.removed is False
-    print(f"  transaction 3 kept its id {resurrected.id} — history stays "
+    print(f"  transaction 3 kept its id {resurrected.id}: history stays "
           "addressable across a reorg")
 
     # A transaction that does NOT come back is emitted as removed, with the
@@ -149,4 +149,4 @@ with tempfile.TemporaryDirectory() as tmp:
 #     engine = create_engine("postgresql+psycopg://user@host/db")
 # The port is exercised against sqlite in CI; Postgres should work through
 # it unchanged, and is not yet covered by a gate (README, *What is not there*).
-print("\nOK — your schema, your session, derived ids, a resumable feed.")
+print("\nOK: your schema, your session, derived ids, a resumable feed.")

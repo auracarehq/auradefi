@@ -3,7 +3,7 @@
 Table shape: ``auradefi_``-prefixed names (they land in the HOST's
 database), composite PK (tenant_id, id), the (tenant_id,
 last_modified_seq) sync index, and an exposed ``metadata`` the HOST runs
-create_all/migrations against — the library never emits DDL.
+create_all/migrations against. The library never emits DDL.
 
 Wire goldens: entries encode to canonical JSON with ``raw`` as a
 decimal-int JSON STRING (rule #2). Every literal below was derived
@@ -32,14 +32,14 @@ from auradefi.money.quantity import Quantity
 
 MS = 1_754_000_000_000
 
-# eip155:1 | 0xabc | acct_1 through the pinned id algorithm — derived
+# eip155:1 | 0xabc | acct_1 through the pinned id algorithm: derived
 # independently via python3 -c; NEVER regenerate from the implementation.
 ID_DEFAULT = "txn_8960436486a11960"
 
 TXN_TABLE = "auradefi_ledger_transactions"
 SEQ_TABLE = "auradefi_ledger_seqs"
 
-# json.dumps(list-of-objects, sort_keys=True, separators=(",", ":")) —
+# json.dumps(list-of-objects, sort_keys=True, separators=(",", ":")), 
 # raw is a JSON STRING (rule #2). Derived independently via python3 -c.
 GOLDEN_ONE = (
     '[{"asset_id":"eip155:1/slip44:60","decimals":18,'
@@ -51,7 +51,7 @@ GOLDEN_TWO = (
     '{"asset_id":"eip155:1/erc20:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",'
     '"decimals":6,"direction":"out","raw":"2500000"}]'
 )
-# 78-digit raw (10**77) — rule #2's whole point: no float ever survives this.
+# 78-digit raw (10**77): rule #2's whole point: no float ever survives this.
 GOLDEN_HUGE = (
     '[{"asset_id":"eip155:1/slip44:60","decimals":18,"direction":"in",'
     '"raw":"1000000000000000000000000000000000000000000'

@@ -1,7 +1,7 @@
 """BIP32 CKDpub derivation over secp256k1 (SPEC §3.2, §10).
 
 PURE stdlib module: ``hashlib``, ``hmac``, ``dataclasses`` and the pure
-:mod:`auradefi.sources.bitcoin.encoding` codecs only — zero I/O, no
+:mod:`auradefi.sources.bitcoin.encoding` codecs only: zero I/O, no
 httpx, no esplora import. SPEC §10 is the reason: an extended key is
 derived locally and NEVER travels off-box. :func:`derive_addresses`
 returns plain addresses, which is all the HTTP layer ever sees.
@@ -14,7 +14,7 @@ Pinned in docs/internal/DECISIONS.md:
   ``ValidationError`` off-curve; serialize = ``(0x02 | y & 1) || x``.
 * **BIP32 CKDpub**: version ``0x0488B21E`` only; a hardened index from an
   xpub raises; ``I_L >= n`` or a point-at-infinity child raises
-  (deliberate deviation from BIP32's skip-to-next-index — probability
+  (deliberate deviation from BIP32's skip-to-next-index, probability
   < 2**-127, raising is honest); parent fingerprint =
   ``hash160(parent pubkey)[:4]``.
 
@@ -128,8 +128,8 @@ def _multiply(scalar: int, point: tuple[int, int] = GENERATOR):
 def _parse_point(pubkey: bytes) -> tuple[int, int]:
     """Decompress a 33-byte SEC key to ``(x, y)``.
 
-    ``y = (x**3 + 7)**((p + 1) // 4) mod p`` — valid because
-    ``p % 4 == 3`` — then the parity of the lead byte selects ``y`` or
+    ``y = (x**3 + 7)**((p + 1) // 4) mod p``, valid because
+    ``p % 4 == 3``, then the parity of the lead byte selects ``y`` or
     ``p - y``.
 
     Raises:
@@ -158,7 +158,7 @@ def _serialize_point(point: tuple[int, int]) -> bytes:
 
 @dataclass(frozen=True, slots=True)
 class Xpub:
-    """One BIP32 extended PUBLIC key — the five serialized fields.
+    """One BIP32 extended PUBLIC key: the five serialized fields.
 
     ``child_number >= 2**31`` is LEGAL: it records that this node's own
     derivation from ITS parent was hardened. Only DERIVING a hardened
@@ -192,7 +192,7 @@ def parse_xpub(encoded: str) -> Xpub:
 
     The payload must be exactly 78 bytes and carry version
     ``0x0488B21E``: an xprv (``0x0488ADE4``), a ypub, and a zpub are all
-    ``ValidationError`` — this module speaks BIP44 mainnet xpub only.
+    ``ValidationError``: this module speaks BIP44 mainnet xpub only.
     The 33-byte key must parse to a point ON the curve.
 
     Raises:
@@ -210,7 +210,7 @@ def parse_xpub(encoded: str) -> Xpub:
     version = int.from_bytes(payload[:4], "big")
     if version != XPUB_VERSION:
         raise ValidationError(
-            f"version {version:#010x} is not a mainnet xpub ({XPUB_VERSION:#010x}) — "
+            f"version {version:#010x} is not a mainnet xpub ({XPUB_VERSION:#010x}): "
             "xprv, ypub and zpub are all refused"
         )
     pubkey = payload[45:78]
@@ -225,7 +225,7 @@ def parse_xpub(encoded: str) -> Xpub:
 
 
 def serialize_xpub(xpub: Xpub) -> str:
-    """Serialize to Base58Check — the exact inverse of :func:`parse_xpub`.
+    """Serialize to Base58Check: the exact inverse of :func:`parse_xpub`.
 
     Layout: ``version(4) || depth(1) || parent_fingerprint(4) ||
     child_number(4, big-endian) || chain_code(32) || pubkey(33)``.
@@ -317,7 +317,7 @@ def derive_addresses(
     PARAMETER ORDER IS LOAD-BEARING:
     ``functools.partial(derive_addresses, xpub, kind)`` is exactly the
     ``derive(chain, start, count)`` callable
-    :func:`auradefi.sources.bitcoin.esplora.scan` takes — the scanner
+    :func:`auradefi.sources.bitcoin.esplora.scan` takes. The scanner
     therefore never holds an extended key (SPEC §10).
 
     The chain node ``m/chain`` is derived ONCE via :func:`ckd_pub`, then

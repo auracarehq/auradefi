@@ -1,4 +1,4 @@
-"""One id prefix, one recipe — or a registered, documented divergence.
+"""One id prefix, one recipe, or a registered, documented divergence.
 
 MOTIVATING FINDING (0.1.1 wave 2, `src/auradefi/api/wire.py:63`, seam, major).
 Two independently-approved fixes composed into an unreviewed defect. #19 made
@@ -12,20 +12,20 @@ correct and both are pinned in DECISIONS. Together they put two DIFFERENT
 envelope's `account_id` (wire.py:63, 81, 143) carries the chain-scoped id the
 library stamped, while `POST/GET /connections` hands the client the chainless
 `tenancy.connection_id` (routes/connections.py:78). A client cannot join a
-transaction to the connection that produced it — and nothing failed, because
+transaction to the connection that produced it, and nothing failed, because
 each half has its own green tests and the ids are lexically indistinguishable:
 same prefix, same 16 hex digits.
 
 WHY THE CLASS IS DANGEROUS. Every id in this codebase is an opaque
-`<prefix>_<16 hex>` string, so the prefix is the ONLY thing a reader — human or
-client — can use to tell one namespace from another. When two mint sites share
+`<prefix>_<16 hex>` string, so the prefix is the ONLY thing a reader, human or
+client, can use to tell one namespace from another. When two mint sites share
 a prefix there are exactly two possible intents, and both fail silently when
 they rot:
 
 * the recipes are meant to be IDENTICAL (`ledger.models.transaction_id` /
   `decode.models.transaction_id` under DECISIONS' duplication waiver;
   `embed.models.derive_tenant_id` / `tenancy.models.end_user_id`, whose
-  byte-equality IS #19). Nothing in the language couples them — the day one
+  byte-equality IS #19). Nothing in the language couples them: the day one
   preimage gains a segment, the two surfaces address different rows and every
   per-module test stays green.
 * the recipes are meant to DIVERGE (`conn_` after #26; `grp_` for a
@@ -34,14 +34,14 @@ they rot:
   one client's join key, and look like peers.
 
 THE RULES, mechanically. This gate inventories every id mint site in
-`src/auradefi/` — a `return "<prefix>_" + …` or `return f"<prefix>_{…}"` — and
+`src/auradefi/`, a `return "<prefix>_" + …` or `return f"<prefix>_{…}"`, and
 derives each site's RECIPE from the preimage/join literals in its function
 (placeholders erased, so `f"{a}|{b}"` and `f"{x}|{y}"` are the same recipe and
 `f"{a}|address|{b}"` is not). For every prefix minted at two or more sites:
 
 1. RECIPES THAT MATCH MUST BE CROSS-PINNED. Some ONE file under `tests/` must
    name both minting packages, the mint function, and a golden literal of that
-   prefix — a single place that goes red when one copy drifts. (Rule 2 in
+   prefix. A single place that goes red when one copy drifts. (Rule 2 in
    spirit is DECISIONS' duplication waiver made enforceable.)
 2. RECIPES THAT DIFFER MUST BE REGISTERED HERE, in `DIVERGENT_PREFIXES`, with
    an anchor phrase that must literally appear in `docs/internal/DECISIONS.md`. An
@@ -106,7 +106,7 @@ def _prefix_of(node: ast.expr) -> str | None:
 
 
 def _erase(node: ast.JoinedStr) -> str:
-    """`f"{project_id}|{kind}"` -> `"{}|{}"` — structure without names.
+    """`f"{project_id}|{kind}"` -> `"{}|{}"`: structure without names.
 
     Renaming a parameter must not read as a recipe change; adding or moving
     a `|`-segment must.
@@ -123,7 +123,7 @@ def _erase(node: ast.JoinedStr) -> str:
 def _recipe(func: ast.FunctionDef, prefix: str) -> tuple[str, ...]:
     """Every literal that shapes the PREIMAGE, sorted.
 
-    Exactly two contributors, and nothing else — a validation regex or an
+    Exactly two contributors, and nothing else: a validation regex or an
     error message must not read as part of the recipe:
 
     * f-string templates, placeholders erased (`f"{project_id}|{kind}"`);
@@ -223,8 +223,8 @@ DIVERGENT_PREFIXES: dict[str, tuple[str, ...]] = {
     # unrelated namespaces both mint `grp_`. assets.groups.group_id hashes a
     # sorted SET OF ASSET IDS (a display grouping); positions.models
     # .group_id_for hashes (adapter, chain, risk-unit key). Nothing joins
-    # them today — an AssetGroup.id and a PositionGroup.group_id are never
-    # compared — so this is registered rather than unified: changing either
+    # them today: an AssetGroup.id and a PositionGroup.group_id are never
+    # compared, so this is registered rather than unified: changing either
     # recipe would rehash live ids to fix a collision nobody has hit. It is
     # registered and not ignored because the shapes are lexically
     # identical, so the day something DOES try to join them, the failure
@@ -237,7 +237,7 @@ DIVERGENT_PREFIXES: dict[str, tuple[str, ...]] = {
 
 
 def test_divergent_id_prefixes_are_registered_and_documented() -> None:
-    """Rule 2 — two recipes under one prefix need a reviewed reason."""
+    """Rule 2: two recipes under one prefix need a reviewed reason."""
     sites = _mint_sites(SOURCE_ROOT)
     divergent = divergent_prefixes(sites)
     unregistered = {
@@ -266,14 +266,14 @@ def test_divergent_id_prefixes_are_registered_and_documented() -> None:
     }
     missing = {prefix: gone for prefix, gone in missing.items() if gone}
     assert not missing, (
-        "a registered id-prefix divergence lost its DECISIONS anchor — the "
+        "a registered id-prefix divergence lost its DECISIONS anchor: the "
         "collision survives, the reason does not. Restore the sentence or "
         "update the anchor here: " + repr(missing)
     )
 
 
 def test_duplicated_id_recipes_are_cross_pinned() -> None:
-    """Rule 1 — a copied recipe needs one file that goes red on drift."""
+    """Rule 1. A copied recipe needs one file that goes red on drift."""
     sites = _mint_sites(SOURCE_ROOT)
     test_texts = {
         path: path.read_text(encoding="utf-8")
@@ -306,7 +306,7 @@ def test_duplicated_id_recipes_are_cross_pinned() -> None:
 
 
 def test_gate_detects_the_motivating_defect(tmp_path: Path) -> None:
-    """Proof, on a RECONSTRUCTION — never by editing real source.
+    """Proof, on a RECONSTRUCTION, never by editing real source.
 
     Two modules mint `conn_` from different preimages, exactly as
     `embed.models.derive_connection_id` and `tenancy.models.connection_id` do

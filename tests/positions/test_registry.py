@@ -1,6 +1,6 @@
 """Contract tests for auradefi.positions.registry (SPEC §4.5).
 
-Registration is explicit, not filename magic — Zapper's call-stack
+Registration is explicit, not filename magic. Zapper's call-stack
 ``@PositionTemplate()`` decorator is the named casualty. A duplicate id is
 a loud ``ConflictError`` carrying ``existing_id``, never a silent replace.
 A fresh registry is EMPTY: no default shipped set (assembly is later
@@ -36,7 +36,7 @@ class StubAdapter:
 
 class TestFreshRegistryIsEmpty:
     def test_no_default_shipped_set(self):
-        # Assembly is later wiring — this order stays adapter-independent.
+        # Assembly is later wiring. This order stays adapter-independent.
         assert AdapterRegistry().adapters() == ()
 
     def test_for_chain_on_fresh_registry_is_empty(self):

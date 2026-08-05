@@ -1,14 +1,14 @@
 """THE PHASE 5 GATE (SPEC §11 Phase 5: "a host can import, bind a session,
 and sync on its own tick"; SPEC §8; SPEC §13's no-op contract).
 
-The REAL stack — ``from auradefi import Auradefi`` over
-``tests/cassettes/embed_gate.json`` — with the HOST owning everything a
+The REAL stack, ``from auradefi import Auradefi`` over
+``tests/cassettes/embed_gate.json``, with the HOST owning everything a
 host owns:
 
 * its OWN sqlite engine (StaticPool, in-memory) and its OWN
   ``create_all`` against ``ledger.backends.models.metadata``; the library
   emits no DDL and opens no connection we did not hand it. It then reads
-  its rows back THROUGH ITS OWN session — the storage-is-a-port proof.
+  its rows back THROUGH ITS OWN session. The storage-is-a-port proof.
 * its OWN source adapter satisfying both seams: ``EtherscanV2`` for
   balances, raw ``txlist`` pages for history.
 * a ``CountingTransport`` wrapper, because the §13 no-op contract is
@@ -24,11 +24,11 @@ formulas in docs/internal/DECISIONS.md, never regenerated from the code:
 The conn_ preimage gained its ``eip155:1`` segment in 0.1.1 (§5 #26): an
 id without it let one address be connected on only ONE chain and made two
 chains share a sync cursor. Every conn_ and txn_ literal below therefore
-changed, and 0.1.0 data is not portable — see docs/internal/DECISIONS.md.
+changed, and 0.1.0 data is not portable. See docs/internal/DECISIONS.md.
 
 Holdings: 2 ETH @ 2500 + 25 USDC @ 1 = 5025 USD exactly (Decimal, never
 float). Transactions: 7, one per hour from 1700000000 (UTC hour 22)
-onward — hours 22, 23, 00, 01, 02, 03, 04.
+onward. Hours 22, 23, 00, 01, 02, 03, 04.
 
 Everything runs offline under the autouse socket guard.
 """
@@ -99,7 +99,7 @@ class HostSource:
 
     ``balances`` delegates to the real ``EtherscanV2``; ``fetch_txlist``
     issues the windowed txlist GET the sync engine asks for and hands
-    back the RAW rows — parsing belongs to the decoder, not here.
+    back the RAW rows. Parsing belongs to the decoder, not here.
     """
 
     def __init__(self, client: httpx.Client, page_size: int) -> None:
@@ -279,7 +279,7 @@ def test_the_resumed_sync_drains_the_live_window_and_finishes_history(cassette):
     # the six rows of [0, 105] fill pages 1-3 exactly, so the only evidence
     # that nothing remains is a fourth, short page. The old exclusive walk
     # appeared to finish in three only because its last window was narrower
-    # than a full page — it inferred completion from an arithmetic accident,
+    # than a full page: it inferred completion from an arithmetic accident,
     # which is the same reasoning that dropped the rest of a split block.
     assert report.transactions_ingested == 4
     assert host.transport.calls == calls + 4

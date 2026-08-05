@@ -10,7 +10,7 @@ no longer reaches the host: `sync()` returns a report with
 `failed_connections == (conn,)`. The code changed, the pinning test changed
 (`test_a_malformed_row_surfaces_as_a_source_error` became
 `test_a_malformed_row_is_reported_against_its_connection_not_raised`), and the
-docstring did not — nothing in the acceptance list required it to.
+docstring did not: nothing in the acceptance list required it to.
 
 WHY THIS CLASS IS DANGEROUS, and why it is CALLBACKS specifically. A function
 that raises to its own caller documents something it controls. A function
@@ -18,24 +18,24 @@ handed to somebody else as a callable does not: `self._decode_page` is passed
 into `SyncEngine.__init__` and invoked from inside `_run_sync`'s `try`, so
 whether its exception is observable is decided entirely by the injector, in
 another function, often in another module. That is exactly the distance over
-which prose rots silently — no import breaks, no test turns red, and this repo
+which prose rots silently, no import breaks, no test turns red, and this repo
 treats the docstring AS the error contract of a public seam (see
 `Auradefi.__init__`, `_probe`, `UserHandle.connect_address`, all of which
 promise callers what escapes). A host reading a stale promise writes
 `except SourceError:` around a call that will never raise, and its real failure
-path — the `failed` row — goes unhandled.
+path, the `failed` row, goes unhandled.
 
 THE RULE, mechanically: if a function defined in a module is referenced BARE
 (passed as a value, not called) as an argument in that same module, its
 docstring may not assert that an exception ESCAPES ("propagates", "escapes",
 "surfaces", "bubbles" near an `…Error` name) unless the same docstring also
-says who CONTAINS it — "caught", "contained", "filed", "failed/failure",
+says who CONTAINS it: "caught", "contained", "filed", "failed/failure",
 "isolated", "reported", "does not escape". Naming the container is what keeps
 the sentence honest when the container changes: it puts the two facts in one
 place, so the next reader of `_run_sync` sees the prose that depends on it.
 
 Deliberately NOT checked: propagation claims on ordinary functions
-(`_probe`'s SourceError really does reach `connect_address`'s caller — that
+(`_probe`'s SourceError really does reach `connect_address`'s caller, that
 claim is true and must stay), and cross-module reachability in general, which
 needs a call graph no regex can stand in for.
 """
@@ -49,7 +49,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO / "src" / "auradefi"
 
-#: "propagates", "escapes", "surfaces", "bubbles" — the verbs this repo uses
+#: "propagates", "escapes", "surfaces", "bubbles": the verbs this repo uses
 #: for "the caller sees this exception".
 _ESCAPE_VERB = re.compile(r"\b(propagat\w*|escapes?|surfaces?|bubbles?)\b", re.I)
 
@@ -90,7 +90,7 @@ def _bare_references(node: ast.AST, defined: dict[str, ast.AST]) -> set[str]:
     """Names of ``defined`` functions referenced as VALUES inside ``node``.
 
     A nested call's own callee is skipped: ``f(g(x))`` injects nothing, it
-    calls ``g``. Only ``self.<name>`` and a bare ``<name>`` count — an
+    calls ``g``. Only ``self.<name>`` and a bare ``<name>`` count: an
     attribute on anything else is somebody else's method.
     """
     names: set[str] = set()
@@ -162,7 +162,7 @@ def _offences() -> list[str]:
     # `total_sats`, `handle`, `endpoint_id`, `event_id`). A collapse to a
     # handful means the AST shapes moved, not that injection stopped.
     assert callbacks >= 5, (
-        f"only {callbacks} injected callbacks found across the source — the "
+        f"only {callbacks} injected callbacks found across the source: the "
         "detector has gone blind; fix it rather than enjoying a green gate"
     )
     return offences
@@ -172,14 +172,14 @@ def test_an_injected_callback_never_promises_that_an_error_escapes() -> None:
     """See the module docstring's motivating finding (#24, `_decode_page`)."""
     assert not _offences(), (
         "an injected callback's docstring states who sees its exception, but "
-        "the INJECTOR decides that — say which caller contains it (\"filed as "
+        "the INJECTOR decides that: say which caller contains it (\"filed as "
         "ConnectionSyncReport.failure\", \"caught by …\") or drop the claim:\n"
         "  " + "\n  ".join(_offences())
     )
 
 
 def test_the_gate_fires_on_the_motivating_docstring_and_clears_when_fixed() -> None:
-    """The 0.1.1 #24 defect, and its fix, as strings — no source edited."""
+    """The 0.1.1 #24 defect, and its fix, as strings, no source edited."""
     stale = (
         "The default decoder, bound lazily (imports live INSIDE).\n\n"
         "Phase 5 ingests the NATIVE stream only; a malformed row's "

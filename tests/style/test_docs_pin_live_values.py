@@ -13,7 +13,7 @@ the GitHub `notebooks` job, not into `commands.style`, `commands.test` or
 published artefact.
 
 WHY THE CLASS IS DANGEROUS. When a derived value moves, its consumers in
-`src/` and `tests/` move with it — a red test is loud. Documentation is the one
+`src/` and `tests/` move with it. A red test is loud. Documentation is the one
 consumer that fails silently, and it is the copy a HOST reads: a book asserting
 a retired id teaches an integrator to expect ids our library no longer mints,
 and a stored repr missing a field hides the very field a release added to make
@@ -21,7 +21,7 @@ partial failure visible. Worse, the retired value survives on purpose in the
 tests (`CONN_ADDR_0_1_0`, `CONN_0_1_0`, kept to prove the break was deliberate),
 so grepping for it finds "live" hits and the stale book looks corroborated.
 
-THE RULES, mechanically — text-level only, so they stay fast and cannot rot
+THE RULES, mechanically: text-level only, so they stay fast and cannot rot
 against a refactor:
 
 1. RETIRED VALUES STAY OUT OF EXECUTABLE DOCS. Any id-shaped string literal
@@ -37,7 +37,7 @@ against a refactor:
    `failed=`: the output still parses, still reads plausibly, and is wrong.
 
 Both rules are satisfied by re-executing the book (`BOOKS_INPLACE=1 bash
-scripts/run_books.sh`) after the code change — which is the fix, not a
+scripts/run_books.sh`) after the code change, which is the fix, not a
 workaround.
 """
 
@@ -54,7 +54,7 @@ TEST_ROOT = REPO / "tests"
 BOOKS = REPO / "docs" / "books"
 EXAMPLES = REPO / "examples"
 
-#: `conn_b116094c537a85e6`, `usr_1e63721d071ea2d9`, … — the DECISIONS-pinned
+#: `conn_b116094c537a85e6`, `usr_1e63721d071ea2d9`, …: the DECISIONS-pinned
 #: id shape: a short lowercase prefix and a 16-hex truncated sha256.
 _ID_LITERAL = re.compile(r"\b[a-z]{2,12}_[0-9a-f]{16}\b")
 
@@ -64,7 +64,7 @@ _RETIRED_NAME = re.compile(
     r"(?:_\d+_\d+_\d+$)|(?:(?:^|_)(?:OLD|PREV|LEGACY|RETIRED|SUPERSEDED|STALE)(?:_|$))"
 )
 
-#: `ConnectionSyncReport(connection_id=…` — a dataclass repr, not a call with
+#: `ConnectionSyncReport(connection_id=…`: a dataclass repr, not a call with
 #: positional args (a keyword must follow the paren for us to compare fields).
 _REPR_HEAD = re.compile(r"\b([A-Z][A-Za-z0-9]*)\((?=[a-z_]+=)")
 
@@ -81,8 +81,8 @@ def _executable_docs() -> list[Path]:
     """
     books = sorted(BOOKS.glob("*.ipynb"))
     examples = sorted(EXAMPLES.glob("*.py"))
-    assert books, f"no notebooks under {BOOKS.relative_to(REPO)} — gate is blind"
-    assert examples, f"no examples under {EXAMPLES.relative_to(REPO)} — gate is blind"
+    assert books, f"no notebooks under {BOOKS.relative_to(REPO)}: gate is blind"
+    assert examples, f"no examples under {EXAMPLES.relative_to(REPO)}: gate is blind"
     return books + examples
 
 
@@ -121,10 +121,10 @@ def _retired_literals() -> dict[str, str]:
 
 
 def test_executable_docs_never_pin_a_retired_derived_value() -> None:
-    """Rule 1 — see the module docstring's motivating finding."""
+    """Rule 1. See the module docstring's motivating finding."""
     retired = _retired_literals()
     assert retired, (
-        "no superseded id constant found in the suite — either the naming "
+        "no superseded id constant found in the suite: either the naming "
         "convention changed (update _RETIRED_NAME) or this gate is now blind"
     )
 
@@ -208,7 +208,7 @@ def _stored_output_lines(notebook: Path) -> list[str]:
 def _balanced(line: str, open_paren: int) -> str | None:
     """The argument text of the repr opening at ``open_paren``, or None.
 
-    None when the parenthesis does not close on this line — a truncated or
+    None when the parenthesis does not close on this line: a truncated or
     wrapped print is not evidence of a missing field.
     """
     depth = 0
@@ -223,7 +223,7 @@ def _balanced(line: str, open_paren: int) -> str | None:
 
 
 def test_stored_book_outputs_show_every_current_dataclass_field() -> None:
-    """Rule 2 — see the module docstring's motivating finding."""
+    """Rule 2. See the module docstring's motivating finding."""
     fields = _dataclass_repr_fields()
     offences: list[str] = []
     for notebook in sorted(BOOKS.glob("*.ipynb")):
@@ -242,7 +242,7 @@ def test_stored_book_outputs_show_every_current_dataclass_field() -> None:
                 if absent:
                     offences.append(
                         f"{notebook.relative_to(REPO)}: stored {name}(...) "
-                        f"output omits {absent} — re-execute the book"
+                        f"output omits {absent}: re-execute the book"
                     )
 
     assert not offences, (

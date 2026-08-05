@@ -7,7 +7,7 @@ starting at 1, idempotent upsert (payload-identical redelivery emits no
 event and bumps no seq), removal as a first-class REMOVED event, and
 state-based sync pages ordered by ascending last-modified seq.
 
-stdlib only — no ORM in Phase 0.
+Stdlib only, no ORM in Phase 0.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ from auradefi.ledger.upsert import classify
 class MemoryLedger:
     """Dict-backed ``LedgerPort`` with hard per-tenant isolation.
 
-    Constructed empty with no arguments: ``MemoryLedger()`` — no tenants,
+    Constructed empty with no arguments: ``MemoryLedger()``, no tenants,
     every per-tenant seq counter starting from 0 (first write gets 1).
 
     Every method validates ``tenant_id`` first: anything that is not a
@@ -55,7 +55,7 @@ class MemoryLedger:
         New or payload-changed transactions are stored with the tenant's
         next ``last_modified_seq`` (monotonic, starting at 1) and emit
         ADDED events ordered by ascending seq. Payload-identical incoming
-        transactions emit NO event and bump NO seq (idempotence) — unless
+        transactions emit NO event and bump NO seq (idempotence), unless
         the STORED row is removed, in which case the transaction is
         resurrected: stored with ``removed=False``, a bumped seq, and an
         ADDED event (SPEC §6.4: re-added is first-class). Incoming
@@ -90,8 +90,8 @@ class MemoryLedger:
         """Page of changes since ``cursor``, ascending last-modified seq.
 
         Emits one event per stored transaction with
-        ``last_modified_seq > decode_cursor(cursor)`` — REMOVED when the
-        stored row is removed, else ADDED — up to ``limit``.
+        ``last_modified_seq > decode_cursor(cursor)``, REMOVED when the
+        stored row is removed, else ADDED, up to ``limit``.
         ``next_cursor`` is ``encode_cursor`` of the last event's seq, or
         of the decoded input when the page is empty. ``has_more`` is True
         iff events beyond this page remain. A malformed cursor raises
@@ -133,7 +133,7 @@ class MemoryLedger:
         """Fetch one transaction from this tenant's store.
 
         Raises ``auradefi.errors.NotFoundError`` when the id does not
-        exist in THIS tenant's store — another tenant's transaction is
+        exist in THIS tenant's store. Another tenant's transaction is
         indistinguishable from a missing one.
         """
         self._check_tenant(tenant_id)
@@ -176,7 +176,7 @@ class MemoryLedger:
         """Apply a :class:`ReorgPlan`: ``mark_removed`` then ``upsert``.
 
         Returns the composed events (REMOVED first, then ADDED) ordered
-        by ascending seq — SPEC §6.4: a chain reorg is removed +
+        by ascending seq. SPEC §6.4: a chain reorg is removed +
         re-added, first-class. Duplicate ids within ``plan.add`` raise
         ``auradefi.errors.ValidationError`` BEFORE any write, so a bad
         plan never leaves the tenant half-reorged.

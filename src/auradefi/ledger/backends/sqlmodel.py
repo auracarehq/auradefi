@@ -4,7 +4,7 @@
 semantics IDENTICAL to the pinned reference backend
 (``auradefi.ledger.backends.memory.MemoryLedger``). Storage is a port
 (rules #6/#12): the host binds its own session factory and keeps its own
-migration story. We never open a connection the host didn't hand us —
+migration story. We never open a connection the host didn't hand us:
 this module builds no engine and emits no DDL; schema setup is the
 host's job, against ``auradefi.ledger.backends.models.metadata``.
 
@@ -47,8 +47,8 @@ class SqlModelLedger:
     Every public method validates ``tenant_id`` FIRST (non-empty,
     non-whitespace ``str``, else ``auradefi.errors.TenantIsolationError``)
     before touching any session, then runs one session/commit per call.
-    Per-tenant monotonic seqs come from ``TenantSeqRow`` (first value 1)
-    — the counter lives in the DB, so a second binding over the same
+    Per-tenant monotonic seqs come from ``TenantSeqRow`` (first value 1).
+    The counter lives in the DB, so a second binding over the same
     engine continues the sequence.
     """
 
@@ -56,7 +56,7 @@ class SqlModelLedger:
         """Bind the HOST's session factory. ZERO I/O happens here.
 
         The constructor stores the factory and nothing else: no engine
-        is built, no connection opened, no DDL emitted — an empty
+        is built, no connection opened, no DDL emitted. An empty
         database stays empty until the HOST creates the schema itself.
         """
         self._session_factory = session_factory
@@ -70,7 +70,7 @@ class SqlModelLedger:
         are written with the tenant's next monotonic seq from
         ``TenantSeqRow`` (first 1) and emit ADDED events ascending by
         seq. Payload-identical redelivery emits no event and bumps no
-        seq — UNLESS the STORED row is removed, in which case the txn
+        seq, UNLESS the STORED row is removed, in which case the txn
         is resurrected (``removed=False``, bumped seq, ADDED).
         Resurrection keys on the STORED removed flag; incoming
         bookkeeping is never adopted. Duplicate ids within ``txns``
@@ -131,7 +131,7 @@ class SqlModelLedger:
         """Fetch one transaction within THIS tenant (rule #6).
 
         Raises ``auradefi.errors.NotFoundError`` when the id does not
-        exist in this tenant — another tenant's transaction is
+        exist in this tenant. Another tenant's transaction is
         indistinguishable from a missing one.
         """
         self._check_tenant(tenant_id)
@@ -163,7 +163,7 @@ class SqlModelLedger:
         Duplicate ids within ``plan.add`` raise
         ``auradefi.errors.ValidationError`` BEFORE any write. Both
         halves run INSIDE ONE session/commit: a failure anywhere rolls
-        the whole plan back — the tenant is never left half-reorged.
+        the whole plan back. The tenant is never left half-reorged.
         Returns REMOVED then ADDED events ascending by seq.
         """
         self._check_tenant(tenant_id)

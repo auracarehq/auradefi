@@ -1,9 +1,9 @@
 """THE PHASE 6 GATE (SPEC rule #5; SPEC §11 Phase 6; SPEC §10 "derive
-locally with BIP32 — NEVER send an extended key off-box").
+locally with BIP32, NEVER send an extended key off-box").
 
 Wires the REAL ``Esplora`` over tests/cassettes/phase6_xpub.json to the
 REAL ``xpub.derive_addresses`` through nothing but
-``functools.partial(derive_addresses, XPUB, 'p2wpkh')`` — the residual
+``functools.partial(derive_addresses, XPUB, 'p2wpkh')``: the residual
 ``derive(chain, start, count)`` callable ``scan`` takes. The scanner
 never holds the extended key; the cassette proves it, because every
 recorded URL carries a bc1 address and the string ``xpub`` does not
@@ -12,8 +12,8 @@ appear in the file at all.
 The cassette holds EXACTLY 44 interactions: external indices 0..22 and
 change indices 0..20 of the BIP32 vector-1 master xpub. That count IS
 the gap-20 stop rule. Chain 0: indices 0, 1, 2 are used, so the unused
-run only starts at 3 and reaches 20 at index 22 — 23 requests. Chain 1:
-index 0 is used, the run reaches 20 at index 20 — 21 requests. One
+run only starts at 3 and reaches 20 at index 22. 23 Requests. Chain 1:
+index 0 is used, the run reaches 20 at index 20: 21 requests. One
 request more than the rule allows and the next URL is unrecorded, so
 ``CassetteMissError`` fires instead of a silently wrong balance.
 
@@ -24,7 +24,7 @@ Golden balances, hand-derived from the cassette bodies as
     external 1       25000 -          0 =      25000 sats,  1 tx  (+7777
                                                        mempool, ignored)
     external 2      600000 -     600000 =          0 sats,  4 tx  (used
-                                             but swept — still reported)
+                                             but swept: still reported)
     change   0  4999000000 - 4000000000 =  999000000 sats, 12 tx
     TOTAL                                 1099025000 sats = 10.99025 BTC
 

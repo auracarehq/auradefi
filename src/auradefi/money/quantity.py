@@ -21,7 +21,7 @@ from auradefi.errors import DecimalsMismatchError, ValidationError
 class Quantity:
     """An exact base-unit amount: ``raw * 10**-decimals``.
 
-    Equality is strict on ``(raw, decimals)`` — two quantities of equal
+    Equality is strict on ``(raw, decimals)``: two quantities of equal
     numeric value but different scales are NOT equal. Arithmetic and
     ordering are defined only between quantities of equal ``decimals``;
     mixing scales raises ``DecimalsMismatchError`` (auradefi.errors).
@@ -33,7 +33,7 @@ class Quantity:
     def __post_init__(self) -> None:
         """Validate the value; raise ``ValidationError`` if decimals < 0.
 
-        ``bool`` is rejected for both fields BEFORE the int check —
+        ``bool`` is rejected for both fields BEFORE the int check.
         ``bool`` is an ``int`` subclass, and ``Quantity(True, 0)`` is a
         caller bug, never an amount.
         """
@@ -55,7 +55,7 @@ class Quantity:
     def as_decimal(self) -> Decimal:
         """The exact ``Decimal`` value ``raw * 10**-decimals``.
 
-        Exact at any magnitude — never subject to context-precision
+        Exact at any magnitude, never subject to context-precision
         rounding (a 78-digit ``raw`` survives intact).
         """
         sign = 1 if self.raw < 0 else 0

@@ -32,7 +32,7 @@ class Direction(StrEnum):
 class SyncEventKind(StrEnum):
     """What happened to a transaction since the caller's cursor (SPEC §6.4).
 
-    A chain reorg is ``REMOVED`` followed by a fresh ``ADDED`` — a
+    A chain reorg is ``REMOVED`` followed by a fresh ``ADDED``: a
     first-class event pair, never a magic boolean.
     """
 
@@ -53,7 +53,7 @@ class Entry:
 class LedgerTransaction:
     """A persisted transaction: identity, timing, movements, bookkeeping.
 
-    ``id`` is deterministic — see :func:`transaction_id`. ``initiated_at``
+    ``id`` is deterministic. See :func:`transaction_id`. ``initiated_at``
     is a ms-epoch int; ``confirmed_at`` is ``None`` until confirmation.
     ``removed`` and ``last_modified_seq`` are backend bookkeeping and are
     excluded from :func:`payload_equal`.

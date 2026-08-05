@@ -1,14 +1,14 @@
 """Contract tests for auradefi.ledger.backends.sqlmodel (SPEC §8, §6.4).
 
 SqlModelLedger sits behind the HOST's session factory: zero I/O at
-construction, no engine building, no DDL — and semantics IDENTICAL to
+construction, no engine building, no DDL, and semantics IDENTICAL to
 the pinned reference backend (MemoryLedger), verified both against
 hardcoded goldens and differentially against the reference itself.
 
-Everything runs on in-memory sqlite (file-free, socket-free — the
+Everything runs on in-memory sqlite (file-free, socket-free, the
 autouse offline guard stays satisfied). Cursor literals are
-``f"{seq:020d}"`` and transaction ids come from the pinned id algorithm
-— derived independently via ``python3 -c``, never from the code under
+``f"{seq:020d}"`` and transaction ids come from the pinned id algorithm:
+derived independently via ``python3 -c``, never from the code under
 test. The backend is constructed INSIDE test bodies so a stub fails
 with NotImplementedError instead of erroring during fixture setup.
 """
@@ -43,7 +43,7 @@ from auradefi.ledger.reorg import ReorgPlan
 from auradefi.money.quantity import Quantity
 
 # Derived independently; NEVER regenerate from the implementation.
-# f"{seq:020d}" — 20 ASCII digits, lexicographic order == numeric order.
+# f"{seq:020d}". 20 ASCII digits, lexicographic order == numeric order.
 CURSOR_0 = "00000000000000000000"
 CURSOR_1 = "00000000000000000001"
 CURSOR_2 = "00000000000000000002"
@@ -55,15 +55,15 @@ CURSOR_6 = "00000000000000000006"
 # chain eip155:1, acct_1 (pinned id algorithm over chain|tx_hash|account).
 ID_A = "txn_fb618872cdc184c0"  # 0xaaa
 ID_B = "txn_9d8e7888ce01e8a5"  # 0xbbb
-ID_BB2 = "txn_6b20cedf697f79fb"  # 0xbb2 — the reorg replacement
+ID_BB2 = "txn_6b20cedf697f79fb"  # 0xbb2: the reorg replacement
 ID_C = "txn_07c85f8766037afc"  # 0xccc
-ID_D = "txn_5a76d20d6d9b55d6"  # 0xddd — never written anywhere
+ID_D = "txn_5a76d20d6d9b55d6"  # 0xddd, never written anywhere
 
 TENANT_A = "tenant-a"
 TENANT_B = "tenant-b"
 MS = 1_754_000_000_000
 
-# Single-entry wire golden (rule #2) — derived independently.
+# Single-entry wire golden (rule #2): derived independently.
 GOLDEN_ONE = (
     '[{"asset_id":"eip155:1/slip44:60","decimals":18,'
     '"direction":"in","raw":"1500000000000000000"}]'
@@ -71,7 +71,7 @@ GOLDEN_ONE = (
 
 
 def _bare_engine():
-    """In-memory sqlite engine with NO schema — DDL is the test's job."""
+    """In-memory sqlite engine with NO schema. DDL is the test's job."""
     return create_engine(
         "sqlite://",
         poolclass=StaticPool,
@@ -103,7 +103,7 @@ def _triples(events):
 @pytest.fixture
 def engine():
     engine = _bare_engine()
-    metadata.create_all(engine)  # the TEST owns DDL — the backend never may
+    metadata.create_all(engine)  # the TEST owns DDL. The backend never may
     return engine
 
 
@@ -160,7 +160,7 @@ _CALLS = {
 
 
 class TestTenantIdValidation:
-    """tenant_id is validated FIRST — before any session is opened.
+    """tenant_id is validated FIRST. Before any session is opened.
 
     The factory raises AssertionError if called, so a backend that opens
     a session before validating fails these tests loudly.
@@ -182,7 +182,7 @@ class TestTenantIdValidation:
 
 
 class TestGoldenSemantics:
-    """The acceptance script, hardcoded — memory-reference semantics."""
+    """The acceptance script, hardcoded: memory-reference semantics."""
 
     def test_upsert_two_txns_added_events_seqs_1_2(self, engine, txn_a, txn_b):
         led = _ledger(engine)
@@ -313,7 +313,7 @@ class TestGet:
     def test_pending_txn_nulls_survive_the_db_round_trip(
         self, engine, make_txn
     ):
-        # A pending txn has block_number/confirmed_at None, never 0 —
+        # A pending txn has block_number/confirmed_at None, never 0, 
         # nullable columns must come back as None through the ORM.
         txn = make_txn(
             id=ID_A, tx_hash="0xaaa", block_number=None, confirmed_at=None
@@ -443,7 +443,7 @@ class TestSyncPaging:
 
 
 class TestTenantIsolation:
-    """SPEC §13 attempted-leak contract (rule #6) — isolation that tries."""
+    """SPEC §13 attempted-leak contract (rule #6): isolation that tries."""
 
     def test_tenant_b_get_on_a_id_raises_not_found(self, engine, txn_a):
         led = _ledger(engine)
@@ -594,7 +594,7 @@ class TestApplyReorg:
     def test_unknown_remove_id_rolls_the_whole_plan_back(
         self, engine, txn_a, txn_b, make_txn
     ):
-        # Atomicity: one session/commit for the whole plan — a failure
+        # Atomicity: one session/commit for the whole plan: a failure
         # after the first removal must leave NOTHING applied.
         led = _ledger(engine)
         led.upsert(TENANT_A, [txn_a])  # seq 1
@@ -617,7 +617,7 @@ class TestOneSessionPerPublicCall:
     def test_each_public_call_opens_exactly_one_session(
         self, engine, txn_a, txn_b
     ):
-        # apply_reorg composes mark_removed + upsert INSIDE one session —
+        # apply_reorg composes mark_removed + upsert INSIDE one session, 
         # never one session per delegated half.
         opened: list[int] = []
 

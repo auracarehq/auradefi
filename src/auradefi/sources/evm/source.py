@@ -1,12 +1,12 @@
 """One object that satisfies BOTH source seams over Etherscan V2.
 
-``Auradefi`` needs a source answering two questions — what does this
+``Auradefi`` needs a source answering two questions. What does this
 address hold NOW (``balances``, for holdings and pricing) and what is in
 this block window (``fetch_txlist``, for history). Nothing shipped
 satisfied both: ``EtherscanV2`` has ``balances`` only, so every host wrote
 the same ~20 lines of window-aware paging before it could bind the facade,
 and got refused at bind time until it did. That glue existed three times
-in this repository — twice in tests, once in a published example — which
+in this repository, twice in tests, once in a published example, which
 is two times too many for code a host cannot avoid writing.
 
 So it ships here. ``balances`` delegates to ``EtherscanV2`` and
@@ -16,8 +16,8 @@ the shape the engine asks for.
 
 Neither seam is imported. Both are ``runtime_checkable`` structural
 Protocols living in ``portfolio`` and ``embed``, which the layer contract
-forbids ``sources`` from importing (``tests/style/test_layering.py``) —
-conformance is by shape, verified in this module's mirrored test.
+forbids ``sources`` from importing (``tests/style/test_layering.py``).
+Conformance is by shape, verified in this module's mirrored test.
 
 One Etherscan V2 key covers every ``eip155:N`` chain; the chain travels in
 the ``chainid`` param, derived from CAIP-2. NO retry and NO rate limiting,
@@ -44,7 +44,7 @@ class EtherscanSource:
     ``fetch_txlist(chain_id, address, *, start_block, end_block, page,
     offset, sort)`` -> ``list[dict]`` of RAW rows for the decoder seam.
 
-    The client is injected — this constructor performs no I/O and opens no
+    The client is injected: this constructor performs no I/O and opens no
     connection. :meth:`from_key` is the convenience that builds one.
     """
 
@@ -81,7 +81,7 @@ class EtherscanSource:
         """Build a source owning its own ``httpx.Client``.
 
         The one place in this package that constructs a client from a
-        credential, which is why it lives in ``sources`` — an I/O domain.
+        credential, which is why it lives in ``sources``: an I/O domain.
         A host that wants connection pooling, proxies, custom TLS or its
         own retry policy passes the client to ``__init__`` instead; this
         classmethod is a default, never a requirement.
@@ -97,8 +97,8 @@ class EtherscanSource:
     def client(self) -> httpx.Client:
         """The client this source uses, for a caller that wants to share it.
 
-        One client for chain data and prices is how a host should wire this
-        — connection reuse, one timeout, one place to add a proxy — and
+        One client for chain data and prices is how a host should wire this,
+        connection reuse, one timeout, one place to add a proxy, and
         every example in the documentation does exactly that. Exposed
         read-only so sharing does not mean reaching for a private
         attribute.
@@ -132,7 +132,7 @@ class EtherscanSource:
         The engine owns the window and the budget: it picks
         ``start_block``/``end_block``/``page``/``sort``, and a page shorter
         than ``offset`` is how it learns the window drained. So this method
-        widens nothing, retries nothing and pages nothing — one request,
+        widens nothing, retries nothing and pages nothing: one request,
         one answer.
 
         Rows are returned RAW (``list[dict]``) because parsing belongs to

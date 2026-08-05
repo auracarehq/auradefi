@@ -1,21 +1,21 @@
 """Aave v3 lending adapter (SPEC §4.3, §5.4; DECISIONS.md "Aave scaling").
 
 SPEC §4.3, verbatim: "Aave supply = ``lending`` + ``deposit``. Aave
-borrow = ``lending`` + ``loan``" — and the AppToken/ContractPosition
+borrow = ``lending`` + ``loan``", and the AppToken/ContractPosition
 asymmetry applies within ONE protocol: an aToken is fungible and
-priceable (``APP_TOKEN``); variable debt is non-transferable — you
-cannot add it to MetaMask — so a borrow is a ``CONTRACT_POSITION``.
+priceable (``APP_TOKEN``); variable debt is non-transferable, you
+cannot add it to MetaMask, so a borrow is a ``CONTRACT_POSITION``.
 ``BORROWED`` alone carries the sign; ``resolve()`` never emits negative
 quantities.
 
 Fork economics (SPEC §5.4, Zapper's 15-line subclass): a fork
 deployment (Spark, Avalanche, ...) subclasses :class:`AaveV3Adapter`
-overriding ``id`` / ``chains`` / ``pool`` / ``markets`` ONLY — every id,
+overriding ``id`` / ``chains`` / ``pool`` / ``markets`` ONLY: every id,
 descriptor and position derives from those four class attributes.
 
 Everything emitted is RAW (``price``/``value`` both ``None``): raw
 balances persist and re-drill against fresh prices without an RPC
-(SPEC §5.3). The only chain seam is ``ctx.reader`` (no HTTP here —
+(SPEC §5.3). The only chain seam is ``ctx.reader`` (no HTTP here,
 positions/ is not an IO domain).
 
 Pinned scaling (DECISIONS.md): ``health_factor = Quantity(hf_raw,
@@ -54,7 +54,7 @@ class Market:
     """One Aave v3 reserve: the two position-bearing token contracts
     plus the underlying's identity and scale.
 
-    ``a_token`` (supply receipt, rebasing 1:1 — ``balanceOf`` IS the
+    ``a_token`` (supply receipt, rebasing 1:1, ``balanceOf`` IS the
     underlying amount) and ``variable_debt_token`` (non-transferable
     debt tracker) are the descriptor addresses, because THOSE are the
     contracts that appear in a user's tokentx history (SPEC §5.2).
@@ -71,11 +71,11 @@ class Market:
 class AaveV3Adapter:
     """Aave v3 on Ethereum mainnet (SPEC §5.4 adapter contract).
 
-    Class attributes are the WHOLE fork surface — subclasses override
+    Class attributes are the WHOLE fork surface: subclasses override
     ``id`` / ``chains`` / ``pool`` / ``markets`` and nothing else.
 
     ``discover()`` is address-blind (SPEC §5.1) and pure over the
-    ``markets`` table: per market it emits two descriptors — the
+    ``markets`` table: per market it emits two descriptors: the
     lowercased aToken with ``category='lending-supply'`` and the
     lowercased variable-debt token with ``category='lending-borrow'``,
     each carrying ``underlyings=(underlying_caip19,)`` and
@@ -89,14 +89,14 @@ class AaveV3Adapter:
     'balanceOf', (address,))``; if raw > 0 emit a RAW
     ``CONTRACT_POSITION`` (``position_type=LOAN``, same module, one
     ``BORROWED`` underlying). Ids are the pinned ``position_id(id,
-    chain, token)`` / ``group_id_for(id, chain, pool_lower)`` — the
+    chain, token)`` / ``group_id_for(id, chain, pool_lower)``. The
     Pool is the risk unit, so every position shares one ``group_id``
     (SPEC §4.3). If at least one position was emitted, ONE call to
     ``call(pool, 'getUserAccountData', (address,))`` yields
     ``(tc, td, ab, clt, ltv_bp, hf_raw)`` and a ``GroupInfo(
     health_factor=Quantity(hf_raw, 18).as_decimal(),
     ltv=Quantity(ltv_bp, 4).as_decimal(), liquidation_price=None)`` is
-    attached to the FIRST emitted position only (drill merges — the
+    attached to the FIRST emitted position only (drill merges, the
     group is the risk unit). Zero positions emitted → no
     ``getUserAccountData`` call at all.
     """
@@ -160,10 +160,10 @@ class AaveV3Adapter:
 
         Reads ``balanceOf`` only for surviving descriptors of
         ``category`` that map back to one of ``self.markets``; emits
-        iff raw > 0 (never a negative quantity — BORROWED alone
+        iff raw > 0 (never a negative quantity, BORROWED alone
         carries the sign). Results are coerced with ``int()`` so a
         malformed reader response (``None``, non-numeric) raises
-        instead of silently dropping a position — SPEC §5.4: a
+        instead of silently dropping a position. SPEC §5.4: a
         resolver that raises is caught, logged, and drops only its
         own slice.
         """

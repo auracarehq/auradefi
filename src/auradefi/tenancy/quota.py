@@ -1,7 +1,7 @@
 """Per-tenant three-window quota counters (SPEC §7.3).
 
-Zerion's three-window shape — Second / Day / Month, each with
-limit / remaining / reset — scoped **per tenant (project), never per org**.
+Zerion's three-window shape, Second / Day / Month, each with
+limit / remaining / reset, scoped **per tenant (project), never per org**.
 
 Pinned window algorithms (docs/internal/DECISIONS.md "Quota windows"):
 
@@ -78,7 +78,7 @@ def _current_windows(now_ms: int) -> dict[str, tuple[_WindowKey, int]]:
 class QuotaCounter:
     """Quota counters keyed by project_id; all state on the instance.
 
-    One tenant's consumption NEVER touches another's (SPEC §7.3 — the fix
+    One tenant's consumption NEVER touches another's (SPEC §7.3: the fix
     for Zerion's org-scoped limits with no per-tenant attribution).
     """
 
@@ -113,7 +113,7 @@ class QuotaCounter:
         count becomes 0). If any window would exceed its limit, raises
         ``auradefi.errors.QuotaExceededError`` with a message naming the
         exceeded window ('second' | 'day' | 'month') and that window's
-        ``reset_at_ms`` — WITHOUT consuming from any window. Otherwise
+        ``reset_at_ms``, WITHOUT consuming from any window. Otherwise
         increments all three.
         """
         now_ms = self._clock.now_ms()

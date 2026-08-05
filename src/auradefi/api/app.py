@@ -1,4 +1,4 @@
-"""The app factory — the whole composition point (SPEC rule #11).
+"""The app factory: the whole composition point (SPEC rule #11).
 
 ``create_app(deps)`` and nothing else. The HTTP API is a THIN shell over
 an importable core: this module wires an injected :class:`~auradefi.api
@@ -6,14 +6,14 @@ an importable core: this module wires an injected :class:`~auradefi.api
 
 * defines NO route of its own,
 * reads NO environment variable and no config file,
-* holds NO module-level state — no ``app = FastAPI()`` at import, no
-  singleton ``Deps`` — so two apps in one process never share a tenant
+* holds NO module-level state, no ``app = FastAPI()`` at import, no
+  singleton ``Deps``, so two apps in one process never share a tenant
   store (``api/deps.py``'s promise, made structural here),
 * starts NO thread, task or scheduler: webhook delivery is host-scheduled
   (SPEC §8, "the host owns scheduling"), so nothing here ticks a
   ``Deliverer``.
 
-``fastapi.Depends`` appears nowhere in ``api/`` — every handler calls
+``fastapi.Depends`` appears nowhere in ``api/``: every handler calls
 ``require_api_key``/``require_user_token`` explicitly on its first line,
 which keeps each one a plain function a test can call directly.
 """

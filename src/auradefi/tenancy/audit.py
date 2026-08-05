@@ -1,8 +1,8 @@
-"""Append-only audit log for token mints (SPEC §7.2 — Vezgo has nothing).
+"""Append-only audit log for token mints (SPEC §7.2, Vezgo has nothing).
 
 Pinned record shape (docs/internal/DECISIONS.md "Audit record shape"):
 ``{seq (per-project, from 1), event: "token.minted", project_id,
-external_user_id, key_id, ip, at_ms}`` — append-only, no
+external_user_id, key_id, ip, at_ms}``: append-only, no
 delete/update/clear. Only ``token.minted`` is recorded tonight.
 
 0.1.1 appends ONE field after those seven, ``ip_source`` (RELEASE_0.1.1 §4
@@ -23,7 +23,7 @@ from auradefi.clock import Clock
 class AuditRecord:
     """One immutable audit entry; ``at_ms`` is ms epoch.
 
-    ``ip_source`` says where ``ip`` came from — ``"peer"`` (the verified
+    ``ip_source`` says where ``ip`` came from: ``"peer"`` (the verified
     socket peer), ``"forwarded"`` (a trusted ``X-Forwarded-For`` hop) or
     ``"unknown"``. It is LAST and defaulted on purpose: every construction
     site that predates 0.1.1 still builds a valid record, and one that
@@ -84,7 +84,7 @@ class AuditLog:
     def entries(self, project_id: str) -> tuple[AuditRecord, ...]:
         """This project's records as a fresh tuple, in insertion order.
 
-        An unknown project yields ``()`` — never an error, so the log is
+        An unknown project yields ``()``, never an error, so the log is
         not a tenant-existence probe surface.
         """
         return tuple(self._records.get(project_id, ()))

@@ -8,20 +8,20 @@ format is PINNED in docs/internal/DECISIONS.md ("API key format"):
   {``live``, ``test``} (both 4 chars), body = ``entropy(24)`` = 48
   lowercase hex chars (default ``secrets.token_hex``), total length 57;
 * stored ``prefix`` = ``plaintext[:17]``; stored ``secret_hash`` =
-  ``sha256(plaintext.encode("utf-8")).hexdigest()`` — the plaintext is
+  ``sha256(plaintext.encode("utf-8")).hexdigest()``. The plaintext is
   returned exactly once at issue/rotate and never stored;
 * authentication compares sha256 hexdigests via ``hmac.compare_digest``,
   never ``str.__eq__``.
 
 Unknown key, wrong secret, revoked, and expired all raise the SAME
-class — plain :class:`auradefi.errors.AuthError` — so a probing caller
+class, plain :class:`auradefi.errors.AuthError`, so a probing caller
 cannot distinguish failure modes.
 
 Rotation issues a fresh key with the same project/environment/scopes and
 sets the old key's ``expires_at = now_ms + overlap_ms``: during the
 overlap window BOTH plaintexts authenticate; at and after ``expires_at``
 (``now_ms >= expires_at``, exclusive of the last live millisecond) only
-the new one does. An expiry is only ever SHORTENED — rotating a key that
+the new one does. An expiry is only ever SHORTENED: rotating a key that
 already dies sooner than ``now_ms + overlap_ms`` leaves the earlier
 expiry standing, and the fresh key inherits the window it was rotated out
 of, so no rotation buys a dying credential more time (RELEASE_0.1.1 #25b).
@@ -31,17 +31,17 @@ silently re-privilege what an operator deliberately revoked (#25a).
 
 ``rotate`` and ``revoke`` are tenant-gated on ``project_id`` (#25c) and
 answer another project's key id EXACTLY as they answer an id that exists
-nowhere — see ``_NOT_FOUND``.
+nowhere. See ``_NOT_FOUND``.
 
 Scopes are coerced to :class:`~auradefi.tenancy.models.Scope` members at
 this boundary (#35); an unrecognised scope string is refused. So are the
 two millisecond arguments: a non-int ``expires_at``/``overlap_ms``, and an
-``expires_at`` at or before ``now_ms``, are refused rather than stored —
-the store never holds an instant ``authenticate`` cannot compare, nor
+``expires_at`` at or before ``now_ms``, are refused rather than stored.
+The store never holds an instant ``authenticate`` cannot compare, nor
 issues a credential born unable to authenticate.
 
-In-memory instance dicts — Phase 5 extracts a port from this interface.
-stdlib only; time arrives through a :class:`~auradefi.clock.Clock`.
+In-memory instance dicts. Phase 5 extracts a port from this interface.
+Stdlib only; time arrives through a :class:`~auradefi.clock.Clock`.
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ _REJECTED = "api key failed authentication"
 # One CONSTANT message for every NotFoundError this store raises. The class
 # is NotFoundError, not AuthError or TenantIsolationError, because the
 # caller's own credential authenticated fine and the failure is a scoped
-# lookup miss — the idiom tenancy/store.py states for every tenant-scoped
+# lookup miss: the idiom tenancy/store.py states for every tenant-scoped
 # read: "an entity that exists under another project is INDISTINGUISHABLE
 # from one that does not exist at all". Unlike store.py this message
 # interpolates NOTHING: the smuggled id and the absent id are different
@@ -86,7 +86,7 @@ def _coerce_scopes(scopes: Iterable[Scope | str]) -> frozenset[Scope]:
     key.scopes``, so a key rehydrated from JSON or SQL authenticates
     everywhere and only breaks later, where a member-only attribute
     access turns into an unformatted 500. An unrecognised scope string
-    is REFUSED — the store never keeps a privilege it cannot name
+    is REFUSED. The store never keeps a privilege it cannot name
     (RELEASE_0.1.1 #35, store half).
     """
     coerced: set[Scope] = set()
@@ -104,7 +104,7 @@ def _checked_ms(value: object, label: str) -> int:
     Project rule: "All timestamps are millisecond-epoch integers." A
     ``float`` or ``str`` that gets past this boundary is stored happily and
     only fails later, on the authentication hot path, where
-    ``clock.now_ms() >= expires_at`` raises a ``builtins.TypeError`` — an
+    ``clock.now_ms() >= expires_at`` raises a ``builtins.TypeError``: an
     undeclared exception class and exactly the unformatted 500 that
     RELEASE_0.1.1 #34/#35 exist to remove. ``bool`` is excluded
     explicitly: it satisfies ``isinstance(_, int)`` and is never an
@@ -141,21 +141,21 @@ class ApiKeyStore:
         ``id = "key_" + entropy(8)``, ``prefix = plaintext[:17]``,
         ``secret_hash = sha256(plaintext).hexdigest()``, ``scopes`` a
         frozenset of :class:`Scope` MEMBERS (wire strings are coerced,
-        unknown strings refused — see :func:`_coerce_scopes`),
+        unknown strings refused, see :func:`_coerce_scopes`),
         ``created_at = clock.now_ms()``, and ``revoked_at`` unset.
 
         ``expires_at`` is an absolute ms-epoch instant or ``None`` for a
         key that never expires; a key with a finite expiry is what
         rotation must never widen (RELEASE_0.1.1 #25b), and
         :meth:`rotate` uses it to hand the fresh key the window it
-        inherited. It must be an ``int`` STRICTLY after ``clock.now_ms()``
-        — ``authenticate`` treats ``now_ms >= expires_at`` as dead, so an
+        inherited. It must be an ``int`` STRICTLY after ``clock.now_ms()``.
+        ``authenticate`` treats ``now_ms >= expires_at`` as dead, so an
         earlier instant would issue a credential that can never
         authenticate yet still shows up in :meth:`keys_for`. Either
         violation raises :class:`auradefi.errors.ValidationError`.
 
         The plaintext (``adk_{environment}_{entropy(24)}``, length 57) is
-        returned exactly once, here — it is never stored.
+        returned exactly once, here. It is never stored.
         """
         # Validated BEFORE any entropy is spent or anything is stored: a
         # refused scope or expiry leaves no key and no half-written state.
@@ -201,11 +201,11 @@ class ApiKeyStore:
     def authenticate(self, plaintext: str, clock: Clock) -> ApiKey:
         """Return the record for ``plaintext``, or raise plain AuthError.
 
-        Comparison is ``hmac.compare_digest`` over sha256 hexdigests —
+        Comparison is ``hmac.compare_digest`` over sha256 hexdigests,
         never ``str.__eq__``. Unknown/garbage/wrong-secret, revoked
         (``revoked_at`` set), and expired (``expires_at is not None and
         clock.now_ms() >= expires_at``) all raise the SAME class,
-        :class:`auradefi.errors.AuthError` — probing cannot distinguish.
+        :class:`auradefi.errors.AuthError`. Probing cannot distinguish.
         """
         candidate = _hexdigest(plaintext).encode("ascii")
         matched: ApiKey | None = None
@@ -247,7 +247,7 @@ class ApiKeyStore:
 
         The fresh key shares the old key's project_id, environment, and
         scopes, with a new id and plaintext, and INHERITS the old key's
-        ``expires_at`` unchanged — a rotation cannot outlive the window it
+        ``expires_at`` unchanged. A rotation cannot outlive the window it
         was rotated out of, whatever ``overlap_ms`` asks for (#25b).
 
         The old key gets ``expires_at = clock.now_ms() + overlap_ms``,
@@ -256,13 +256,13 @@ class ApiKeyStore:
         one. An expiry is only ever shortened.
 
         A revoked or expired key is REFUSED with
-        :class:`auradefi.errors.ConflictError` — the id is real and owned
+        :class:`auradefi.errors.ConflictError`. The id is real and owned
         by the caller (so not NotFoundError) and the caller's own
         credential authenticated fine (so not AuthError); what fails is a
         precondition on existing state. Minting from a dead key would
         carry its full scope set onto a live one (#25a).
 
-        An unknown ``key_id`` — or one belonging to another project —
+        An unknown ``key_id``, or one belonging to another project,
         raises :class:`auradefi.errors.NotFoundError`.
 
         ``overlap_ms`` is a non-negative ``int`` duration; anything else
@@ -295,8 +295,8 @@ class ApiKeyStore:
         """Set ``revoked_at = clock.now_ms()`` on ``project_id``'s
         ``key_id``. Immediate: authentication fails from this instant.
         Idempotent: revoking an already-revoked key is a no-op (the first
-        ``revoked_at`` stands). An unknown ``key_id`` — or one belonging
-        to another project — raises
+        ``revoked_at`` stands). An unknown ``key_id``, or one belonging
+        to another project, raises
         :class:`auradefi.errors.NotFoundError`.
         """
         record = self._owned(project_id, key_id)
@@ -305,7 +305,7 @@ class ApiKeyStore:
         self._keys[key_id] = dataclasses.replace(record, revoked_at=clock.now_ms())
 
     def keys_for(self, project_id: str) -> tuple[ApiKey, ...]:
-        """All records for ``project_id`` — and no other project's."""
+        """All records for ``project_id``, and no other project's."""
         return tuple(
             record
             for record in self._keys.values()

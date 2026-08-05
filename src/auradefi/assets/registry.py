@@ -1,13 +1,13 @@
-"""Asset registry — addressable both ways, on every lookup (SPEC §4.2):
+"""Asset registry: addressable both ways, on every lookup (SPEC §4.2):
 by deterministic asset id, by CAIP-19, or by (chain, address).
 
 Lookup keys are canonical CAIP-19 strings, so EVM addresses are matched
 case-insensitively while Solana token references stay case-sensitive.
 Only address-shaped namespaces (``erc20``, ``token``) enter the
-(chain, address) index — a ``slip44`` reference is a coin type, not an
+(chain, address) index. A ``slip44`` reference is a coin type, not an
 on-chain address, so natives are reachable by id and CAIP-19 only.
-Registration is additive and never destructive: a rejected conflict —
-on either index — leaves the registry exactly as it was. stdlib only;
+Registration is additive and never destructive: a rejected conflict,
+on either index, leaves the registry exactly as it was. stdlib only;
 may import money/ and chains/ only.
 """
 
@@ -37,7 +37,7 @@ def _canonical_address(address: str) -> str:
 
 class AssetRegistry:
     """In-memory registry of Assets. Starts empty; instances are
-    independent — registering into one never affects another."""
+    independent: registering into one never affects another."""
 
     def __init__(self) -> None:
         self._by_id: dict[str, Asset] = {}
@@ -52,8 +52,8 @@ class AssetRegistry:
         unchanged.
 
         Raises:
-            AssetConflictError: if any implementation CAIP-19 — or its
-                (chain, address) key, for address-shaped namespaces — is
+            AssetConflictError: if any implementation CAIP-19, or its
+                (chain, address) key, for address-shaped namespaces, is
                 already bound to a different asset id, or if ``asset.id``
                 is already registered with any differing field.
         """
@@ -119,7 +119,7 @@ class AssetRegistry:
         The other half of both-ways addressing (SPEC §4.2): EVM
         addresses match case-insensitively; Solana token addresses match
         case-sensitively. Only address-shaped namespaces (``erc20``,
-        ``token``) are reachable here — slip44 coin types are not
+        ``token``) are reachable here. Slip44 coin types are not
         addresses and never enter this index.
 
         Raises:
@@ -134,6 +134,6 @@ class AssetRegistry:
             ) from None
 
     def assets(self) -> tuple[Asset, ...]:
-        """All registered assets as a tuple sorted by ``id`` —
-        deterministic across runs and registration order."""
+        """All registered assets as a tuple sorted by ``id``.
+        Deterministic across runs and registration order."""
         return tuple(sorted(self._by_id.values(), key=lambda asset: asset.id))

@@ -1,8 +1,8 @@
-"""LIFO consumption-order selector — SPEC §9 pluggable methods.
+"""LIFO consumption-order selector. SPEC §9 pluggable methods.
 
 Same plan contract as FIFO (no mutation, no cost math, no exception for
 shortage) with the order inverted: newest first, ties broken by the LATER
-input position — the exact reverse of FIFO, which the last test pins
+input position: the exact reverse of FIFO, which the last test pins
 directly against ``auradefi.accounting.fifo``.
 """
 

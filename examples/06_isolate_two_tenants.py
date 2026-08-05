@@ -5,11 +5,11 @@
 Multi-tenancy here is not a `WHERE` clause you must remember to write. The
 hierarchy is organisation -> project -> end user, and the tenant key is
 *derived*: `usr_…` is a hash over `project_id | external_user_id`. Two
-projects using the identical customer id — "user-1", say — cannot collide,
+projects using the identical customer id, "user-1", say, cannot collide,
 because the project id is inside the hash.
 
-This file sets up two projects that are as similar as possible — same
-customer id, same wallet address — and then attacks the boundary between
+This file sets up two projects that are as similar as possible, same
+customer id, same wallet address, and then attacks the boundary between
 them four ways:
 
     1. replay project A's user token against project B  -> refused (signature)
@@ -50,7 +50,7 @@ beta_user = tenancy.get_or_create_user(beta.id, CUSTOMER, clock)
 
 # Get-or-create really is: the same external id gives the same row back.
 assert tenancy.get_or_create_user(alpha.id, CUSTOMER, clock).id == alpha_user.id
-# Same customer id, same everything else — different tenant, by derivation.
+# Same customer id, same everything else: different tenant, by derivation.
 assert alpha_user.id != beta_user.id
 assert alpha_user.id == end_user_id(alpha.id, CUSTOMER)
 print(f"customer {CUSTOMER!r} in two projects:")
@@ -86,8 +86,8 @@ print(f"\nkey {alpha_secret[:13]}… authenticates to {authenticated.project_id}
 # for its OWN users. Scope is checked, not assumed from possession.
 beta_authenticated = keys.authenticate(beta_secret, clock)
 assert Scope.USERS_ADMIN not in beta_authenticated.scopes
-print(f"  beta's key holds {sorted(s.value for s in beta_authenticated.scopes)} "
-      "— it cannot mint a user token at all")
+print(f"  beta's key holds {sorted(s.value for s in beta_authenticated.scopes)}: "
+      "it cannot mint a user token at all")
 
 # ------------------------------------------------ 3. tokens are project-signed
 token = tenancy.mint_user_token(
@@ -105,14 +105,14 @@ try:
     verify_token(token, signing_secret=beta.signing_secret, clock=clock)
     raise AssertionError("a cross-project token must never verify")
 except AuthError as exc:
-    print(f"  replayed at beta: {type(exc).__name__} — {exc}")
+    print(f"  replayed at beta: {type(exc).__name__}: {exc}")
 
 # ATTACK 2: use it beyond its scope.
 try:
     require_scope(claims, "accounts:write")
     raise AssertionError("a scope not granted must never pass")
 except ScopeError as exc:
-    print(f"  used to write: {type(exc).__name__} — {exc}")
+    print(f"  used to write: {type(exc).__name__}: {exc}")
 
 # ATTACK 3: use it after it expires. Time is a port, so this is testable.
 expired_clock = FrozenClock(claims.exp + 1)
@@ -120,10 +120,10 @@ try:
     verify_token(token, signing_secret=alpha.signing_secret, clock=expired_clock)
     raise AssertionError("an expired token must never verify")
 except AuthError as exc:
-    print(f"  used 1 ms late: {type(exc).__name__} — {exc}")
+    print(f"  used 1 ms late: {type(exc).__name__}: {exc}")
 
 # ATTACK 4: read the other project's audit trail. Every mint is recorded,
-# under the project that did it, with the IP the SERVER observed — a caller
+# under the project that did it, with the IP the SERVER observed: a caller
 # cannot choose the address its own permanent audit row records.
 (entry,) = audit.entries(alpha.id)
 assert audit.entries(beta.id) == ()
@@ -142,14 +142,14 @@ try:
     quota.hit(alpha.id)
     raise AssertionError("the third hit in one second must be refused")
 except QuotaExceededError as exc:
-    print(f"\nalpha's 3rd request this second: {type(exc).__name__} — {exc}")
+    print(f"\nalpha's 3rd request this second: {type(exc).__name__}: {exc}")
 
 quota.hit(beta.id)      # beta is unaffected by alpha's burst
 snapshot = quota.snapshot(alpha.id)
 print("  alpha's windows: " + ", ".join(
     f"{name} {window.remaining}/{window.limit} left"
     for name, window in sorted(snapshot.items())))
-print(f"  beta's second:   {quota.snapshot(beta.id)['second'].remaining}/2 left — "
+print(f"  beta's second:   {quota.snapshot(beta.id)['second'].remaining}/2 left: "
       "one tenant cannot spend another's budget")
 
 clock.advance(1_000)    # a new second
@@ -157,5 +157,5 @@ quota.hit(alpha.id)
 print(f"  one second later alpha is servable again: "
       f"{quota.snapshot(alpha.id)['second'].remaining}/2 left")
 
-print("\nOK — derived tenant ids, project-signed tokens, scoped keys, "
+print("\nOK: derived tenant ids, project-signed tokens, scoped keys, "
       "per-project quota.")

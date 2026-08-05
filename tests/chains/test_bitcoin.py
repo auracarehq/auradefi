@@ -1,7 +1,7 @@
 """Bitcoin family constants: pinned CAIP-2 identifiers and SLIP-44 (SPEC §4.2).
 
 The bip122 references are the first 32 lowercase hex chars of the genesis
-block hashes — wire-format contracts, hardcoded here byte-for-byte.
+block hashes: wire-format contracts, hardcoded here byte-for-byte.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ def test_mainnet_and_testnet_are_distinct():
 
 
 def test_native_asset_caip19_composes_from_the_constants():
-    # The registry seeds BTC as MAINNET + '/slip44:' + SLIP44 — the parts
+    # The registry seeds BTC as MAINNET + '/slip44:' + SLIP44: the parts
     # must compose to the exact pinned CAIP-19.
     assert (
         f"{bitcoin.MAINNET}/slip44:{bitcoin.SLIP44}"

@@ -1,8 +1,8 @@
-"""Etherscan V2 txlist/tokentx typed raw records — parse only (SPEC §3.3).
+"""Etherscan V2 txlist/tokentx typed raw records: parse only (SPEC §3.3).
 
 The sources half of "raw chain bytes -> typed records" for Etherscan V2
 account rows. Stdlib only: NO httpx here (fetching is the separate
-txlist-fetch order), NO imports of decode/ — sources may import only
+txlist-fetch order), NO imports of decode/. Sources may import only
 money/, chains/, assets/ (SPEC §3.3 layer contract).
 
 Parse rules, shared by both parsers:
@@ -10,7 +10,7 @@ Parse rules, shared by both parsers:
 * Every field is read from a STRING. Numeric fields (``blockNumber``,
   ``timeStamp``, ``value``, ``gasUsed``, ``gasPrice``, ``tokenDecimal``)
   are unsigned base-10 digit strings converted via ``int``; a non-str or
-  non-digit value raises — never trust JSON numbers (SPEC rule #2).
+  non-digit value raises, never trust JSON numbers (SPEC rule #2).
 * ``timeStamp`` stays in SECONDS exactly as delivered; the decoder
   converts to ms epoch (DECISIONS: Etherscan ``timeStamp`` × 1000).
 * Hex addresses and transaction hashes are lowercased on parse
@@ -91,7 +91,7 @@ def _hex_field(row: dict, key: str) -> str:
 def _uint_field(row: dict, key: str) -> int:
     """An unsigned base-10 digit string converted to ``int``.
 
-    Only ASCII digits pass — no sign, whitespace, underscores, dots,
+    Only ASCII digits pass, no sign, whitespace, underscores, dots,
     exponents, hex, or unicode digits; JSON numbers are rejected as
     non-strings (SPEC rule #2: never trust JSON numbers).
     """

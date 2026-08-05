@@ -93,7 +93,7 @@ def test_sub_same_currency_can_go_negative():
 
 def test_add_is_exact_past_default_context_precision():
     # 32 significant digits: the default Decimal context (prec=28) would
-    # silently round the sum — exactly rule #1's corrupted-largest-balance.
+    # silently round the sum: exactly rule #1's corrupted-largest-balance.
     a = Money(Decimal("10000000000000.000000000000000001"), "USD")
     b = Money(Decimal("20000000000000.000000000000000002"), "USD")
     assert (a + b).amount == Decimal("30000000000000.000000000000000003")

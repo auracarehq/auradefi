@@ -1,7 +1,7 @@
 """Contract tests for auradefi.positions.resolve (SPEC §5.4, §5.3).
 
 "A resolver that raises is caught, logged, and drops only its own
-slice" — SPEC §5.4 verbatim. Failures are typed data
+slice". SPEC §5.4 verbatim. Failures are typed data
 (``AdapterFailure``), never a dead batch. The §5.3 raw/valued split is
 enforced at this seam: resolve output is RAW, so an adapter returning a
 pre-valued underlying is converted to a ``ValidationError`` recorded as
@@ -134,7 +134,7 @@ class TestFailureIsolation:
         )
 
     def test_prevalued_underlying_becomes_a_validation_failure(self):
-        # §5.3: resolve output is RAW — pricing belongs to drill(), purely.
+        # §5.3: resolve output is RAW. Pricing belongs to drill(), purely.
         good_a = StubAdapter("aave-v3", result=[POS_AAVE])
         leaky = StubAdapter(
             "compound-v3", result=[raw_position("compound-v3", COMPOUND_COMET, PREVALUED)]

@@ -1,14 +1,14 @@
 """Tenant-scoped org/project/user/connection store with an audited mint flow.
 
-SPEC §3.1: the Project is the tenant boundary — nothing crosses it. Every
+SPEC §3.1: the Project is the tenant boundary. Nothing crosses it. Every
 read and write on this store is keyed by ``project_id`` first, and an
 entity that exists under another project is INDISTINGUISHABLE from one
 that does not exist at all (``NotFoundError``, same class, same shape of
-message — never a hint that the id was real somewhere else).
+message, never a hint that the id was real somewhere else).
 
 SPEC §7.1: ``external_user_id`` is the entire tenancy model. There is no
-user-creation endpoint; a user exists as a side effect of minting a token
-— get-or-create, idempotent, the same string always resolves to the same
+user-creation endpoint; a user exists as a side effect of minting a token.
+Get-or-create, idempotent, the same string always resolves to the same
 user. Duplicate connections answer 409-style with the existing id
 (``ConflictError.existing_id``).
 
@@ -16,8 +16,8 @@ SPEC §7.2: users are project-scoped (there is deliberately NO method that
 lists across projects), email-shaped external ids are rejected
 (``ValidationError``), and every successful token mint is audited.
 
-``Project.signing_secret`` — ``entropy(32)``, 64 hex chars, unique per
-project — is THE isolation root: a token minted under one project can
+``Project.signing_secret``, ``entropy(32)``, 64 hex chars, unique per
+project, is THE isolation root: a token minted under one project can
 never verify under another.
 
 This module MUST NOT import ``auradefi.tenancy.keys``: ``key_id`` is a
@@ -55,7 +55,7 @@ from auradefi.tenancy.tokens import mint_token
 class TenancyStore:
     """In-memory tenant store; the Phase 2 reference for the ledger port.
 
-    All state is held in instance dicts — two stores never share state.
+    All state is held in instance dicts: two stores never share state.
     ``entropy`` is injectable for deterministic tests and defaults to
     ``secrets.token_hex`` (n bytes → 2n lowercase hex chars).
     """
@@ -71,7 +71,7 @@ class TenancyStore:
         self._connections: dict[str, dict[str, Connection]] = {}
 
     def _require_project(self, project_id: str) -> Project:
-        """Return the project or raise ``NotFoundError`` — the tenant gate.
+        """Return the project or raise ``NotFoundError``: the tenant gate.
 
         Every tenant-scoped method passes through here first, so an
         unknown project fails identically everywhere.
@@ -105,7 +105,7 @@ class TenancyStore:
         """Create and return a Project under ``org_id`` (the tenant boundary).
 
         ``id = models.new_project_id(entropy)``; ``signing_secret =
-        entropy(32)`` — 64 hex chars, unique per project, THE isolation
+        entropy(32)``: 64 hex chars, unique per project, THE isolation
         root. Unknown ``org_id`` raises
         ``auradefi.errors.NotFoundError``.
         """
@@ -135,7 +135,7 @@ class TenancyStore:
         Validates via ``models.validate_external_user_id``
         (``ValidationError`` on email-shaped input, nothing created).
         ``id = models.end_user_id(project_id, external_user_id)``.
-        IDEMPOTENT: a second call — even at a later clock time — returns
+        IDEMPOTENT: a second call, even at a later clock time, returns
         a record equal to the first, INCLUDING the original
         ``created_at``, and never a duplicate. Unknown ``project_id``
         raises ``NotFoundError``.
@@ -158,7 +158,7 @@ class TenancyStore:
     def users(self, project_id: str) -> tuple[EndUser, ...]:
         """This project's users as a fresh tuple, in creation order (§7.2).
 
-        Strictly project-scoped — no cross-project list method exists on
+        Strictly project-scoped, no cross-project list method exists on
         this class, by design. Unknown ``project_id`` raises
         ``NotFoundError``.
         """
@@ -175,12 +175,12 @@ class TenancyStore:
     ) -> Connection:
         """Create and return a Connection for this project's user (§3.1).
 
-        A user that is not in THIS project raises ``NotFoundError`` —
-        another tenant's user is indistinguishable from a missing one.
+        A user that is not in THIS project raises ``NotFoundError``.
+        Another tenant's user is indistinguishable from a missing one.
         ``id = models.connection_id(...)`` over the NORMALIZED
         descriptor, and the stored ``descriptor`` is the normalized
         form. A duplicate (same project + user + kind + normalized
-        descriptor — case-differing EVM addresses collide on purpose)
+        descriptor: case-differing EVM addresses collide on purpose)
         raises ``auradefi.errors.ConflictError`` with ``existing_id``
         set to the existing connection's id (§7.1's 409).
         """
@@ -248,13 +248,13 @@ class TenancyStore:
 
         Exact order:
 
-        1. ``quota.hit(project_id)`` FIRST when ``quota`` is given —
+        1. ``quota.hit(project_id)`` FIRST when ``quota`` is given.
            ``QuotaExceededError`` propagates with nothing minted,
            nothing created, nothing audited;
         2. ``get_or_create_user`` (§7.1: the user exists as a side
            effect of minting);
         3. ``tokens.mint_token`` with the project's ``signing_secret``;
-        4. ``audit.record_token_mint`` — EVERY successful mint is
+        4. ``audit.record_token_mint``. EVERY successful mint is
            audited; failures never are.
 
         ``quota`` is OPTIONAL because a caller that must charge a refusal
@@ -266,7 +266,7 @@ class TenancyStore:
         nothing.
 
         ``key_id``, ``ip`` and ``ip_source`` are passed-in data recorded to
-        the audit log (key auth arrives in Phase 8 — this module never
+        the audit log (key auth arrives in Phase 8: this module never
         imports ``tenancy.keys``). This store cannot tell a verified socket
         peer from a caller-supplied header, so ``ip_source`` is the
         caller's declaration of that provenance and defaults to

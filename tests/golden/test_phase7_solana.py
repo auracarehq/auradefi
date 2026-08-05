@@ -7,8 +7,8 @@ golden numbers. A number changes -> this file goes red.
 Solana is "the long pole" (SPEC §10) for two reasons this gate pins:
 
 1. **Token-2022 ScaledUiAmount breaks ``raw / 10**decimals``.** The
-   T22 account holds raw 1000000000 at 9 decimals — exactly 1 by the
-   identity — while the node reports ``uiAmountString`` "2", because the
+   T22 account holds raw 1000000000 at 9 decimals, exactly 1 by the
+   identity, while the node reports ``uiAmountString`` "2", because the
    mint carries a multiplier of 2. Both representations survive: the
    exact ``Quantity`` for arithmetic, the node's string for display, and
    ``scaled_ui`` True to say they diverge. An implementation that
@@ -33,7 +33,7 @@ pinned sequence inside its own ``Cassette`` instance: ``balances(ADDRESS)``
 first (requests 1-3), then ``get_signatures(ADDRESS, limit=2)``
 (requests 4-5). The harness repeats its LAST interaction forever, so a
 paging loop that never terminated would silently re-read page 2 rather
-than error — the exactly-five-POSTs assertion is what makes the stop rule
+than error: the exactly-five-POSTs assertion is what makes the stop rule
 observable.
 """
 

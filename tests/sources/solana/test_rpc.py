@@ -7,7 +7,7 @@ bodies by hand.
 
 CASSETTE ORDER IS THE WIRE CONTRACT. ``tests/cassettes/solana_balances.json``
 records five POSTs to the SAME url, and the replay harness matches on
-method + host + path + sorted query only — so all five share ONE key and
+method + host + path + sorted query only, so all five share ONE key and
 are served in recorded order:
 
     1  getBalance
@@ -19,7 +19,7 @@ are served in recorded order:
 Every test that touches that cassette therefore drives exactly that
 sequence inside ONE ``Cassette`` instance. The harness repeats its final
 recorded interaction forever, so a paging loop that failed to terminate
-would silently re-read page 5 instead of erroring — which is why the
+would silently re-read page 5 instead of erroring, which is why the
 exactly-five-requests assertion below is the real guard on the stop rule.
 """
 
@@ -115,7 +115,7 @@ def _recording_client(cas) -> tuple[httpx.Client, list[httpx.Request]]:
 
 
 def _tripwire_client() -> tuple[httpx.Client, list[httpx.Request]]:
-    """A client that records and refuses every request — proves ZERO HTTP."""
+    """A client that records and refuses every request: proves ZERO HTTP."""
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -169,7 +169,7 @@ def _pinned_via_rpc(cas):
 
     ``SolanaBalances.balances`` is exactly get_balance +
     get_token_accounts_by_owner, so this issues a byte-identical wire
-    sequence — it just exposes the untyped intermediates.
+    sequence: it just exposes the untyped intermediates.
     """
     client, seen = _recording_client(cas)
     rpc = SolanaRpc(client)
@@ -330,7 +330,7 @@ class TestRawRpcOverThePinnedCassette:
         _, rows, _, _ = _pinned_via_rpc(cassette("solana_balances"))
         assert isinstance(rows, list)
         # Two spl-token rows then one spl-token-2022 row: raw dicts, no
-        # typed record in sight — parsing belongs to spl.py.
+        # typed record in sight. Parsing belongs to spl.py.
         assert [row["pubkey"] for row in rows] == ["UsdcAcctA1", "UsdcAcctB2", "T22AcctC3"]
         assert [row["account"]["data"]["program"] for row in rows] == [
             "spl-token",
@@ -392,7 +392,7 @@ class TestAddressValidationHappensBeforeHttp:
 class TestErrorCassette:
     def test_four_recorded_failure_shapes_each_raise_source_error(self, cassette):
         # ONE cassette instance, four sequential calls: the recorded order
-        # IS the contract — error member, HTTP 429, non-JSON, no result.
+        # IS the contract: error member, HTTP 429, non-JSON, no result.
         rpc = SolanaRpc(cassette("solana_rpc_errors").client())
 
         with pytest.raises(SourceError) as rpc_error:

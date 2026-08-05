@@ -3,7 +3,7 @@
 SPEC §4.3: supply is ``lending`` + ``deposit`` on an ``APP_TOKEN``
 (aTokens are fungible and priceable); borrow is ``lending`` + ``loan``
 on a ``CONTRACT_POSITION`` (debt cannot be added to MetaMask). BORROWED
-alone carries the sign — resolve never emits a negative quantity. The
+alone carries the sign. Resolve never emits a negative quantity. The
 Pool is the risk unit: one shared group_id, GroupInfo on the FIRST
 emitted position only, and NO getUserAccountData call when nothing was
 emitted (asserted through the fake reader's call log).
@@ -53,7 +53,7 @@ USER = "0x00000000000000000000000000000000000a11ce"
 WETH_MARKET = Market(AWETH, DEBT_WETH, ETH, 18)
 USDC_MARKET = Market(AUSDC, DEBT_USDC, USDC, 6)
 
-# (tc, td, ab, clt, ltv_bp, hf_raw) — first four unused by the contract.
+# (tc, td, ab, clt, ltv_bp, hf_raw): first four unused by the contract.
 ACCOUNT_DATA = (3_584_250_000_000, 500_000_000_000, 2_367_400_000_000,
                 8250, 8000, 5_812_500_000_000_000_000)
 
@@ -107,7 +107,7 @@ def two_market_reader(
 
 
 def resolve_ctx(reader: LoggingReader) -> ResolveContext:
-    # Checksummed input — ResolveContext lowercases; the fake is keyed
+    # Checksummed input. ResolveContext lowercases; the fake is keyed
     # by the lowercase form, so any un-lowered read would KeyError.
     return ResolveContext(chain_id="eip155:1", address=USER_INPUT, reader=reader)
 
@@ -137,7 +137,7 @@ class TestMarket:
 
 class TestAdapterContract:
     def test_pinned_class_attribute_literals(self):
-        assert AaveV3Adapter.id == "aave-v3"  # DefiLlama slug — the join key
+        assert AaveV3Adapter.id == "aave-v3"  # DefiLlama slug: the join key
         assert AaveV3Adapter.chains == frozenset({"eip155:1"})
         assert AaveV3Adapter.pool == POOL
 
@@ -211,7 +211,7 @@ class TestResolveSupply:
         assert position.group_id == "grp_0f89caffe413b09f"
 
     def test_supply_underlying_is_raw_supplied_at_rebase_parity(self):
-        # aTokens rebase 1:1 — balanceOf IS the underlying amount.
+        # aTokens rebase 1:1. BalanceOf IS the underlying amount.
         reader = two_market_reader(aweth=3_500_000_000_000_000_000)
         [position] = full_resolve(reader)
         [underlying] = position.underlyings
@@ -239,7 +239,7 @@ class TestResolveBorrow:
         [underlying] = position.underlyings
         assert underlying.asset_id == USDC
         assert underlying.meta_type is MetaType.BORROWED
-        # BORROWED alone carries the sign — the quantity stays positive.
+        # BORROWED alone carries the sign. The quantity stays positive.
         assert underlying.quantity == Quantity(1_234_567, 6)
         assert underlying.quantity.raw > 0
         assert underlying.price is None and underlying.value is None
@@ -298,7 +298,7 @@ class TestResolvePreFilter:
         assert all(c[1] != "getUserAccountData" for c in reader.calls)
 
     def test_restricted_to_supply_descriptor_emits_only_the_supply(self):
-        # SPEC §5.2: only surviving descriptors run — no debt-token read.
+        # SPEC §5.2: only surviving descriptors run, no debt-token read.
         reader = LoggingReader({
             (AWETH, "balanceOf", (USER,)): 3_500_000_000_000_000_000,
             (POOL, "getUserAccountData", (USER,)): ACCOUNT_DATA,
@@ -317,7 +317,7 @@ class TestResolvePreFilter:
         assert reader.calls == []
 
     def test_zero_and_negative_raw_balances_are_skipped(self):
-        # Emit iff raw > 0 — resolve never emits negative quantities.
+        # Emit iff raw > 0. Resolve never emits negative quantities.
         reader = two_market_reader(aweth=0, debt_usdc=-5)
         assert full_resolve(reader) == []
 

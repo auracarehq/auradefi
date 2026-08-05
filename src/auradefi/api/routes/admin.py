@@ -1,14 +1,14 @@
 """Coverage and webhook administration (SPEC §7.3, §10, rules #8, #10).
 
 ``GET /coverage`` is the ONE public route: no credential, no quota
-consumed and — because it never sets ``request.state.project_id`` — no
+consumed and, because it never sets ``request.state.project_id``, no
 ``X-RateLimit-*`` headers. Its body is generated from the live chain
 registry and the capabilities the host actually bound, never from prose
-(rule #10, SPEC §12 risk 6: "Docs lie — including your own").
+(rule #10, SPEC §12 risk 6: "Docs lie, including your own").
 
 The webhook surface is the anti-Vezgo, anti-Zerion one (rule #8): a
 project registers its own endpoint and gets a signing secret back
-IMMEDIATELY and EXACTLY ONCE — there is no allowlist, no support ticket
+IMMEDIATELY and EXACTLY ONCE. There is no allowlist, no support ticket
 and no source-IP check anywhere. Deliveries, the dead-letter view and
 replay are readable by the project that owns them and by nobody else.
 
@@ -34,7 +34,7 @@ from auradefi.webhooks.urls import validate_endpoint_url
 
 
 class EndpointRequest(BaseModel):
-    """``POST /webhooks/endpoints`` body — exactly ``{url, events}``.
+    """``POST /webhooks/endpoints`` body: exactly ``{url, events}``.
 
     ``events`` omitted or ``null`` subscribes to all seven; the names are
     validated in the route so the 422 can name the legal values.
@@ -49,7 +49,7 @@ class EndpointRequest(BaseModel):
 def _endpoint_wire(endpoint: Endpoint) -> dict[str, Any]:
     """Project one ``Endpoint``: ``{id, url, events, created_at_ms}``.
 
-    NO ``secret`` key, here or anywhere else that lists endpoints — the
+    NO ``secret`` key, here or anywhere else that lists endpoints. The
     plaintext is returned exactly once, by the registration route.
     ``events`` is the stored filter, sorted; ``[]`` means "all seven".
     """
@@ -62,14 +62,14 @@ def _endpoint_wire(endpoint: Endpoint) -> dict[str, Any]:
 
 
 def _delivery_wire(sink: WebhookSink, project_id: str, delivery: Delivery) -> dict[str, Any]:
-    """Project one ``Delivery`` — twelve keys, every one always present.
+    """Project one ``Delivery``: twelve keys, every one always present.
 
     ``{id, endpoint_id, event_id, event_name, status, attempts,
     created_at_ms, next_attempt_at_ms, delivered_at_ms, last_status_code,
     last_error, replay_ordinal}``. A ``None`` timestamp or status code
     serialises as JSON ``null``, never as an omitted key.
 
-    ``event_name`` is read back through the sink's ``get_event`` — the
+    ``event_name`` is read back through the sink's ``get_event``: the
     delivery row stores only ``event_id``, and a receiver that must route
     on the event type should not have to make a second call.
     """
@@ -92,7 +92,7 @@ def _delivery_wire(sink: WebhookSink, project_id: str, delivery: Delivery) -> di
 def _parsed_events(names: list[str] | None) -> list[str]:
     """The requested subscription, validated against the seven names.
 
-    ``None`` (all seven) reads as ``[]`` — the store's own "no filter".
+    ``None`` (all seven) reads as ``[]``. The store's own "no filter".
     An unknown name raises :class:`~auradefi.errors.ValidationError`
     NAMING every legal value, because a typo in a subscription list is
     silence at 3am otherwise.
@@ -112,7 +112,7 @@ def _requested_status(status: str | None) -> DeliveryStatus | None:
     """The ``?status=`` filter as a member, or ``None`` for no filter.
 
     An unrecognised value raises :class:`~auradefi.errors.ValidationError`
-    naming the three legal values rather than answering an empty list —
+    naming the three legal values rather than answering an empty list:
     a filtered-to-nothing response reads exactly like "you have none".
     """
     if status is None:
@@ -128,16 +128,16 @@ def _requested_status(status: str | None) -> DeliveryStatus | None:
 def router(deps: Deps) -> APIRouter:
     """Build the coverage/webhooks router over ``deps``.
 
-    * ``GET /coverage`` — no auth, no quota, no rate-limit headers.
-    * ``POST /webhooks/endpoints`` — api key + ``users:admin``, quota,
+    * ``GET /coverage``, no auth, no quota, no rate-limit headers.
+    * ``POST /webhooks/endpoints``: api key + ``users:admin``, quota,
       structural URL validation (rule #8: no allowlist), 201 with the
       64-hex ``secret`` returned exactly once. A repeat ``(project,
       url)`` is a 409 carrying the existing ``whe_`` id.
-    * ``GET /webhooks/endpoints`` — this project's endpoints, no secrets.
-    * ``GET /webhooks/deliveries?status=`` — creation order, optionally
+    * ``GET /webhooks/endpoints``: this project's endpoints, no secrets.
+    * ``GET /webhooks/deliveries?status=``. Creation order, optionally
       filtered.
-    * ``GET /webhooks/dead_letter`` — the same shape, dead-lettered only.
-    * ``POST /webhooks/deliveries/{delivery_id}/replay`` — 202 with the
+    * ``GET /webhooks/dead_letter``: the same shape, dead-lettered only.
+    * ``POST /webhooks/deliveries/{delivery_id}/replay``, 202 with the
       NEW delivery; unknown or cross-project is a 404.
     """
     api = APIRouter()

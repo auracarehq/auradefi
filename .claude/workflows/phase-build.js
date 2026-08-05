@@ -7,11 +7,11 @@ export const meta = {
     { title: 'Interpret', detail: 'work orders with disjoint file ownership' },
     { title: 'Gate', detail: 'acceptance gate written blind, from the spec alone' },
     { title: 'Build', detail: 'per order: failing tests first, then implementation, then adversarial review' },
-    { title: 'Prove', detail: 'mutation gate — every pin must be falsifiable' },
+    { title: 'Prove', detail: 'mutation gate: every pin must be falsifiable' },
     { title: 'Seam', detail: 'audit the boundaries BETWEEN orders' },
     { title: 'Sweep', detail: 'generalise each finding to its class, tree-wide' },
     { title: 'Ship', detail: 'docs, packaging, release gate' },
-    { title: 'Integrate', detail: 'one branch per order — the REAL dependency graph' },
+    { title: 'Integrate', detail: 'one branch per order: the REAL dependency graph' },
   ],
 }
 
@@ -266,10 +266,10 @@ const SWEEP_SCHEMA = {
 // agent files written in the same session, so agentType is unreliable here.
 
 const ROLE = (name) =>
-  `First: Read \`.claude/agents/${name}.md\` in the current working directory and adopt its body as your role instructions (ignore the frontmatter). Then read \`.claude/loop.profile.yml\` as that role instructs. Obey the ownership limits exactly — other agents are editing OTHER files concurrently.`
+  `First: Read \`.claude/agents/${name}.md\` in the current working directory and adopt its body as your role instructions (ignore the frontmatter). Then read \`.claude/loop.profile.yml\` as that role instructs. Obey the ownership limits exactly: other agents are editing OTHER files concurrently.`
 
 // A transient API failure is not a result. On one fix-release wave 11 of 36
-// agents died on `529 Overloaded` and 5 of 6 on the resumed run — including
+// agents died on `529 Overloaded` and 5 of 6 on the resumed run: including
 // both mutation gates, the seam auditor and Ship. With no retry, that blip
 // propagated straight into a half-built tree: implementations landed with no
 // mutation proof, and the phase reported "zero unresolved findings" while 22
@@ -290,7 +290,7 @@ async function run(prompt, opts) {
       const message = String(error?.message ?? error)
       if (!TRANSIENT.test(message) || attempt === RETRIES) throw error
       const backoff = 5000 * 2 ** (attempt - 1)
-      log(`${opts?.label ?? 'agent'}: transient failure (attempt ${attempt}/${RETRIES}), retrying in ${backoff / 1000}s — ${message.slice(0, 120)}`)
+      log(`${opts?.label ?? 'agent'}: transient failure (attempt ${attempt}/${RETRIES}), retrying in ${backoff / 1000}s: ${message.slice(0, 120)}`)
       await new Promise((resolve) => setTimeout(resolve, backoff))
     }
   }
@@ -325,7 +325,7 @@ const audit = await run(
 )
 const blockingContradictions = (audit?.contradictions ?? []).filter(isMustFix)
 if (blockingContradictions.length) {
-  log(`SPEC AUDIT: ${blockingContradictions.length} blocking contradiction(s) — the spec disagrees with the repo`)
+  log(`SPEC AUDIT: ${blockingContradictions.length} blocking contradiction(s): the spec disagrees with the repo`)
   for (const c of blockingContradictions) log(`  [${c.kind}] ${c.spec_ref}`)
 }
 if (audit?.known_bug_pinned_tests?.length) {
@@ -340,7 +340,7 @@ if (!plan) {
   plan = await run(
     `${ROLE('spec-interpreter')}\n\n${CONTEXT}\n\nDecompose phase ${phaseNo} into work orders per your output contract.${
       blockingContradictions.length
-        ? `\n\nThe spec audit found contradictions between the spec and what this project enforces. Do NOT cut a work order that instructs an agent to do any of these — carry the auditor's suggestion, or record the conflict in notes:\n${brief(blockingContradictions)}`
+        ? `\n\nThe spec audit found contradictions between the spec and what this project enforces. Do NOT cut a work order that instructs an agent to do any of these: carry the auditor's suggestion, or record the conflict in notes:\n${brief(blockingContradictions)}`
         : ''
     }`,
     { label: `interpret:phase-${phaseNo}`, phase: 'Interpret', schema: PLAN_SCHEMA },
@@ -352,14 +352,14 @@ if (!plan) {
 // a mutation gate ends up reconstructing the distinction in prose.
 const baselineFailures = input?.baselineFailures ?? plan.baseline_failures ?? []
 const BASELINE = baselineFailures.length
-  ? `\n\nBASELINE — these tests were ALREADY RED before this phase began. You did not cause them, and none is a mutation result:\n${baselineFailures.map((t) => `  - ${t}`).join('\n')}`
+  ? `\n\nBASELINE: these tests were ALREADY RED before this phase began. You did not cause them, and none is a mutation result:\n${baselineFailures.map((t) => `  - ${t}`).join('\n')}`
   : '\n\nBASELINE: the suite was fully green before this phase began, so ANY red test is caused by this phase.'
 if (baselineFailures.length) {
   log(`baseline: ${baselineFailures.length} test(s) already red before this phase`)
 }
 
 const orderCount = plan.waves.reduce((n, w) => n + w.orders.length, 0)
-log(`phase ${phaseNo}: ${plan.waves.length} wave(s), ${orderCount} order(s) — gate: ${plan.gate}`)
+log(`phase ${phaseNo}: ${plan.waves.length} wave(s), ${orderCount} order(s): gate: ${plan.gate}`)
 if (plan.shared_files_needed?.length) {
   log(`shared files the orchestrator must provide: ${plan.shared_files_needed.join(', ')}`)
 }
@@ -370,10 +370,10 @@ if (plan.shared_files_needed?.length) {
 
 phase('Gate')
 const gate = await run(
-  `${ROLE('gate-author')}\n\n${CONTEXT}\n\nWrite the acceptance gate for phase ${phaseNo}.\n\nDone-when, quoted from the spec:\n${plan.gate}\n\nThe work-order plan (for the public surface only — you may NOT read the source tree):\n${brief(plan.waves)}`,
+  `${ROLE('gate-author')}\n\n${CONTEXT}\n\nWrite the acceptance gate for phase ${phaseNo}.\n\nDone-when, quoted from the spec:\n${plan.gate}\n\nThe work-order plan (for the public surface only: you may NOT read the source tree):\n${brief(plan.waves)}`,
   { label: `gate:phase-${phaseNo}`, phase: 'Gate', schema: GATE_SCHEMA },
 )
-if (gate?.read_source_tree) log(`WARNING: gate-author reports it read the source tree — the gate is not blind`)
+if (gate?.read_source_tree) log(`WARNING: gate-author reports it read the source tree: the gate is not blind`)
 if (gate?.blocked_on?.length) log(`gate-author blocked_on: ${gate.blocked_on.join('; ')}`)
 
 // ------------------------------------------------------------------ build
@@ -398,12 +398,12 @@ async function buildOrder(order) {
   let fixerReport = null
   for (let round = 1; round <= MAX_FIX_ROUNDS; round++) {
     // Round 1 is a full seven-lens review. Later rounds adjudicate only what
-    // changed — re-running every lens over a module whose unreviewed parts did
+    // changed: re-running every lens over a module whose unreviewed parts did
     // not move is the largest avoidable cost in this loop. The delta reviewer
     // still owns regressions: a fix that breaks something is its finding.
     const prompt = round === 1
-      ? `${ROLE('harsh-reviewer')}\n\n${CONTEXT}\n\nreviewMode: full — run all seven lenses.\n\nWork order:\n${spec}\n\nImplementer report:\n${implReport}`
-      : `${ROLE('harsh-reviewer')}\n\n${CONTEXT}\n\nreviewMode: delta — round ${round}.\n\nA previous round of this review raised the findings below and they have since been fixed. Do NOT re-run all seven lenses over the whole work order; adjudicate the delta:\n\n1. For EACH prior finding: is it genuinely closed? Read the current code, not the fixer's claim. A finding "closed" by weakening a test, narrowing a docstring, or moving the problem is NOT closed.\n2. Did the fixes introduce anything new — a regression, a broken invariant elsewhere in the files they touched, a contradiction with the contract?\n3. Anything you deliberately deferred in an earlier round.\n\nPrior findings:\n${brief(priorMustFix)}\n\nWork order:\n${spec}\n\nFixer report:\n${fixerReport ?? '(none)'}`
+      ? `${ROLE('harsh-reviewer')}\n\n${CONTEXT}\n\nreviewMode: full: run all seven lenses.\n\nWork order:\n${spec}\n\nImplementer report:\n${implReport}`
+      : `${ROLE('harsh-reviewer')}\n\n${CONTEXT}\n\nreviewMode: delta: round ${round}.\n\nA previous round of this review raised the findings below and they have since been fixed. Do NOT re-run all seven lenses over the whole work order; adjudicate the delta:\n\n1. For EACH prior finding: is it genuinely closed? Read the current code, not the fixer's claim. A finding "closed" by weakening a test, narrowing a docstring, or moving the problem is NOT closed.\n2. Did the fixes introduce anything new: a regression, a broken invariant elsewhere in the files they touched, a contradiction with the contract?\n3. Anything you deliberately deferred in an earlier round.\n\nPrior findings:\n${brief(priorMustFix)}\n\nWork order:\n${spec}\n\nFixer report:\n${fixerReport ?? '(none)'}`
     verdict = await run(prompt, { label: `review:${order.id}#${round}`, phase: 'Build', schema: VERDICT_SCHEMA })
     if (!verdict) break
     allFindings.push(...verdict.findings)
@@ -420,7 +420,7 @@ async function buildOrder(order) {
     let testFixReport = null
     if (testFix.length) {
       testFixReport = await run(
-        `${ROLE('test-author')}\n\n${CONTEXT}\n\nClose these test-quality findings on your work order:\n${spec}\n\nAdd ONLY the missing pinning tests, each with its \`pins:\` line. Never weaken or delete an existing test. Verify each behaviour against the CURRENT source first — if the source is actually wrong, report that instead of pinning the bug:\n${brief(testFix)}`,
+        `${ROLE('test-author')}\n\n${CONTEXT}\n\nClose these test-quality findings on your work order:\n${spec}\n\nAdd ONLY the missing pinning tests, each with its \`pins:\` line. Never weaken or delete an existing test. Verify each behaviour against the CURRENT source first: if the source is actually wrong, report that instead of pinning the bug:\n${brief(testFix)}`,
         { label: `testfix:${order.id}#${round}`, phase: 'Build' },
       )
     }
@@ -448,7 +448,7 @@ async function proveOrder(built) {
   )
   if (!mutation) return { ...built, mutation: null }
   if (mutation.restored_clean === false) {
-    log(`EMERGENCY: mutation-gate left ${built.order} dirty — inspect before continuing`)
+    log(`EMERGENCY: mutation-gate left ${built.order} dirty: inspect before continuing`)
   }
   const vacuous = mutation.findings.filter(f => f.kind === 'vacuous-test')
   const absent = mutation.findings.filter(f => f.kind !== 'vacuous-test')
@@ -457,13 +457,13 @@ async function proveOrder(built) {
   // implementer's. Neither may fix the other's files.
   if (vacuous.length) {
     await run(
-      `${ROLE('test-author')}\n\n${CONTEXT}\n\nThese tests are VACUOUS — a mutation that breaks the pinned behaviour left them green:\n${brief(vacuous)}\n\nWork order:\n${built.spec}\n\nFor each: the usual cause is a fixture that never reaches the branch the pin names. Fix the fixture (or the assertion) so the test discriminates. Do not change the pin to match what the test happens to do.`,
+      `${ROLE('test-author')}\n\n${CONTEXT}\n\nThese tests are VACUOUS: a mutation that breaks the pinned behaviour left them green:\n${brief(vacuous)}\n\nWork order:\n${built.spec}\n\nFor each: the usual cause is a fixture that never reaches the branch the pin names. Fix the fixture (or the assertion) so the test discriminates. Do not change the pin to match what the test happens to do.`,
       { label: `unvacuum:${built.order}`, phase: 'Prove' },
     )
   }
   if (absent.length) {
     await run(
-      `${ROLE('implementer')}\n\n${CONTEXT}\n\nThese pinned behaviours have no implementation to mutate — the tests pass for some other reason:\n${brief(absent)}\n\nWork order:\n${built.spec}\n\nImplement the pinned behaviour, or report with evidence that the pin is wrong.`,
+      `${ROLE('implementer')}\n\n${CONTEXT}\n\nThese pinned behaviours have no implementation to mutate: the tests pass for some other reason:\n${brief(absent)}\n\nWork order:\n${built.spec}\n\nImplement the pinned behaviour, or report with evidence that the pin is wrong.`,
       { label: `pinfix:${built.order}`, phase: 'Prove' },
     )
   }
@@ -486,14 +486,14 @@ for (const wave of plan.waves) {
   phase('Seam')
   const declared = wave.orders.flatMap(o => (o.seams || []).map(s => `${o.id}: ${s}`))
   const seam = await run(
-    `${ROLE('seam-auditor')}\n\n${CONTEXT}\n\nEvery order in wave ${wave.wave} is green. Audit the boundaries BETWEEN them, and between them and everything built in earlier phases.\n\nSeams declared by this wave's orders:\n${declared.length ? declared.join('\n') : '(none declared — build the inventory from profile.seam_patterns, and report the under-declaration as a finding)'}\n\nOrders:\n${brief(wave.orders)}`,
+    `${ROLE('seam-auditor')}\n\n${CONTEXT}\n\nEvery order in wave ${wave.wave} is green. Audit the boundaries BETWEEN them, and between them and everything built in earlier phases.\n\nSeams declared by this wave's orders:\n${declared.length ? declared.join('\n') : '(none declared: build the inventory from profile.seam_patterns, and report the under-declaration as a finding)'}\n\nOrders:\n${brief(wave.orders)}`,
     { label: `seam:wave-${wave.wave}`, phase: 'Seam', schema: SEAM_SCHEMA },
   )
   if (seam) {
     seamReports.push(seam)
     const mustFix = (seam.findings || []).filter(isMustFix)
     if (mustFix.length) {
-      log(`wave ${wave.wave}: ${mustFix.length} seam defect(s) — routing to owning orders`)
+      log(`wave ${wave.wave}: ${mustFix.length} seam defect(s): routing to owning orders`)
       // Group by owner so no two fixers touch the same files.
       const byOwner = new Map()
       for (const f of mustFix) {
@@ -504,7 +504,7 @@ for (const wave of plan.waves) {
       await parallel([...byOwner].map(([owner, findings]) => () => {
         const order = wave.orders.find(o => o.id === owner) || wave.orders[0]
         return agent(
-          `${ROLE('implementer')}\n\n${CONTEXT}\n\nThe seam audit found defects at boundaries your order owns:\n${brief(findings)}\n\nWork order:\n${brief(order)}\n\nThese are contradictions between your module and another. Fix YOUR side only — if you believe the other side is wrong, report that with evidence instead of changing files you do not own.`,
+          `${ROLE('implementer')}\n\n${CONTEXT}\n\nThe seam audit found defects at boundaries your order owns:\n${brief(findings)}\n\nWork order:\n${brief(order)}\n\nThese are contradictions between your module and another. Fix YOUR side only: if you believe the other side is wrong, report that with evidence instead of changing files you do not own.`,
           { label: `seamfix:${owner}`, phase: 'Seam' },
         )
       }))
@@ -580,14 +580,14 @@ const integration = await run(
   { label: `integrate:phase-${phaseNo}`, phase: 'Integrate', schema: INTEGRATION_SCHEMA },
 )
 if (integration?.cycles?.length) {
-  log(`DECOMPOSITION PROBLEM: ${integration.cycles.length} cycle(s) — orders that cannot be merged in any order should have been one order`)
+  log(`DECOMPOSITION PROBLEM: ${integration.cycles.length} cycle(s): orders that cannot be merged in any order should have been one order`)
 }
 const notStandalone = (integration?.orders ?? []).filter((o) => o.standalone === 'red')
 if (notStandalone.length) {
-  log(`${notStandalone.length} order(s) are red in isolation — ownership was disjoint, delivery is not: ${notStandalone.map((o) => o.id).join(', ')}`)
+  log(`${notStandalone.length} order(s) are red in isolation: ownership was disjoint, delivery is not: ${notStandalone.map((o) => o.id).join(', ')}`)
 }
 for (const o of (integration?.orders ?? []).filter((o) => o.own_defect)) {
-  log(`ORDER DEFECT hidden by the assembled tree — ${o.id}: ${o.own_defect}`)
+  log(`ORDER DEFECT hidden by the assembled tree: ${o.id}: ${o.own_defect}`)
 }
 
 // ------------------------------------------------------------------ report

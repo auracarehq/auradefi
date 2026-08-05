@@ -3,12 +3,12 @@
 Table definitions live ONLY in a ``models.py`` (placement gate), and ORM
 imports are legal only under ``ledger/backends/`` (layering gate). Table
 names carry the ``auradefi_`` prefix because they land in the HOST's
-database — the host binds its own session factory and owns its migration
+database. The host binds its own session factory and owns its migration
 story (rules #6/#12); the library never emits DDL. The host runs schema
 creation itself against :data:`metadata`.
 
 Wire format (rule #2): entries persist as canonical JSON where ``raw`` is
-a decimal-int JSON STRING — floats never touch money, and a 78-digit raw
+a decimal-int JSON STRING: floats never touch money, and a 78-digit raw
 round-trips exactly.
 """
 
@@ -25,7 +25,7 @@ from auradefi.ledger.models import Direction, Entry, LedgerTransaction
 from auradefi.money.quantity import Quantity
 
 #: The HOST runs schema creation / migrations against this metadata
-#: itself (SPEC §8: storage is a port — we never emit DDL).
+#: itself (SPEC §8: storage is a port, we never emit DDL).
 metadata = SQLModel.metadata
 
 
@@ -48,7 +48,7 @@ class LedgerTransactionRow(SQLModel, table=True):
     )
 
     # BIGINT, not INTEGER, on every numeric column. Python `int` maps to
-    # SQLAlchemy `Integer`, which is int4 on Postgres — and a millisecond
+    # SQLAlchemy `Integer`, which is int4 on Postgres, and a millisecond
     # epoch (1_754_000_000_000) overflows int4 by 816x, so the FIRST insert
     # would fail with "integer out of range". sqlite never noticed because
     # its INTEGER affinity is already 8 bytes, which is why a green suite
@@ -67,7 +67,7 @@ class LedgerTransactionRow(SQLModel, table=True):
 
 
 class TenantSeqRow(SQLModel, table=True):
-    """Per-tenant monotonic seq counter — the counter lives in the DB.
+    """Per-tenant monotonic seq counter. The counter lives in the DB.
 
     First allocated value is 1 (SPEC §6.4). Allocation is documented
     single-writer; Postgres hardening is Phase 8.
@@ -110,7 +110,7 @@ def _decode_raw(raw: object) -> int:
     ``raw`` must be a decimal-int JSON STRING (rule #2): a JSON number is
     rejected, never coerced. These tables live in the HOST's database, so
     a row may have been written by something that is not auradefi, and
-    ``json`` parses ``1e77`` to a float that is off by ~10**60 — a
+    ``json`` parses ``1e77`` to a float that is off by ~10**60: a
     plausible-looking wrong amount is worse than an error. Only an
     optional ``-`` followed by ASCII digits parses, so neither
     underscores (``"1_0"``) nor padding survive as a silent rescale.
@@ -130,7 +130,7 @@ def decode_entries(payload: str) -> tuple[Entry, ...]:
     """Exact inverse of :func:`encode_entries`.
 
     Each object becomes ``Entry(asset_id, Quantity(int(raw), decimals),
-    Direction(direction))`` — exact at any magnitude, 78-digit raws
+    Direction(direction))``: exact at any magnitude, 78-digit raws
     included. ``decode_entries(encode_entries(entries)) == entries``.
 
     ``raw`` must be a decimal-int string; a JSON number (or any other

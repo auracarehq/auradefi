@@ -1,19 +1,19 @@
 """Resolver isolation (SPEC §5.4): one bad adapter drops only its slice.
 
-"A resolver that raises is caught, logged, and drops only its own slice"
-— SPEC §5.4, verbatim. :func:`resolve_all` fans a user refresh out over
+"A resolver that raises is caught, logged, and drops only its own slice".
+SPEC §5.4, verbatim. :func:`resolve_all` fans a user refresh out over
 every adapter and collects per-adapter failures instead of letting one
 exception kill the batch (Zapper's bare ``catch { console.error(e) }``
 inverted: failures are DATA, typed and returned).
 
 The §5.3 raw/valued split is enforced HERE, at the seam: ``resolve()``
-output is RAW — chain reads only, no pricing. An adapter that returns an
+output is RAW. Chain reads only, no pricing. An adapter that returns an
 underlying carrying ``price`` or ``value`` is a defect, converted to a
 ``ValidationError`` inside that adapter's own guard so its slice drops
 and its siblings survive. Pricing happens later, in ``drill()``, purely.
 
 Layering: stdlib + ``auradefi.positions`` + ``auradefi.errors`` only.
-No I/O — the only chain-read seam is the ``ContractReader`` inside
+No I/O. The only chain-read seam is the ``ContractReader`` inside
 ``ResolveContext``, and this module never calls it directly.
 """
 
@@ -37,7 +37,7 @@ class AdapterFailure:
 
     ``error`` is ``repr(exc)`` of the exception the adapter raised (or
     of the ``ValidationError`` minted when it returned pre-valued
-    underlyings) — a string, so outcomes stay frozen and serialisable.
+    underlyings). A string, so outcomes stay frozen and serialisable.
     """
 
     adapter_id: str
@@ -67,11 +67,11 @@ def resolve_all(
 
     Contract (SPEC §5.4, §5.3):
 
-    * adapters run in ``id``-sorted order — deterministic output;
+    * adapters run in ``id``-sorted order, deterministic output;
     * an adapter whose ``chains`` lacks ``ctx.chain_id`` is skipped
       silently (no call, no failure);
     * each adapter receives ``contracts_by_adapter.get(adapter.id,
-      ContractSet.empty())`` — a set that is partially populated or
+      ContractSet.empty())``, a set that is partially populated or
       empty is normal (SPEC §5.4);
     * each ``resolve()`` call is wrapped in ``try/except Exception``;
       a raise becomes ``AdapterFailure(adapter.id, repr(exc))`` and
@@ -99,13 +99,13 @@ def resolve_all(
 
 def _require_raw(positions: Sequence[Position]) -> None:
     """Raise ``ValidationError`` if any underlying carries a ``price``
-    or ``value`` — resolve output is RAW; pricing belongs to ``drill()``
+    or ``value``. Resolve output is RAW; pricing belongs to ``drill()``
     (SPEC §5.3)."""
     for position in positions:
         for underlying in position.underlyings:
             if underlying.price is not None or underlying.value is not None:
                 raise ValidationError(
                     f"adapter {position.adapter_id!r} returned a valued "
-                    f"underlying for {underlying.asset_id!r} — resolve() "
+                    f"underlying for {underlying.asset_id!r}: resolve() "
                     "output must be raw (SPEC §5.3)"
                 )

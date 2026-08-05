@@ -26,7 +26,7 @@ if str(SRC_ROOT) not in sys.path:
 def _no_network(monkeypatch):
     def _blocked(self, *args, **kwargs):
         raise RuntimeError(
-            "network access attempted during tests — the suite must run offline "
+            "network access attempted during tests: the suite must run offline "
             "with no API keys (SPEC §13); record a cassette instead"
         )
 

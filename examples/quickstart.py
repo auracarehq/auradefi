@@ -1,10 +1,10 @@
 """auradefi in five lines, then the whole library in one file.
 
-    pip install auradefi && python quickstart.py
+    Pip install auradefi && python quickstart.py
 
 No keys. No network. No configuration. `Auradefi.sandbox()` replays a
 recording bundled inside the package, and every layer above the transport is
-the production one — the same source, decoder, ledger and pricing a live
+the production one: the same source, decoder, ledger and pricing a live
 instance uses. Sandbox data is a RECORDING, so the numbers here are
 constants, which is what makes them safe to assert.
 
@@ -34,7 +34,7 @@ from decimal import Decimal
 
 import auradefi
 
-print(f"auradefi {auradefi.__version__} — sandbox quickstart, no keys\n")
+print(f"auradefi {auradefi.__version__}: sandbox quickstart, no keys\n")
 
 
 def section(title: str) -> None:
@@ -111,7 +111,7 @@ from auradefi.sources import sandbox as recording
 try:
     recording.client().get("https://api.etherscan.io/v2/api?chainid=999")
 except CassetteMissError:
-    print("  an unrecorded request is refused — sandbox cannot reach the network")
+    print("  an unrecorded request is refused: sandbox cannot reach the network")
 
 
 # --------------------------------------------------------------- phase 2
@@ -145,7 +145,7 @@ assert claims.project_id == project_a.id
 try:
     verify_token(token, signing_secret=project_b.signing_secret, clock=clock)
 except AuthError as exc:
-    print(f"  A's token under B's secret: {type(exc).__name__} — {exc}")
+    print(f"  A's token under B's secret: {type(exc).__name__}: {exc}")
 print(f"  minted {plaintext[:13]}… -> user token for {claims.external_user_id}, "
       f"scopes {claims.scopes}, ttl {(claims.exp - claims.iat) // 1000}s")
 
@@ -223,7 +223,7 @@ AAVE_POOL = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
 AWETH = "0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8"
 group = group_id_for("aave-v3", "eip155:1", AAVE_POOL)
 
-# SPEC §6.3 verbatim: supply 10 ETH, borrow 5,000 USDC — ONE risk unit.
+# SPEC §6.3 verbatim: supply 10 ETH, borrow 5,000 USDC. ONE risk unit.
 positions = [
     Position(
         id=position_id("aave-v3", "eip155:1", AWETH), adapter_id="aave-v3",
@@ -252,11 +252,11 @@ SYMBOLS = {ETH_ID: "ETH", USDC_ID: "USDC"}
 print(f"  gross {drilled.gross_assets} − debt {drilled.total_debt} = net {drilled.net_worth}")
 print("  synthetic holdings: " + ", ".join(
     f"{holding.quantity.normalize():f} {SYMBOLS[holding.asset_id]}" for holding in synthetic))
-print(f"  a Plaid-only client summing institution_value gets {naive_sum} — exactly the net worth")
+print(f"  a Plaid-only client summing institution_value gets {naive_sum}: exactly the net worth")
 
 
 # --------------------------------------------------------------- phase 5
-section("phase 5: embedding — your ports, your tick, your database")
+section("phase 5: embedding: your ports, your tick, your database")
 
 # `sandbox()` and `from_env()` differ by one line and nothing else:
 #
@@ -274,7 +274,7 @@ print(f"  sync: {synced.pages_fetched} pages, {synced.transactions_ingested} "
       f"transactions across {len(synced.connections)} connection(s)")
 print(f"  immediate re-sync: no_op=True, zero requests")
 print("  one connection's failure lands in report.failed_connections, never")
-print("  in a lost tick — branch on it every time (examples/02)")
+print("  in a lost tick: branch on it every time (examples/02)")
 
 metrics = {metric.name: metric.value for metric in aura.scalar_metrics()}
 assert len(metrics) == 26
@@ -298,7 +298,7 @@ XPUB = (
 )
 addresses = derive_addresses(XPUB, "p2wpkh", 0, 0, 3)
 assert addresses[0] == "bc1qp5wfcq48h6d63wyy9qz0awtpfqwwv4sma86mhz"
-print("  BIP32 derived in-process — the extended key never goes near HTTP:")
+print("  BIP32 derived in-process: the extended key never goes near HTTP:")
 for index, address in enumerate(addresses):
     print(f"    m/0/{index}  {address}")
 
@@ -320,7 +320,7 @@ native, scaled = build_balances(3_500_000_000, aggregate_by_mint(accounts))
 assert str(native.quantity) == "3.5"
 assert str(scaled.quantity) == "1" and scaled.ui_amount_string == "2" and scaled.scaled_ui
 print(f"  Token-2022 ScaledUiAmount: raw/10^decimals = {scaled.quantity}, "
-      f"node says {scaled.ui_amount_string}, scaled_ui={scaled.scaled_ui} — both carried")
+      f"node says {scaled.ui_amount_string}, scaled_ui={scaled.scaled_ui}: both carried")
 
 
 # --------------------------------------------------------------- phase 8
@@ -358,14 +358,14 @@ marks = {ETH_ID: Money(Decimal("50"), "USD")}
 realised = {method: pnl_at(trades, method, T0 + 3 * DAY, marks).realized
             for method in ("fifo", "lifo", "hifo", "acb")}
 assert [str(value) for value in realised.values()] == ["30 USD", "14 USD", "10 USD", "18 USD"]
-print("  bought at 10, 30, 26; sold one unit for 40 —")
+print("  bought at 10, 30, 26; sold one unit for 40:")
 for method, value in realised.items():
     print(f"    {method:<5} realised {value}")
 # Arbitrary date: one millisecond earlier, the sale has not happened yet.
 before = pnl_at(trades, "fifo", T0 + 3 * DAY - 1, marks)
 assert before.realized == Money(Decimal("0"), "USD") and len(before.open_lots) == 3
-print(f"  1 ms before the sale: realised {before.realized}, {len(before.open_lots)} open lots "
-      "— any instant is answerable, nothing is pre-computed")
+print(f"  1 ms before the sale: realised {before.realized}, {len(before.open_lots)} open lots: "
+      "any instant is answerable, nothing is pre-computed")
 
 
 # --------------------------------------------------------- optional extras
@@ -381,13 +381,13 @@ try:
 
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False},
                            poolclass=StaticPool)
-    metadata.create_all(engine)  # the HOST's DDL — the library emits none
+    metadata.create_all(engine)  # the HOST's DDL. The library emits none
     sql_ledger = SqlModelLedger(session_factory=lambda: Session(engine))
     sql_ledger.upsert("tenant-a", bridged)
     assert len(sql_ledger.sync("tenant-a", None).events) == 2
     print("  [sql]  SqlModelLedger round-tripped 2 rows through the host's sqlite")
 except ImportError:
-    print("  [sql]  not installed — skipped (pip install 'auradefi[sql]')")
+    print("  [sql]  not installed: skipped (pip install 'auradefi[sql]')")
 
 try:
     from fastapi.testclient import TestClient
@@ -414,6 +414,6 @@ try:
     print(f"  [api]  GET /coverage: {len(coverage['chains'])} chains, "
           f"eip155:1 -> {sorted(k for k, v in ethereum['capabilities'].items() if v)}")
 except ImportError:
-    print("  [api]  not installed — skipped (pip install 'auradefi[api]')")
+    print("  [api]  not installed: skipped (pip install 'auradefi[api]')")
 
-print("\nquickstart OK — nothing above touched the network")
+print("\nquickstart OK: nothing above touched the network")

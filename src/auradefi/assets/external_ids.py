@@ -23,7 +23,7 @@ def additive_merge(
     Returns ``(merged, conflicts)`` where ``merged`` is a NEW dict
     holding every key from both inputs, and ``conflicts`` is a sorted
     tuple of the keys present in both with differing values. On a
-    conflict the EXISTING value wins — the merge never overwrites and
+    conflict the EXISTING value wins: the merge never overwrites and
     never removes. Neither input is mutated. A key present in both with
     the same value is not a conflict.
     """

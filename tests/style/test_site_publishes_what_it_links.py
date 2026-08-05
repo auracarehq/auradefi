@@ -3,7 +3,7 @@
 MOTIVATING DEFECT CLASS. `scripts/site_render.rewrite_links` maps a
 repo-relative markdown link to its published page, and falls back to a
 GitHub blob URL when there is no page. That fallback is correct for source
-files and for the design documents in `INTERNAL_DOCS` — and it is the
+files and for the design documents in `INTERNAL_DOCS`, and it is the
 perfect hiding place for a regression, because the href it emits is
 syntactically valid and resolves to a real web address.
 
@@ -71,7 +71,7 @@ def test_published_pages_never_link_out_by_accident() -> None:
                 continue
             offenders.append(f"{name} -> {target}")
     assert not offenders, (
-        "links that silently became GitHub URLs instead of site pages — "
+        "links that silently became GitHub URLs instead of site pages: "
         "either publish the target in build_site.collect() or declare it in "
         "site_render.INTERNAL_DOCS:\n  " + "\n  ".join(offenders)
     )
@@ -103,5 +103,5 @@ def test_no_design_document_sits_in_the_readers_path() -> None:
     )
     assert not strays, (
         "markdown at the repo root that is neither the README nor the "
-        f"changelog — design and process documents belong in docs/internal/: {strays}"
+        f"changelog: design and process documents belong in docs/internal/: {strays}"
     )

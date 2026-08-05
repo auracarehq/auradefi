@@ -1,17 +1,17 @@
 """Dependency container, auth resolution, quota headers (SPEC §7.1–§7.3).
 
 Rule #11 made structural: the HTTP shell owns no state. Everything a route
-needs arrives in one frozen :class:`Deps` — no module globals, no import-time
+needs arrives in one frozen :class:`Deps`, no module globals, no import-time
 I/O, no singletons. Two apps in one process never share a tenant store.
 
 Collaborators are declared as *structural* Protocols rather than imported,
 deliberately:
 
-* :class:`HoldingsProvider` — ``ALLOWED_IMPORTS['api']`` omits ``portfolio``
+* :class:`HoldingsProvider`. ``ALLOWED_IMPORTS['api']`` omits ``portfolio``
   (tests/style/test_layering.py). ``portfolio.holdings.HoldingsService``
   conforms without this module knowing it exists. The precedent is
   ``portfolio/holdings.py``'s own ``BalanceSource``.
-* :class:`WebhookSink` — re-exported from ``api/sinks.py``, where it moved
+* :class:`WebhookSink`: re-exported from ``api/sinks.py``, where it moved
   when stating its return shapes honestly outgrew this module's line
   budget (RELEASE_0.1.1 §5 Wave C). Imported here so ``from
   auradefi.api.deps import WebhookSink`` keeps working; the seam itself,
@@ -61,10 +61,10 @@ from auradefi.tenancy.tokens import (
 _WINDOWS = ("second", "day", "month")
 
 #: Longest bearer credential this shell decodes at all. Every claim of the
-#: pinned wire form is bounded — 36-char header, 43-char signature, 13-digit
+#: pinned wire form is bounded: 36-char header, 43-char signature, 13-digit
 #: ms-epoch ``iat``/``exp``, 21-char ``project_id``, 32-hex ``jti``, all FOUR
 #: ``Scope`` members (an omitted ``scopes`` mints every scope the key holds,
-#: so ``sync:trigger`` counts) and a 128-char ``external_user_id`` — so the
+#: so ``sync:trigger`` counts) and a 128-char ``external_user_id``, so the
 #: largest token this system can MINT is 36+1+456+1+43 = 537 chars, and 1 KiB
 #: is ~1.9x that. Beyond it NOTHING is decoded: 26 KB of nested arrays cost a
 #: worker a 10,000-frame RecursionError unwind and a leaked stack trace, per
@@ -87,11 +87,11 @@ class Deps:
 
     Frozen and slotted: a route can read a collaborator but can never
     rebind one mid-request. Constructing a ``Deps`` performs NO I/O and
-    touches no collaborator — it is a record, not a bootstrap.
+    touches no collaborator. It is a record, not a bootstrap.
 
     ``signing_secret_for(project_id)`` returns that project's JWT signing
     secret, or ``None`` when the project is unknown. An unknown project
-    must never become a 404 — whether the resolver returns ``None`` or
+    must never become a 404. Whether the resolver returns ``None`` or
     raises the way this repo's other lookups do (see
     :func:`_signing_secret` and :func:`require_user_token`).
 
@@ -145,7 +145,7 @@ def _peek_project_id(token: str) -> str | None:
     re-checked by ``tokens.verify_token``.
 
     The bound is applied BEFORE any decode, and ``RecursionError`` joins
-    the caught parse errors — it is a ``RuntimeError``, so nested arrays
+    the caught parse errors. It is a ``RuntimeError``, so nested arrays
     escaped this helper, against its own contract (§4 #34).
     """
     if len(token) > MAX_TOKEN_CHARS or token.count(".") != 2:
@@ -162,18 +162,18 @@ def _peek_project_id(token: str) -> str | None:
 
 
 def _signing_secret(deps: Deps, project_id: str | None) -> str | None:
-    """``project_id``'s signing secret, or ``None`` — this never raises.
+    """``project_id``'s signing secret, or ``None``. This never raises.
 
     ``signing_secret_for`` is host-supplied, and this repo's two "unknown
     id" idioms both *raise*: ``TenancyStore._require_project`` raises
     :class:`auradefi.errors.NotFoundError`, a ``dict``-backed resolver
     raises ``KeyError``. Either escaping :func:`require_user_token` would
-    answer "does this project exist?" with a 404/500 — the enumeration
+    answer "does this project exist?" with a 404/500: the enumeration
     channel SPEC §7.2 closes. Exactly those two collapse to ``None``
     here, so an unknown project fails as a plain ``AuthError`` like every
     other bad token.
 
-    Nothing else is caught — not the rest of the taxonomy, and nothing
+    Nothing else is caught, not the rest of the taxonomy, and nothing
     outside it. A ``SourceError`` from a dead KMS, a ``ConfigError`` from
     a misconfigured vault or a socket timeout says nothing about whether
     the project EXISTS, so there is no channel to close: those are our
@@ -194,11 +194,11 @@ def require_api_key(deps: Deps, request: Request, scope: Scope) -> ApiKey:
     A missing header, a non-``Bearer`` scheme, a malformed token and a
     genuinely bad/revoked/expired key all raise plain
     :class:`auradefi.errors.AuthError` with the SAME message as
-    ``ApiKeyStore.authenticate`` — a probing caller learns nothing
+    ``ApiKeyStore.authenticate``: a probing caller learns nothing
     (SPEC §7.2).
 
-    On success ``request.state.project_id`` is set IMMEDIATELY — before
-    the scope check — so the quota middleware still labels a 403.
+    On success ``request.state.project_id`` is set IMMEDIATELY, before
+    the scope check, so the quota middleware still labels a 403.
     Missing ``scope`` then raises :class:`auradefi.errors.ScopeError`.
     """
     # An absent or malformed header authenticates as the empty credential:
@@ -216,10 +216,10 @@ def require_user_token(deps: Deps, request: Request, scope: str) -> TokenClaims:
     The payload segment is PEEKED unverified for ``project_id`` purely to
     select a secret via :func:`_signing_secret`. A malformed or over-long
     token, an unparseable payload, a missing or non-``str``
-    ``project_id``, and an unknown project — whether the resolver answers
-    ``None`` or raises an unknown-id error (``NotFoundError``/``KeyError``)
-    — all raise plain :class:`auradefi.errors.AuthError` with one
-    identical message — NEVER :class:`auradefi.errors.NotFoundError`, so
+    ``project_id``, and an unknown project, whether the resolver answers
+    ``None`` or raises an unknown-id error (``NotFoundError``/``KeyError``),
+    all raise plain :class:`auradefi.errors.AuthError` with one
+    identical message, NEVER :class:`auradefi.errors.NotFoundError`, so
     token probing cannot enumerate project ids.
 
     Verification then runs through Phase 2's untouched
@@ -239,11 +239,11 @@ def require_user_token(deps: Deps, request: Request, scope: str) -> TokenClaims:
     secret = _signing_secret(deps, project_id)
     if not secret:
         # No project, no secret: verify against a one-shot unguessable one,
-        # so an unknown project fails as verify_token's own AuthError —
+        # so an unknown project fails as verify_token's own AuthError, 
         # indistinguishable, byte for byte, from a forged signature.
         #
         # `not secret`, NOT `secret is None`: a host resolver written as
-        # `vault.get(project_id, "")` — the ordinary dict/environ idiom —
+        # `vault.get(project_id, "")`, the ordinary dict/environ idiom, 
         # returns "" for an unknown or not-yet-provisioned project. An
         # empty HMAC key is the maximally guessable one, so treating it as
         # live would let anyone mint a token for any project_id with any
@@ -260,7 +260,7 @@ def require_user_token(deps: Deps, request: Request, scope: str) -> TokenClaims:
 def resolve_end_user(deps: Deps, claims: TokenClaims) -> EndUser:
     """Get-or-create this project's user for the token's external id.
 
-    SPEC §7.1: there is no user-creation endpoint — a user exists as a
+    SPEC §7.1: there is no user-creation endpoint. A user exists as a
     side effect. Idempotent, including ``created_at``.
     """
     return deps.tenancy.get_or_create_user(
@@ -282,7 +282,7 @@ def quota_headers(snapshot: Mapping[str, WindowSnapshot]) -> dict[str, str]:
 
     Keys are ``X-RateLimit-{Limit,Remaining,Reset}-{Second,Day,Month}``;
     every value is a decimal string, and ``Reset`` is a MS-EPOCH int
-    rendered as a decimal string — not seconds, not ISO-8601.
+    rendered as a decimal string, not seconds, not ISO-8601.
     """
     headers: dict[str, str] = {}
     for name in _WINDOWS:
@@ -300,7 +300,7 @@ def retry_after_seconds(snapshot: Mapping[str, WindowSnapshot], now_ms: int) -> 
     Over the EXHAUSTED windows (``remaining <= 0``) take the smallest
     ``reset_at_ms``; with none exhausted fall back to
     ``snapshot['second']``. Then ``max(1, -(-(reset_at_ms - now_ms) //
-    1000))`` — ceiling division, never zero, never negative.
+    1000))``: ceiling division, never zero, never negative.
     """
     exhausted = [w.reset_at_ms for w in snapshot.values() if w.remaining <= 0]
     reset_at_ms = min(exhausted) if exhausted else snapshot["second"].reset_at_ms
@@ -310,8 +310,8 @@ def retry_after_seconds(snapshot: Mapping[str, WindowSnapshot], now_ms: int) -> 
 def install_quota_headers(app: FastAPI, deps: Deps) -> None:
     """Attach an HTTP middleware emitting the nine headers per response.
 
-    The headers are set AFTER the response exists — success or error, so
-    a 403 and a 429 carry them too — from a FRESH
+    The headers are set AFTER the response exists, success or error, so
+    a 403 and a 429 carry them too, from a FRESH
     ``deps.quota.snapshot(project_id)``, and only when
     ``request.state.project_id`` was set (an unauthenticated route such
     as ``GET /coverage`` carries none). ``snapshot`` consumes nothing.

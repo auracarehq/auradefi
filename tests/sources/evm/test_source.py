@@ -1,18 +1,18 @@
-"""``EtherscanSource`` — both seams, the engine's window, keyless parity.
+"""``EtherscanSource``: both seams, the engine's window, keyless parity.
 
 What this file has to prove, because a host cannot check it themselves
 until bind time:
 
 1. the object satisfies BOTH structural Protocols, so ``Auradefi`` accepts
-   it (the module under test may not import either Protocol — ``sources``
-   cannot import ``portfolio`` or ``embed`` — so conformance is asserted
+   it (the module under test may not import either Protocol, ``sources``
+   cannot import ``portfolio`` or ``embed``, so conformance is asserted
    here or nowhere);
 2. ``fetch_txlist`` sends the caller's window VERBATIM. The engine's budget
    and its short-page termination both depend on getting the page it asked
    for, so a widened window or a silently paged answer is a data-loss bug,
    not an inefficiency;
 3. rows come back RAW, as the decoder seam requires;
-4. keyless requests omit ``apikey`` entirely rather than sending it empty —
+4. keyless requests omit ``apikey`` entirely rather than sending it empty:
    the same wire shape ``EtherscanV2`` produces, byte for byte.
 """
 
@@ -184,7 +184,7 @@ class TestKeylessParity:
 
 class TestBalances:
     def test_delegates_to_etherscan_v2(self):
-        """One native balance, no tokens — proving the delegation, not the
+        """One native balance, no tokens: proving the delegation, not the
         balance logic, which tests/sources/evm/test_etherscan.py owns."""
         def handler(request: httpx.Request) -> httpx.Response:
             action = request.url.params["action"]

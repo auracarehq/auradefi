@@ -18,7 +18,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install
         run: python -m pip install -e ".[dev]"
-      - name: Test suite (offline, no API keys — SPEC §13)
+      - name: Test suite (offline, no API keys, SPEC §13)
         run: pytest
       - name: Style gates
         run: pytest tests/style -v
@@ -39,7 +39,7 @@ jobs:
           python-version: "3.12"
       # release_check.sh calls `python -m build` and `python -m twine`; neither
       # is on a bare runner, so this job failed at its second step on EVERY
-      # pull request — including ones that touched nothing but config. The
+      # pull request, including ones that touched nothing but config. The
       # release gate has been reporting a red X for a missing dependency
       # rather than for anything about the release.
       - name: Install packaging tools

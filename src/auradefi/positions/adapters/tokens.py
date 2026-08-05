@@ -1,19 +1,19 @@
 """ERC-20 fork helpers and the receipt-token adapter base (SPEC §5.4).
 
 SPEC §5.4: the bar is LlamaFolio's claim that most adapters take under
-an hour — "What makes that true is not the interface — it is the fork
+an hour, "What makes that true is not the interface, it is the fork
 helpers." This module IS those helpers for receipt tokens: plain
 functions over :class:`~auradefi.positions.protocol.ContractReader`,
 plus :class:`ReceiptTokenAdapter`, a base class whose subclasses declare
 ONLY class attributes (Zapper's production Uniswap V2 integration was 15
-lines and zero methods — aim there).
+lines and zero methods, aim there).
 
 Deliberately NOT a general ``erc4626.py``: Zapper's
 ``Erc4626VaultTemplate`` was built and never adopted by a single app
 (SPEC §5.4). The abstraction waits for the third caller.
 
 Valuation is by redemption, never by price feed (SPEC §4.3: "call
-previewRedeem/convertToAssets — quote what the user would actually get
+previewRedeem/convertToAssets, quote what the user would actually get
 out"). Pinned algorithm (DECISIONS.md "Receipt-token redemption",
 breaking to change):
 
@@ -23,12 +23,12 @@ breaking to change):
 identity rate ``10**18`` applies when ``rate_fn`` is ``None`` (rebasing
 1:1 receipts like stETH, whose balance already IS the underlying).
 
-Outputs are RAW positions — ``price`` and ``value`` both ``None`` —
+Outputs are RAW positions, ``price`` and ``value`` both ``None``,
 persisted and re-drilled against fresh prices without an RPC (SPEC
 §5.3). All amounts are ints/``Quantity``; never floats.
 
 Layering: stdlib + ``auradefi.money`` + ``auradefi.positions`` only.
-No I/O — ``ContractReader`` is the only chain-read seam.
+No I/O. ``ContractReader`` is the only chain-read seam.
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ def erc20_balance(reader: ContractReader, token: str, holder: str) -> int:
     """``balanceOf(holder)`` at ``token`` via ``reader``, as a plain int.
 
     Reads ``reader.call(token, "balanceOf", (holder,))``. Arbitrary
-    precision — a 10^77-scale balance passes through exactly.
+    precision: a 10^77-scale balance passes through exactly.
     """
     return int(reader.call(token, "balanceOf", (holder,)))
 
@@ -87,7 +87,7 @@ def caip19_for_erc20(chain_id: str, address: str) -> str:
     """Canonical CAIP-19 for an ERC-20: ``f"{chain_id}/erc20:{address.lower()}"``.
 
     Canonical CAIP-19 lowercases EVM addresses (DECISIONS.md "Asset id";
-    SPEC rule #3 — deterministic and permanently stable).
+    SPEC rule #3: deterministic and permanently stable).
     """
     return f"{chain_id}/erc20:{address.lower()}"
 
@@ -113,33 +113,33 @@ class ReceiptToken:
 class ReceiptTokenAdapter:
     """The fork-helper base: subclasses declare ONLY class attributes.
 
-    Required on a subclass: ``id`` (DefiLlama slug — the join key),
+    Required on a subclass: ``id`` (DefiLlama slug: the join key),
     ``chains``, and ``receipts`` (a mapping keyed by CAIP-2 chain id to
     the receipt tokens on that chain). ``position_type`` and
     ``protocol_module`` default to STAKED × STAKED and may be
-    overridden. Zero methods on the subclass body — the whole
+    overridden. Zero methods on the subclass body. The whole
     integration is data (SPEC §5.4).
 
     ``discover`` (SPEC §5.1: address-blind) emits one static
     ``ContractDescriptor(adapter_id=id, chain_id=ctx.chain_id,
     address=receipt, category="receipt-token",
     underlyings=(underlying_caip19,))`` per receipt on ``ctx.chain_id``,
-    without touching the reader — the receipt set is declared
+    without touching the reader. The receipt set is declared
     configuration, not an enumeration.
 
     ``resolve``: per surviving descriptor (the set arrives partially
-    populated or empty — SPEC §5.4), read ``share_raw`` via
+    populated or empty, SPEC §5.4), read ``share_raw`` via
     :func:`erc20_balance`; skip the receipt if zero (no rate call);
     else ``rate_raw = reader.call(receipt, rate_fn, ())`` if ``rate_fn``
     else ``10**18``, and emit ONE raw ``Position``:
 
-    * ``kind=APP_TOKEN`` (the position IS a fungible token — SPEC §4.3)
+    * ``kind=APP_TOKEN`` (the position IS a fungible token, SPEC §4.3)
     * ``position_type``/``protocol_module`` from the class attributes
     * ``id=position_id(id, chain_id, receipt)``,
       ``group_id=group_id_for(id, chain_id, receipt)`` (DECISIONS.md)
     * one SUPPLIED ``Underlying`` of ``underlying_caip19`` with
-      ``Quantity(share_raw * rate_raw // 10**18, underlying_decimals)``
-      — the pinned floor redemption; ``price``/``value`` both ``None``.
+      ``Quantity(share_raw * rate_raw // 10**18, underlying_decimals)``,
+      the pinned floor redemption; ``price``/``value`` both ``None``.
 
     An empty ``ContractSet`` yields ``[]`` without touching the reader.
     """
@@ -177,7 +177,7 @@ class ReceiptTokenAdapter:
         for descriptor in contracts:
             # .get + continue, matching the Aave adapter. Descriptor sets are
             # "persisted between discovery runs" (ContractDescriptor), so one
-            # can outlive the receipt table that produced it — a delisted
+            # can outlive the receipt table that produced it: a delisted
             # receipt, a renamed adapter, a set written by an older release.
             # Indexing raised KeyError on the FIRST such descriptor, and
             # because this loop builds its whole list before returning, that

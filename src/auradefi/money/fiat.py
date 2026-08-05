@@ -6,7 +6,7 @@ or a CAIP-19 identifier (recognised by containing ``'/'``) for crypto
 denomination; anything else raises ``ValidationError``.
 
 Arithmetic never crosses currencies (``CurrencyMismatchError``) and never
-rounds — the largest balances survive exactly (rule #1's named casualty).
+rounds. The largest balances survive exactly (rule #1's named casualty).
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def _coefficient_at(value: Decimal, exponent: int) -> int:
     """``value`` as an exact signed integer count of ``10**exponent`` units.
 
     ``exponent`` must not exceed the value's own exponent, so scaling is a
-    pure integer multiplication — no context, no rounding.
+    pure integer multiplication, no context, no rounding.
     """
     sign, digits, value_exponent = value.as_tuple()
     coefficient = int("".join(map(str, digits))) * 10 ** (value_exponent - exponent)
@@ -32,7 +32,7 @@ def _coefficient_at(value: Decimal, exponent: int) -> int:
 
 
 def _exact_sum(left: Decimal, right: Decimal) -> Decimal:
-    """Context-free exact sum — never rounded to context precision."""
+    """Context-free exact sum, never rounded to context precision."""
     exponent = min(left.as_tuple().exponent, right.as_tuple().exponent)
     total = _coefficient_at(left, exponent) + _coefficient_at(right, exponent)
     sign = 1 if total < 0 else 0
@@ -45,7 +45,7 @@ class Money:
     """An exact amount denominated in one currency.
 
     ``amount`` is a ``Decimal`` (never a float); ``currency`` is validated
-    at construction — 3-letter uppercase code or CAIP-19 (contains '/').
+    at construction: 3-letter uppercase code or CAIP-19 (contains '/').
     """
 
     amount: Decimal
@@ -54,7 +54,7 @@ class Money:
     def __post_init__(self) -> None:
         """Validate ``amount`` and ``currency``; ``ValidationError`` otherwise.
 
-        ``amount`` must be a finite ``Decimal`` — floats, ints, strings and
+        ``amount`` must be a finite ``Decimal``: floats, ints, strings and
         the non-finite specials (NaN, sNaN, +/-Infinity) are rejected so
         every constructed ``Money`` serialises exactly (rule #1) and its
         arithmetic stays inside the ``auradefi.errors`` taxonomy.
@@ -89,7 +89,7 @@ class Money:
     def __add__(self, other: Money) -> Money:
         """Exact sum in the same currency; else ``CurrencyMismatchError``.
 
-        Exact at any magnitude — never context-precision rounded.
+        Exact at any magnitude, never context-precision rounded.
         """
         if not isinstance(other, Money):
             return NotImplemented
@@ -99,7 +99,7 @@ class Money:
     def __sub__(self, other: Money) -> Money:
         """Exact difference in the same currency; else ``CurrencyMismatchError``.
 
-        Exact at any magnitude — never context-precision rounded.
+        Exact at any magnitude, never context-precision rounded.
         """
         if not isinstance(other, Money):
             return NotImplemented

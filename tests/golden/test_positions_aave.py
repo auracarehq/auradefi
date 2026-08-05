@@ -2,10 +2,10 @@
 
 Per-adapter golden fixtures pinned to a block height are non-negotiable:
 LlamaFolio shipped zero tests in 3,422 files, Zapper Studio three in
-1,010 fetchers — both died of silently wrong numbers. A number changes
+1,010 fetchers: both died of silently wrong numbers. A number changes
 here → this file goes red.
 
-State at Ethereum mainnet block 20_450_000 (SPEC §6.3's worked example —
+State at Ethereum mainnet block 20_450_000 (SPEC §6.3's worked example:
 supply 10 ETH, borrow 5,000 USDC):
 
     aWETH.balanceOf(user)          = 10_000_000_000_000_000_000  (10 ETH)
@@ -15,7 +15,7 @@ supply 10 ETH, borrow 5,000 USDC):
 
 Golden literals derived independently via python3 -c over the pinned
 DECISIONS.md algorithms (sha256 preimage "{adapter}|{chain}|{contract}|"
-for positions, "{adapter}|{chain}|{pool}" for the group — 0x lowercased),
+for positions, "{adapter}|{chain}|{pool}" for the group: 0x lowercased),
 never from the code under test:
 
     pos_baff12a5eafb77f6  aave-v3|eip155:1|0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8|
@@ -157,7 +157,7 @@ class TestAaveV3Block20450000:
         positions, _ = _resolved()
         for position in positions:
             for underlying in position.underlyings:
-                assert underlying.price is None      # raw — re-drill later
+                assert underlying.price is None      # raw: re-drill later
                 assert underlying.value is None
                 assert not underlying.asset_id.startswith("ast_")
         assert {u.asset_id for p in positions for u in p.underlyings} == {

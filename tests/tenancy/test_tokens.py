@@ -40,7 +40,7 @@ TTL_MS = 600_000
 EXP_MS = 1_767_226_200_000  # IAT_MS + TTL_MS
 JTI = "0123456789abcdef0123456789abcdef"
 
-# Golden vector — single scope, jti injected. Derived independently
+# Golden vector: single scope, jti injected. Derived independently
 # (see module docstring); matches the work order literal byte-for-byte.
 GOLDEN = (
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
@@ -51,7 +51,7 @@ GOLDEN = (
 )
 
 # Same claims but scopes minted from ['sync:trigger', 'accounts:read',
-# 'accounts:read'] — wire scopes must be ["accounts:read","sync:trigger"].
+# 'accounts:read']. Wire scopes must be ["accounts:read","sync:trigger"].
 GOLDEN_MULTISCOPE = (
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
     "eyJleHAiOjE3NjcyMjYyMDAwMDAsImV4dGVybmFsX3VzZXJfaWQiOiJob3N0LXVzZXItMSIs"
@@ -61,7 +61,7 @@ GOLDEN_MULTISCOPE = (
 )
 
 # Header {"alg":"none","typ":"JWT"}, correctly HMAC-signed segments under
-# SECRET — still malformed, because the header is not byte-for-byte the
+# SECRET: still malformed, because the header is not byte-for-byte the
 # pinned one (alg-none is closed at the structure gate, not the key gate).
 ALG_NONE_TOKEN = (
     "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0."
@@ -183,7 +183,7 @@ def test_huge_ttl_survives_the_round_trip():
     assert claims.exp == IAT_MS + 10**18
 
 
-# --- verify: rejection order — signature BEFORE expiry -------------------------
+# --- verify: rejection order: signature BEFORE expiry -------------------------
 
 
 def test_wrong_secret_raises_plain_autherror_even_when_also_expired():
@@ -327,7 +327,7 @@ def _forge(payload: dict) -> str:
     """A correctly-HMAC-signed token over an arbitrary payload.
 
     The signature is genuine, so verification reaches the STRUCTURAL gate
-    rather than short-circuiting at "bad signature" — which is the only
+    rather than short-circuiting at "bad signature", which is the only
     way to exercise the claim-shape branches.
     """
     import hashlib
@@ -398,7 +398,7 @@ def _sign_over(header: str, body: str) -> str:
 
 def test_a_payload_segment_that_is_not_base64url_is_rejected_as_malformed():
     # pins: the base64 decode guard is REACHED. The signature is genuine, so
-    #       rejection cannot be coming from the HMAC comparison — it is the
+    #       rejection cannot be coming from the HMAC comparison. It is the
     #       decode itself. Without a test here, deleting the except clause
     #       lets binascii.Error escape as an unformatted 500 instead of 401.
     header = base64.urlsafe_b64encode(
@@ -413,7 +413,7 @@ def test_a_payload_segment_that_is_not_base64url_is_rejected_as_malformed():
             )
 
     # A non-ASCII segment cannot be HMAC-signed at all (the signing input is
-    # ascii), so it arrives unsigned — which is fine: rejection order is
+    # ascii), so it arrives unsigned, which is fine: rejection order is
     # malformed BEFORE bad-signature, so this still lands on the decode
     # guard, via the UnicodeEncodeError half of the same except clause.
     with pytest.raises(AuthError):

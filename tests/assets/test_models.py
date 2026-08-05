@@ -34,11 +34,11 @@ USDC_POL = "eip155:137/erc20:0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"
 USDC_SOL = f"{SOL_CHAIN}/token:EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 ETH_NATIVE = "eip155:1/slip44:60"
 
-# Golden vectors — derived with python3 -c hashlib, hardcoded (rule #3).
+# Golden vectors: derived with python3 -c hashlib, hardcoded (rule #3).
 AST_USDC_ETH = "ast_a798531c7b37abe1"  # sha256(USDC_ETH)[:16]
 AST_USDC_TRI = "ast_99f26454cb92a351"  # sha256(USDC_ETH \n USDC_POL \n USDC_SOL)
 AST_ETH = "ast_ed0bcc482c2859ce"  # sha256("eip155:1/slip44:60")
-AST_USDC_SOL = "ast_a7809b605100f560"  # sha256(USDC_SOL) — base58 case kept
+AST_USDC_SOL = "ast_a7809b605100f560"  # sha256(USDC_SOL): base58 case kept
 
 
 # --- AssetClass: exactly the SPEC §4.2 list ----------------------------------

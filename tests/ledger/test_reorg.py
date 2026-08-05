@@ -6,7 +6,7 @@ canonical view are removed; canonical txns that are new or payload-
 changed are (re-)added; identical survivors are untouched.
 
 Transaction ids derived independently via ``python3 -c`` over the
-DECISIONS algorithm (chain eip155:1, acct_1) — never from the code
+DECISIONS algorithm (chain eip155:1, acct_1), never from the code
 under test.
 """
 
@@ -144,7 +144,7 @@ class TestAddSide:
         assert plan.add == (remined,)
 
     # pins: a bookkeeping-only difference against a LIVE stored row is not a
-    #       re-add — the survivor stays untouched.
+    #       re-add. The survivor stays untouched.
     def test_bookkeeping_only_difference_is_not_readded(
         self, replaced_old, make_txn
     ):
@@ -162,7 +162,7 @@ class TestAddSide:
         assert plan.remove_ids == ()
 
     # pins: the SAME bookkeeping-only difference against a REMOVED stored row
-    #       IS a re-add — removed is part of the decision, not ignored.
+    #       IS a re-add. Removed is part of the decision, not ignored.
     def test_bookkeeping_only_difference_on_a_removed_row_is_readded(
         self, make_txn
     ):
@@ -207,7 +207,7 @@ class TestAddSide:
         assert plan.remove_ids == ()
 
     # pins: a removed row still absent from the canonical view is not
-    #       resurrected — being removed alone never forces a re-add.
+    #       resurrected: being removed alone never forces a re-add.
     def test_removed_stored_row_absent_from_canonical_is_not_readded(
         self, make_txn, survivor
     ):

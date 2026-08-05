@@ -2,7 +2,7 @@
 (SPEC §4.2, rule #3; docs/internal/DECISIONS.md).
 
 A chain-agnostic Asset carries one Implementation per chain. ``decimals``
-lives ON the implementation, never on the asset — USDC is 6 everywhere
+lives ON the implementation, never on the asset. USDC is 6 everywhere
 today, but bridged assets genuinely differ, and you cannot format an
 amount without knowing which chain it is on.
 
@@ -12,7 +12,7 @@ The asset id is a PERMANENTLY STABLE wire contract::
 
 Changing it is a breaking change to persisted data; the golden vectors in
 tests/assets/test_models.py are hardcoded literals for exactly that reason.
-stdlib only; may import money/ and chains/ only.
+Stdlib only; may import money/ and chains/ only.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from auradefi.errors import ValidationError
 
 
 class AssetClass(StrEnum):
-    """One enum spanning families (SPEC §4.2) — exactly this list."""
+    """One enum spanning families (SPEC §4.2): exactly this list."""
 
     NATIVE = "native"
     TOKEN = "token"
@@ -45,7 +45,7 @@ class AssetClass(StrEnum):
 @dataclass(frozen=True, slots=True)
 class AssetFlags:
     """Additive quality marks. Detection is additive, never destructive
-    (SPEC §4.2 — rotki's scar), so these are plain booleans that default
+    (SPEC §4.2, rotki's scar), so these are plain booleans that default
     to the unmarked state."""
 
     spam_suspected: bool = False
@@ -102,7 +102,7 @@ def asset_id(caip19s: Iterable[str]) -> str:
     duplicates and empty input, so no id built through it can change.
 
     Raises:
-        ValidationError: if ``caip19s`` is empty — hashing nothing would
+        ValidationError: if ``caip19s`` is empty. Hashing nothing would
             mint one well-formed id for "no asset at all".
         CaipParseError: if any entry is not a parseable CAIP-19.
     """
@@ -131,10 +131,10 @@ def make_asset(
 
     Raises:
         ValidationError: if ``implementations`` is empty, two
-            implementations share a CAIP-19 (compared canonically — two
+            implementations share a CAIP-19 (compared canonically, two
             case variants of one EVM address are duplicates), or an
             implementation's ``chain_id`` contradicts the chain embedded
-            in its own ``caip19`` — the registry indexes by the CAIP-19
+            in its own ``caip19``, the registry indexes by the CAIP-19
             chain, so a mismatch would silently disagree with lookups.
         CaipParseError: if an implementation CAIP-19 cannot be parsed.
     """

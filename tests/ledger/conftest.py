@@ -19,7 +19,7 @@ from auradefi.money.quantity import Quantity
 #: ms-epoch, matches the repo's frozen clock era.
 MS = 1_754_000_000_000
 
-#: eip155:1 | 0xabc | acct_1 — derived independently; NEVER regenerate
+#: eip155:1 | 0xabc | acct_1: derived independently; NEVER regenerate
 #: from the implementation.
 DEFAULT_TXN_ID = "txn_8960436486a11960"
 

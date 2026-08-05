@@ -1,11 +1,11 @@
-"""api/deps.py — the container, auth resolution and the nine quota headers.
+"""api/deps.py: the container, auth resolution and the nine quota headers.
 
 Everything here runs offline under the autouse socket guard: TestClient
 drives the ASGI app in-process, never over a socket.
 
 The golden header block is arithmetic, not a fixture: FrozenClock's
 1_754_000_000_000 is 2025-07-31T22:13:20Z, where the next UTC *day*
-boundary (1754006400000) IS the next UTC *month* boundary — hence
+boundary (1754006400000) IS the next UTC *month* boundary, hence
 Reset-Day == Reset-Month. Verified independently with datetime.
 """
 
@@ -78,7 +78,7 @@ PINNED_HEADERS = {
 
 
 class _Sink:
-    """A trivial structural WebhookSink — every declared method, no I/O.
+    """A trivial structural WebhookSink: every declared method, no I/O.
 
     It answers the SHAPES the seam promises, not just the names:
     ``register_endpoint`` hands back the ``(endpoint, secret)`` pair
@@ -436,11 +436,11 @@ def test_a_raising_resolver_is_still_an_auth_error_never_a_leaked_not_found():
     """The resolver may RAISE for an unknown project, not just return None.
 
     Every other resolver in this suite is ``dict.get``-shaped and can
-    never reach ``_signing_secret``'s except clause — yet the two idioms
+    never reach ``_signing_secret``'s except clause, yet the two idioms
     this repo actually ships both raise: ``TenancyStore._require_project``
     raises ``NotFoundError``, a bare dict-backed vault raises
     ``KeyError``. Either escaping ``require_user_token`` answers "does
-    this project exist?" with a 404/500 — the enumeration channel
+    this project exist?" with a 404/500: the enumeration channel
     SPEC §7.2 closes.
     """
     deps, _project, clock = _build()
@@ -462,8 +462,8 @@ def test_a_raising_resolver_is_still_an_auth_error_never_a_leaked_not_found():
         raise NotFoundError(f"project not found: {project_id!r}")
 
     cases = (
-        ("NotFoundError — the TenancyStore idiom", _raises_not_found, NotFoundError),
-        ("KeyError — a bare dict-backed vault", {}.__getitem__, LookupError),
+        ("NotFoundError: the TenancyStore idiom", _raises_not_found, NotFoundError),
+        ("KeyError: a bare dict-backed vault", {}.__getitem__, LookupError),
     )
     for label, resolver, raised in cases:
         # the resolver really does raise: this exercises the except clause,
@@ -710,7 +710,7 @@ def test_an_empty_string_secret_is_absent_not_a_live_key():
     ordinary host idiom ``vault.get(project_id, "")`` hand back ``""``
     for an unknown or not-yet-provisioned project. An empty HMAC key is
     the maximally guessable one, so a token forged with
-    ``signing_secret=""`` verified — granting an attacker-chosen
+    ``signing_secret=""`` verified: granting an attacker-chosen
     ``project_id`` with attacker-chosen scopes, binding
     ``request.state.project_id`` and feeding quota attribution, audit and
     every downstream route. Absent is absent, whether it reads ``None``
@@ -755,8 +755,8 @@ def test_an_empty_string_secret_is_absent_not_a_live_key():
 def test_webhook_sink_protocol_declares_everything_the_routes_call():
     """The seam must promise every method its consumer uses.
 
-    ``admin.py`` reads ``event_name`` back through ``sink.get_event`` —
-    a stored delivery holds only ``event_id``. When ``get_event`` was
+    ``admin.py`` reads ``event_name`` back through ``sink.get_event``.
+    A stored delivery holds only ``event_id``. When ``get_event`` was
     absent from this Protocol, the real WebhookStore still worked, so
     nothing failed; but a host binding a minimal conforming sink would
     have hit ``AttributeError`` at request time. Pin the whole surface.
@@ -787,11 +787,11 @@ def test_webhook_sink_protocol_declares_everything_the_routes_call():
 
 
 # --------------------------------------------------------------------------
-# RELEASE_0.1.1 §4 #34 — malformed input is ALWAYS the pinned 401
+# RELEASE_0.1.1 §4 #34. Malformed input is ALWAYS the pinned 401
 #
 # `_peek_project_id` base64-decodes and json.loads()es a caller-supplied
 # string guarding only (ValueError, UnicodeDecodeError). A payload of 10,000
-# nested arrays raises RecursionError — a RuntimeError, so uncaught — and
+# nested arrays raises RecursionError, a RuntimeError, so uncaught, and
 # escapes as an unformatted 500 with a stack trace, reachable with NO
 # CREDENTIALS AT ALL through GET /users/me.
 
@@ -802,7 +802,7 @@ NESTED_TOKEN_CHARS = 26_748
 
 #: A real, ORDINARY token in the pinned wire form (DECISIONS "JWT wire form"):
 #: 64-char external_user_id, three of the four scopes, 32-hex jti. A
-#: comfortable MID-DOMAIN vector and NOT the domain maximum — that is
+#: comfortable MID-DOMAIN vector and NOT the domain maximum. That is
 #: :data:`MAX_MINTABLE_TOKEN_CHARS`, 105 chars further out. A guard pinning
 #: only this vector permits every bound in [433, 536], each of which 401s a
 #: credential ``POST /auth/token`` issued one request earlier.
@@ -813,7 +813,7 @@ GENEROUS_TOKEN_CHARS = 432
 #: against the real endpoint (see the two round-trip tests below). Every
 #: component sits at its documented ceiling:
 #:
-#:   header     {"alg":"HS256","typ":"JWT"} — 26 raw bytes       ->   36
+#:   header     {"alg":"HS256","typ":"JWT"}: 26 raw bytes       ->   36
 #:   payload    342 raw bytes of compact, sort_keys JSON         ->  456
 #:              {"exp":<13 digits>,"external_user_id":"<128>",
 #:               "iat":<13 digits>,"jti":"<32 hex>",
@@ -900,7 +900,7 @@ def _wired_client(scopes=(Scope.USERS_ADMIN, Scope.ACCOUNTS_READ)):
 
 
 # pins: _peek_project_id answers None for a payload of 10,000 nested JSON
-#       arrays — RecursionError is not a ValueError, and a helper documented
+#       arrays. RecursionError is not a ValueError, and a helper documented
 #       to never raise must not let it out.
 def test_a_deeply_nested_token_payload_peeks_as_none_and_never_raises():
     token = _nested_token()
@@ -908,7 +908,7 @@ def test_a_deeply_nested_token_payload_peeks_as_none_and_never_raises():
 
     try:
         peeked: object = _peek_project_id(token)
-    except Exception as exc:  # noqa: BLE001 — the escaping exception IS the defect
+    except Exception as exc:  # noqa: BLE001. The escaping exception IS the defect
         peeked = exc
 
     assert peeked is None, (
@@ -918,7 +918,7 @@ def test_a_deeply_nested_token_payload_peeks_as_none_and_never_raises():
     )
 
 
-# pins: an over-long token is refused on LENGTH ALONE — no base64 decode and
+# pins: an over-long token is refused on LENGTH ALONE, no base64 decode and
 #       no JSON parse is attempted, however readable its project_id claim is.
 def test_an_over_long_token_is_refused_before_any_decode_is_attempted(monkeypatch):
     base64_spy = _ModuleSpy(base64, _BASE64_DECODERS)
@@ -934,7 +934,7 @@ def test_an_over_long_token_is_refused_before_any_decode_is_attempted(monkeypatc
     )
     assert _peek_project_id(ordinary) == "proj_abcdef0123456789"
     assert base64_spy.calls and json_spy.calls, (
-        "the decode spies recorded nothing for a token that IS decoded — the "
+        "the decode spies recorded nothing for a token that IS decoded: the "
         "spies are no longer wired to the decoders api/deps.py uses"
     )
     base64_spy.calls.clear()
@@ -953,8 +953,8 @@ def test_an_over_long_token_is_refused_before_any_decode_is_attempted(monkeypatc
     )
 
 
-# pins: an ORDINARY real token — 432 chars, 64-char external_user_id, three
-#       scopes — still peeks its project_id, so the bound never refuses the
+# pins: an ORDINARY real token: 432 chars, 64-char external_user_id, three
+#       scopes: still peeks its project_id, so the bound never refuses the
 #       everyday credential. This vector is mid-domain and therefore cannot
 #       guard the bound against the DOMAIN MAXIMUM; that is pinned separately
 #       below, against MAX_MINTABLE_TOKEN_CHARS.
@@ -972,13 +972,13 @@ def test_an_ordinary_real_token_still_peeks_its_project_id():
 
     assert len(token) == GENEROUS_TOKEN_CHARS
     assert _peek_project_id(token) == project.id, (
-        f"a real {len(token)}-char token no longer peeks — the length bound is "
+        f"a real {len(token)}-char token no longer peeks: the length bound is "
         "tighter than the pinned wire form"
     )
 
 
 # pins: require_user_token turns a nested-array bearer token into exactly the
-#       same plain AuthError as a forged signature — never a RecursionError
+#       same plain AuthError as a forged signature, never a RecursionError
 #       out of the verifier, never a distinguishable message.
 def test_require_user_token_refuses_a_nested_token_as_the_same_plain_auth_error():
     deps, project, clock = _build()
@@ -998,7 +998,7 @@ def test_require_user_token_refuses_a_nested_token_as_the_same_plain_auth_error(
 
 
 # pins: GET /users/me answers 401 {"error": {"type": "AuthError"}} for a
-#       ~26 KB nested-array token — the path that needs NO credential at all
+#       ~26 KB nested-array token. The path that needs NO credential at all
 #       never returns an unformatted 500.
 def test_a_nested_token_is_the_pinned_401_on_users_me_with_no_credential():
     client, _project, _plaintext = _wired_client()
@@ -1019,7 +1019,7 @@ def test_a_nested_token_is_the_pinned_401_on_users_me_with_no_credential():
 
 
 # pins: POST /auth/revoke answers 401 AuthError for a nested-array token in
-#       its body — the second reachable path to the same RecursionError.
+#       its body: the second reachable path to the same RecursionError.
 def test_a_nested_token_is_the_pinned_401_on_auth_revoke():
     client, _project, plaintext = _wired_client()
 
@@ -1040,11 +1040,11 @@ def test_a_nested_token_is_the_pinned_401_on_auth_revoke():
 
 
 # --------------------------------------------------------------------------
-# §4 #34, the OTHER side of the bound — a bound too TIGHT is also a permanent
+# §4 #34, the OTHER side of the bound. A bound too TIGHT is also a permanent
 # 401, on credentials this system itself minted, and an undebuggable one:
 # require_user_token and POST /auth/revoke both collapse "unreadable" into
 # verify_token's single AuthError, so a real token refused on LENGTH is
-# indistinguishable — status, type, message — from a forged signature.
+# indistinguishable, status, type, message, from a forged signature.
 #
 # The tests above bound MAX_TOKEN_CHARS only to (432, 200_000). Everything
 # below pins the boundary that matters: the DOMAIN MAXIMUM,
@@ -1055,8 +1055,8 @@ def test_a_nested_token_is_the_pinned_401_on_auth_revoke():
 def _maximal_token(project, clock) -> str:
     """The largest credential ``POST /auth/token`` can mint.
 
-    Built through Phase 2's ``mint_token`` — the same call the mint route
-    reaches via ``TenancyStore.mint_user_token`` — with every bounded field
+    Built through Phase 2's ``mint_token``, the same call the mint route
+    reaches via ``TenancyStore.mint_user_token``, with every bounded field
     at its documented ceiling: a 128-char external_user_id, ALL FOUR legal
     scopes, a 32-hex jti.
     """
@@ -1072,8 +1072,8 @@ def _maximal_token(project, clock) -> str:
 
 
 # pins: _peek_project_id still reads the project_id of the LARGEST credential
-#       this system can mint — 537 chars, a 128-char external_user_id and all
-#       four legal scopes — so no length bound refuses a token the mint
+#       this system can mint: 537 chars, a 128-char external_user_id and all
+#       four legal scopes, so no length bound refuses a token the mint
 #       endpoint just issued.
 def test_the_largest_mintable_token_still_peeks_its_project_id():
     _deps, project, clock = _build()
@@ -1103,7 +1103,7 @@ def test_the_largest_mintable_token_still_peeks_its_project_id():
 
 
 # pins: MAX_TOKEN_CHARS's VALUE never sits below the 537-char maximum this
-#       system mints — a bound anywhere in [433, 536] leaves the rest of the
+#       system mints. A bound anywhere in [433, 536] leaves the rest of the
 #       suite green while permanently 401-ing real credentials.
 def test_max_token_chars_is_never_tightened_below_the_largest_mintable_token():
     bound = deps_module.MAX_TOKEN_CHARS
@@ -1117,8 +1117,8 @@ def test_max_token_chars_is_never_tightened_below_the_largest_mintable_token():
     )
 
 
-# pins: a maximally-sized token straight out of POST /auth/token — 537 chars,
-#       128-char external_user_id, all four scopes — authenticates on
+# pins: a maximally-sized token straight out of POST /auth/token: 537 chars,
+#       128-char external_user_id, all four scopes: authenticates on
 #       GET /users/me, the path that reaches the bound with no credential of
 #       its own.
 def test_a_maximally_sized_minted_token_authenticates_on_users_me():
@@ -1132,7 +1132,7 @@ def test_a_maximally_sized_minted_token_authenticates_on_users_me():
     )
     assert minted.status_code == 200, minted.text
     token = minted.json()["token"]
-    # `scopes` omitted, so the key's own four are minted — the real ceiling,
+    # `scopes` omitted, so the key's own four are minted: the real ceiling,
     # not a hand-built vector.
     assert len(token) == MAX_MINTABLE_TOKEN_CHARS, (
         f"POST /auth/token issued {len(token)} chars for the maximum legal "
@@ -1150,7 +1150,7 @@ def test_a_maximally_sized_minted_token_authenticates_on_users_me():
 
 
 # pins: POST /auth/revoke revokes a maximally-sized token its own project
-#       minted — 537 chars — instead of refusing it on length and answering
+#       minted, 537 chars, instead of refusing it on length and answering
 #       the same 401 as a forgery.
 def test_a_maximally_sized_minted_token_can_still_be_revoked():
     client, _project, plaintext = _wired_client(tuple(Scope))
@@ -1173,7 +1173,7 @@ def test_a_maximally_sized_minted_token_can_still_be_revoked():
 
 
 # --------------------------------------------------------------------------
-# RELEASE_0.1.1 §5 Wave C #27 / #28 — the seam must stop under-promising
+# RELEASE_0.1.1 §5 Wave C #27 / #28. The seam must stop under-promising
 #
 # api/routes/admin.py is the ground truth for what WebhookSink has to
 # declare; the Protocol is the thing that lies. Both defects are the same
@@ -1193,8 +1193,8 @@ def _declared_members(protocol: type) -> frozenset[str]:
     return frozenset(declared)
 
 
-# pins: WebhookSink declares create_replay — the member the replay route
-#       reaches through webhooks.replay.replay(deps.webhooks, ...) — callable
+# pins: WebhookSink declares create_replay: the member the replay route
+#       reaches through webhooks.replay.replay(deps.webhooks, ...): callable
 #       with the (project_id, delivery_id, clock) shape admin.py drives.
 def test_webhook_sink_declares_the_create_replay_the_replay_route_reaches():
     declared = _declared_members(WebhookSink)
@@ -1202,7 +1202,7 @@ def test_webhook_sink_declares_the_create_replay_the_replay_route_reaches():
     assert "create_replay" in declared, (
         "POST /webhooks/deliveries/{delivery_id}/replay calls "
         "store.create_replay through webhooks.replay.replay(deps.webhooks, "
-        f"...), but WebhookSink declares only {sorted(declared)} — a host sink "
+        f"...), but WebhookSink declares only {sorted(declared)}: a host sink "
         "written from this Protocol raises AttributeError at request time"
     )
     signature = inspect.signature(WebhookSink.create_replay)
@@ -1211,7 +1211,7 @@ def test_webhook_sink_declares_the_create_replay_the_replay_route_reaches():
     except TypeError as exc:
         pytest.fail(
             f"WebhookSink.create_replay{signature} cannot be called the way the "
-            f"replay route calls it — (project_id, delivery_id, clock): {exc}"
+            f"replay route calls it: (project_id, delivery_id, clock): {exc}"
         )
 
 
@@ -1224,7 +1224,7 @@ def test_webhook_sink_declares_register_endpoint_returning_the_unpacked_pair():
     assert origin is tuple, (
         "api/routes/admin.py unpacks `endpoint, secret = "
         "deps.webhooks.register_endpoint(...)`, but WebhookSink declares its "
-        f"return as {annotation!r} — a host sink returning the single object "
+        f"return as {annotation!r}: a host sink returning the single object "
         "the Protocol promises makes POST /webhooks/endpoints a 500"
     )
     arguments = typing.get_args(annotation)

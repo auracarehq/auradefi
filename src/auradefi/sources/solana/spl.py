@@ -2,15 +2,15 @@
 
 No HTTP: this module takes already-decoded ``jsonParsed`` rows from
 ``getTokenAccountsByOwner`` and turns them into typed records. Amounts
-parse via ``int()`` from the ``amount`` STRING — never through float
+parse via ``int()`` from the ``amount`` STRING, never through float
 (SPEC rules #1/#2), and the ``uiAmount`` float member of ``tokenAmount``
 is NEVER read.
 
 Token-2022 ScaledUiAmount (docs/internal/DECISIONS.md, "Solana ScaledUiAmount
 detection"; SPEC §4.1 warning): the ``raw / 10**decimals`` identity does
-not hold for every mint, so BOTH representations are carried —
+not hold for every mint, so BOTH representations are carried,
 ``Quantity(int(amount), decimals)`` for arithmetic and ``uiAmountString``
-verbatim for display — and the break is detected as
+verbatim for display, and the break is detected as
 
     scaled_ui = (ui_amount_string != str(quantity))
 
@@ -19,7 +19,7 @@ zeros exactly as ``uiAmountString`` does, so a normal token compares
 equal. The jsonParsed ``extensions`` list is deliberately NOT consulted:
 older RPC nodes omit it, so it cannot be a correctness input.
 
-CAIP-19 (SPEC §4.2) — Solana references keep base58 case, never
+CAIP-19 (SPEC §4.2). Solana references keep base58 case, never
 lowercased:
 
     native  solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp/slip44:501
@@ -57,7 +57,7 @@ class TokenAccountRecord:
 
     ``program`` is the owning token program as reported by the RPC
     (``"spl-token"`` or ``"spl-token-2022"``). ``quantity`` is
-    ``Quantity(int(amount), decimals)`` — exact base units.
+    ``Quantity(int(amount), decimals)``: exact base units.
     ``ui_amount_string`` is the RPC's ``uiAmountString`` VERBATIM, and
     ``scaled_ui`` is ``ui_amount_string != str(quantity)``.
     """
@@ -106,7 +106,7 @@ class SolanaBalance:
 
 
 def token_caip19(mint: str) -> str:
-    """The CAIP-19 for an SPL mint — base58 case PRESERVED, never lowered."""
+    """The CAIP-19 for an SPL mint: base58 case PRESERVED, never lowered."""
     return f"{MAINNET}/token:{mint}"
 
 
@@ -139,8 +139,8 @@ def _require_numeral(text: str, label: str) -> str:
 def _quantity(token_amount: dict) -> Quantity:
     """The exact base-unit amount of a ``tokenAmount`` dict.
 
-    ``amount`` must be an unsigned base-10 digit STRING — parsed with
-    ``int()``, never through float — and ``decimals`` a non-bool
+    ``amount`` must be an unsigned base-10 digit STRING, parsed with
+    ``int()``, never through float, and ``decimals`` a non-bool
     ``int >= 0``.
     """
     raw = token_amount.get("amount")
@@ -195,15 +195,15 @@ def parse_token_accounts(rows: Iterable[object]) -> list[TokenAccountRecord]:
     Every field is checked: ``pubkey`` a str, ``program`` a str,
     ``parsed.type`` exactly ``"account"``, ``mint`` a non-empty str,
     ``owner`` a str, ``tokenAmount`` a dict whose ``amount`` fullmatches
-    ``[0-9]+`` (a base-10 digit STRING — parsed with ``int()``, never
+    ``[0-9]+`` (a base-10 digit STRING, parsed with ``int()``, never
     through float), ``decimals`` a non-bool ``int >= 0`` and
-    ``uiAmountString`` a str fullmatching ``[0-9]+(\\.[0-9]+)?`` — a
+    ``uiAmountString`` a str fullmatching ``[0-9]+(\\.[0-9]+)?``, a
     plain unsigned numeral, so ``""``, ``"NaN"``, ``"Infinity"`` and
     ``"1e30"`` are rejected instead of being displayed or summed. The
     ``uiAmount`` float member is NEVER read and may be absent or
     nonsense.
 
-    Order is preserved. Zero-amount accounts parse normally — pruning
+    Order is preserved. Zero-amount accounts parse normally. Pruning
     happens in :func:`build_balances`.
 
     Raises:
@@ -228,8 +228,8 @@ def _display_sum(records: list[TokenAccountRecord]) -> str:
     """The exact ``Decimal`` sum of the constituents' displayed strings.
 
     Scaled displays cannot be recomputed from ``raw``, so the strings
-    themselves are summed. Each is re-checked as a plain numeral —
-    records need not come from :func:`parse_token_accounts` — which is
+    themselves are summed. Each is re-checked as a plain numeral,
+    records need not come from :func:`parse_token_accounts`, which is
     what makes the precision bound sound: a numeral's digit count never
     exceeds its length, so widening past the total length holds every
     partial sum exactly. A fresh :class:`Context` keeps the traps
@@ -278,7 +278,7 @@ def aggregate_by_mint(records: Iterable[TokenAccountRecord]) -> list[MintBalance
     ``ui_amount_string`` is ``str(quantity)`` when not scaled; when
     scaled it is the exact ``Decimal`` sum of the constituents'
     ``ui_amount_string`` values rendered with ``format(total, "f")``
-    (never ``str()`` — that emits scientific notation below 1e-6) with
+    (never ``str()``, that emits scientific notation below 1e-6) with
     trailing fractional zeros and any trailing ``"."`` stripped. A
     single scaled constituent therefore passes through verbatim.
 
@@ -303,7 +303,7 @@ def build_balances(lamports: int, mints: Iterable[MintBalance]) -> list[SolanaBa
     ``Quantity(lamports, 9)``, ``ui_amount_string == str(quantity)``,
     ``scaled_ui`` False, ``mint`` None. Then one record per
     :class:`MintBalance` whose ``quantity.raw`` is non-zero, in the
-    given order — zero-raw holdings are omitted, mirroring
+    given order. Zero-raw holdings are omitted, mirroring
     ``sources/evm/etherscan.py``.
 
     Raises:

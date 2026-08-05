@@ -2,23 +2,23 @@
 
 Vezgo's best idea, kept verbatim: ``POST /auth/token`` answers exactly
 ``{"token": ...}``. The body names an ``external_user_id`` chosen by the
-HOST from its own session — a hostile browser cannot express which user
-it wants — and the privilege rule below closes Vezgo's remaining hole,
+HOST from its own session, a hostile browser cannot express which user
+it wants, and the privilege rule below closes Vezgo's remaining hole,
 an unscoped god key that can mint anything.
 
 ``ApiKeyStore.authenticate``/``tokens.verify_token`` keep their
 one-message rejection by DELEGATION rather than re-statement, so probing
 learns nothing. Quota is consumed HERE, right after authentication and
 before the privilege check, exactly as the three sibling handlers do: an
-authenticated caller must not be able to drive unlimited refused mints —
-each walking and HMAC-comparing every stored key — for free
+authenticated caller must not be able to drive unlimited refused mints,
+each walking and HMAC-comparing every stored key, for free
 (RELEASE_0.1.1 §4 #36). ``mint_user_token`` is therefore called without
 ``quota``, so a mint is charged exactly once, and a refusal is charged
 without ever auditing a mint that did not happen.
 
 ``POST /auth/revoke`` verifies under the CALLER'S OWN project secret, so
-no property of another project's token — authentic, expired, live or
-unknown — is observable through it (§4 #33).
+no property of another project's token, authentic, expired, live or
+unknown, is observable through it (§4 #33).
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ from auradefi.tenancy.tokens import _REJECTED, verify_token
 
 
 class TokenRequest(BaseModel):
-    """``POST /auth/token`` body — exactly two keys, extras forbidden.
+    """``POST /auth/token`` body: exactly two keys, extras forbidden.
 
     ``scopes`` OMITTED or ``null`` means "everything this key has"; ``[]``
     is a request for a ZERO-privilege token and is honoured as one. The
@@ -63,7 +63,7 @@ class TokenRequest(BaseModel):
 
 
 class RevokeRequest(BaseModel):
-    """``POST /auth/revoke`` body — exactly ``{"token": str}``."""
+    """``POST /auth/revoke`` body: exactly ``{"token": str}``."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -75,7 +75,7 @@ def _client_ip(request: Request, trusted_hops: int) -> tuple[str, str]:
 
     ``trusted_hops`` is ``Deps.trusted_proxy_hops``: how many rightmost
     ``X-Forwarded-For`` hops this deployment's own proxies append. It
-    defaults to 0, and at 0 the header is NOT CONSULTED AT ALL — the
+    defaults to 0, and at 0 the header is NOT CONSULTED AT ALL. The
     socket peer is the only verified source. With N > 0 the Nth hop from
     the RIGHT is the address our own outermost proxy observed, and it is
     the only header value trusted; every hop left of it is caller-written.
@@ -88,12 +88,12 @@ def _client_ip(request: Request, trusted_hops: int) -> tuple[str, str]:
     extending the caller's is an ordinary wire form. Reading only
     ``headers.get``'s FIRST line counted the caller's own line as the
     trusted rightmost hop, so a forged address landed in the permanent
-    audit row stamped ``"forwarded"`` — the fix below is bypassed without
+    audit row stamped ``"forwarded"``. The fix below is bypassed without
     this join in exactly the single-proxy deployment it documents.
 
     Returns ``(ip, ip_source)``. ``ip_source`` is ``"forwarded"`` for a
     trusted header hop, ``"peer"`` for the socket peer, and ``"unknown"``
-    when there is neither — an audit row is permanent and unmodifiable, so
+    when there is neither. An audit row is permanent and unmodifiable, so
     an unknown IP is DECLARED, never guessed, and never a reason to fail a
     mint.
     """
@@ -123,28 +123,28 @@ def router(deps: Deps) -> APIRouter:
 
     Four routes:
 
-    * ``POST /auth/token`` — api key + ``users:admin``, quota, then the
+    * ``POST /auth/token``: api key + ``users:admin``, quota, then the
       PINNED privilege rule ``requested <= {str(s) for s in key.scopes}``,
       else :class:`~auradefi.errors.ScopeError`: a key can never mint a
       token more powerful than itself. ``requested`` is ``body.scopes``
-      whenever it was sent — ``[]`` included, which asks for a
-      ZERO-privilege token — and the key's own scopes only when the field
+      whenever it was sent, ``[]`` included, which asks for a
+      ZERO-privilege token, and the key's own scopes only when the field
       was omitted or ``null``. Body is exactly ``{"token": "<jwt>"}``.
-    * ``POST /auth/revoke`` — api key + ``users:admin``, quota, then
+    * ``POST /auth/revoke``: api key + ``users:admin``, quota, then
       verify under the CALLER'S OWN project secret and demand
       ``claims.project_id == key.project_id``. A token this project did
       not mint cannot verify here, so foreign-and-live,
       foreign-and-expired, foreign-and-unknown and outright forged all
       answer with ONE 401 :class:`~auradefi.errors.AuthError` carrying
-      ``tokens._REJECTED`` — indistinguishable from each other, and from a
+      ``tokens._REJECTED``: indistinguishable from each other, and from a
       token that never existed, in status, type, message and work done.
       The caller's own token keeps its own error class (an expired one is
       still a ``TokenExpiredError``); nothing there is another tenant's
-      secret to leak. Idempotent — ``revoked`` is checked nowhere, so
+      secret to leak. Idempotent. ``Revoked`` is checked nowhere, so
       re-revoking answers 200 again.
-    * ``GET /users/me`` — user token + ``accounts:read``, quota,
+    * ``GET /users/me``. User token + ``accounts:read``, quota,
       get-or-create (SPEC §7.1: no user-creation endpoint exists).
-    * ``GET /users`` — api key + ``users:admin``, quota, this project's
+    * ``GET /users``: api key + ``users:admin``, quota, this project's
       users in creation order and no other project's.
     """
     api = APIRouter()
@@ -156,8 +156,8 @@ def router(deps: Deps) -> APIRouter:
         # Charged after authentication and BEFORE the privilege check, as
         # the three siblings below do: a refused mint has already walked and
         # HMAC-compared every stored key, so it must not be free. The mint
-        # is then called WITHOUT `quota` — charging both here and there
-        # would bill a success twice — and a ScopeError below raises before
+        # is then called WITHOUT `quota`: charging both here and there
+        # would bill a success twice, and a ScopeError below raises before
         # the mint, so a refusal is charged without ever auditing a mint
         # that never happened.
         consume_quota(deps, key.project_id)
@@ -199,20 +199,20 @@ def router(deps: Deps) -> APIRouter:
         # The secret is the CALLER'S OWN project's, NEVER the one named by
         # the token's unverified `project_id` claim. Resolving it from the
         # claim verified a captured JWT under its real owner's secret and
-        # then answered three different ways — genuine-and-live 404,
-        # forged 401 AuthError, expired 401 TokenExpiredError — which let
+        # then answered three different ways. Genuine-and-live 404,
+        # forged 401 AuthError, expired 401 TokenExpiredError, which let
         # anyone holding a free project of their own sort captured tokens
         # into "authentic and still live" without the victim's secret
         # (RELEASE_0.1.1 §4 #33). Verified here against our own secret, a
         # token we did not mint simply fails the signature, so every
         # unowned case is verify_token's single AuthError.
         secret = _signing_secret(deps, key.project_id)
-        # Unreadable HERE is unverifiable THERE — the same collapse
+        # Unreadable HERE is unverifiable THERE: the same collapse
         # `require_user_token` makes. `_peek_project_id` bounds the length
         # and catches the RecursionError ~10,000 nested arrays raise (§4
         # #34); `tokens.verify_token` runs the same base64/JSON decode but
         # catches only ValueError, so bytes we refused to parse are handed
-        # on as the empty credential — also one plain AuthError. Without
+        # on as the empty credential: also one plain AuthError. Without
         # this, malformed input is an unformatted 500: a failure path on
         # this route that is trivially distinguishable from all the others.
         # The peek is a READABILITY gate only; it never selects the secret.
@@ -227,7 +227,7 @@ def router(deps: Deps) -> APIRouter:
         )
         if claims.project_id != key.project_id:
             # Only reachable for a token signed with THIS project's secret
-            # while claiming another's — i.e. one this caller minted the
+            # while claiming another's: i.e. one this caller minted the
             # hard way. `revocations` is not tenant-scoped, so accepting it
             # would let a caller revoke a jti belonging to a project they
             # cannot name. Same error, same message as every other refusal.
@@ -246,7 +246,7 @@ def router(deps: Deps) -> APIRouter:
 
     @api.get("/users")
     def list_users(request: Request) -> dict[str, Any]:
-        """This project's users in creation order — never another's."""
+        """This project's users in creation order, never another's."""
         key = require_api_key(deps, request, Scope.USERS_ADMIN)
         consume_quota(deps, key.project_id)
         users = [_user_wire(user) for user in deps.tenancy.users(key.project_id)]

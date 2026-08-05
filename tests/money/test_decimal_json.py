@@ -1,4 +1,4 @@
-"""Wire form for Quantity and Money — DECISIONS pinned algorithm.
+"""Wire form for Quantity and Money. DECISIONS pinned algorithm.
 
 These dicts are public stability guarantees (SPEC rule #3): golden vectors
 are hardcoded literals derived independently of the code under test.
@@ -104,7 +104,7 @@ def test_quantity_from_wire_rejects_json_integer_raw():
     ids=["underscore", "whitespace", "plus_sign", "newline", "arabic_indic", "decimal_point"],
 )
 def test_quantity_from_wire_rejects_non_strict_integer_strings(raw):
-    # The wire grammar is exactly -?[0-9]+ — everything int() tolerates
+    # The wire grammar is exactly -?[0-9]+: everything int() tolerates
     # beyond that (underscores, whitespace, '+', non-ASCII digits) is out.
     with pytest.raises(ValidationError):
         quantity_from_wire({"raw": raw, "decimals": 0})
@@ -213,7 +213,7 @@ def test_money_from_wire_rejects_invalid_currency():
     ],
 )
 def test_money_from_wire_rejects_non_strict_decimal_strings(amount):
-    # The wire grammar is exactly -?[0-9]+(\.[0-9]+)? — everything
+    # The wire grammar is exactly -?[0-9]+(\.[0-9]+)?: everything
     # Decimal() tolerates beyond that (underscores, whitespace, non-ASCII
     # digits, the non-finite specials, scientific notation) is out.
     with pytest.raises(ValidationError):

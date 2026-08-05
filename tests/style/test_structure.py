@@ -19,7 +19,7 @@ def _package_dirs() -> list[Path]:
 def test_flat_foundation_is_exactly_init_clock_config_errors():
     flat = {path.name for path in SRC.glob("*.py")}
     assert flat == FOUNDATION, (
-        "only the foundation may be flat under src/auradefi/ — "
+        "only the foundation may be flat under src/auradefi/: "
         f"unexpected: {sorted(flat - FOUNDATION)}, missing: {sorted(FOUNDATION - flat)}"
     )
 
@@ -40,7 +40,7 @@ def test_no_directory_exceeds_the_module_cap():
         if len(modules) > MAX_DIR_FILES:
             offenders.append(
                 f"{directory.relative_to(SRC.parent)}: {len(modules)} modules "
-                f"(cap {MAX_DIR_FILES} — grow a subfolder)"
+                f"(cap {MAX_DIR_FILES}: grow a subfolder)"
             )
     assert not offenders, "\n".join(offenders)
 
@@ -64,6 +64,6 @@ def test_domain_init_files_are_docstring_only():
         if real:
             offenders.append(str(init.relative_to(SRC.parent)))
     assert not offenders, (
-        "package __init__.py files are docstring-only (no re-exports — the "
+        "package __init__.py files are docstring-only (no re-exports: the "
         "concurrency and import-poisoning rule):\n" + "\n".join(offenders)
     )

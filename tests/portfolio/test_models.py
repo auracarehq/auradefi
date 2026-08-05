@@ -1,7 +1,7 @@
 """Holding and HoldingsReport (SPEC §3.1: Account → Holding[]).
 
 The assemble algorithm is pinned: total_value is the EXACT Decimal sum of
-priced values in USD — no rounding, no floats (SPEC rule #1). The golden
+priced values in USD, no rounding, no floats (SPEC rule #1). The golden
 addends here mirror the phase-1 gate cassette (tests/cassettes/
 phase1_vitalik.json): three position values summing to exactly
 18988784.99999872437900871726 USD. Every literal below was derived
@@ -170,7 +170,7 @@ def test_assemble_sums_priced_and_lists_unpriced():
 def test_assemble_golden_addends_match_phase_gate():
     # Mirrors tests/cassettes/phase1_vitalik.json. Derived independently:
     # at exponent -20 the coefficients sum to 1898878499999872437900871726,
-    # i.e. exactly 18988784.99999872437900871726 — inside 5% of the 19M
+    # i.e. exactly 18988784.99999872437900871726: inside 5% of the 19M
     # incumbent reference. A change in this number is a broken engine.
     holdings = [
         _priced(ETH, "17484023.75011947437900871726"),
@@ -200,7 +200,7 @@ def test_assemble_all_unpriced_totals_zero_usd():
 
 def test_assemble_is_exact_past_default_context_precision():
     # 32 significant digits per addend: a naive context sum (prec=28)
-    # yields 30000000000000.00000000000000 — rule #1's corrupted largest
+    # yields 30000000000000.00000000000000: rule #1's corrupted largest
     # balance. The pinned algorithm is the EXACT sum.
     holdings = [
         _priced(ETH, "10000000000000.000000000000000001"),
@@ -311,6 +311,6 @@ def test_module_imports_only_money_errors_and_stdlib():
         )
     )
     assert not offenders, (
-        "portfolio/models.py is PURE — auradefi.money, auradefi.errors and "
+        "portfolio/models.py is PURE: auradefi.money, auradefi.errors and "
         f"stdlib only, but it imports: {offenders}"
     )

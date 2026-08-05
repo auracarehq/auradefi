@@ -12,13 +12,13 @@ drains whatever is due through an INJECTED ``httpx.Client`` and returns:
 no threads, no sleeps, no read of the wall clock anywhere in this module.
 A cron host and a busy-loop host get identical, replayable behaviour, and
 tests fast-forward 24 hours in six calls. NO httpx exception escapes
-``tick`` — a refused connection is a recorded failed attempt, not an
+``tick``. A refused connection is a recorded failed attempt, not an
 exception that strands every other due delivery.
 
 Tenancy: every read and write is keyed by ``project_id`` first, and a row
 under another project is INDISTINGUISHABLE from one that never existed
 (``NotFoundError``, same message shape). :meth:`WebhookStore.due` is the
-single deliberately host-wide read — the deliverer is infrastructure, not
+single deliberately host-wide read. The deliverer is infrastructure, not
 a tenant.
 
 This is the only module in ``webhooks/`` that imports httpx.
@@ -69,7 +69,7 @@ def _new_delivery(
 class WebhookStore:
     """In-memory, project-keyed store of endpoints, events, deliveries.
 
-    All state lives in instance dicts — two stores never share state.
+    All state lives in instance dicts: two stores never share state.
     ``entropy`` is injectable exactly as in ``tenancy``'s stores and must
     mirror ``secrets.token_hex``: ``entropy(n)`` returns ``2n`` lowercase
     hex chars. An endpoint's signing secret is ``entropy(32)``.
@@ -96,11 +96,11 @@ class WebhookStore:
         entry of ``events`` passes ``models.parse_event_name``
         (``ValidationError``, nothing created); an EMPTY ``events``
         subscribes to all seven. ``id = models.endpoint_id(project_id,
-        url)``, ``created_at_ms = clock.now_ms()`` — registration is the
+        url)``, ``created_at_ms = clock.now_ms()``. Registration is the
         one call whose clock may be omitted (a host wiring endpoints from
         config at boot); everything time-sensitive demands one. The
         secret is ``entropy(32)``, returned here and readable only via
-        :meth:`endpoint_secret` — :class:`Endpoint` has no such field.
+        :meth:`endpoint_secret`. :Class:`Endpoint` has no such field.
 
         A repeat ``(project_id, url)`` raises ``ConflictError`` with
         ``existing_id`` set to the existing ``whe_`` id (§7.1's 409) and
@@ -131,7 +131,7 @@ class WebhookStore:
     def endpoints(self, project_id: str) -> tuple[models.Endpoint, ...]:
         """This project's endpoints in registration order; ``()`` if none.
 
-        An unknown project is not an error — this store holds no project
+        An unknown project is not an error. This store holds no project
         registry (``tenancy`` owns that).
         """
         return tuple(self._endpoints.get(project_id, {}).values())
@@ -272,7 +272,7 @@ class WebhookStore:
           ``delivered_at_ms = now_ms``, ``next_attempt_at_ms = None``;
         * failure with attempts left → still ``PENDING``,
           ``next_attempt_at_ms = models.due_at_ms(created_at_ms,
-          attempts)`` — an offset from CREATION, never from ``now_ms``;
+          attempts)``: an offset from CREATION, never from ``now_ms``;
         * failure at ``attempts == MAX_ATTEMPTS`` → ``DEAD_LETTER``,
           ``next_attempt_at_ms = None``.
 
@@ -312,7 +312,7 @@ class WebhookStore:
         that pair, so ``id = models.delivery_id(endpoint_id, event_id,
         ordinal)`` stays collision-free. The new row is PENDING,
         ``attempts = 0``, ``created_at_ms == next_attempt_at_ms ==
-        clock.now_ms()`` — the schedule restarts — and the ORIGINAL row
+        clock.now_ms()``, the schedule restarts, and the ORIGINAL row
         is left byte-for-byte untouched. Any status may be replayed.
         Unknown or cross-project id raises ``NotFoundError``. Public
         entry points live in :mod:`auradefi.webhooks.replay`.
@@ -347,9 +347,9 @@ class Deliverer:
 
         For each row of ``store.due(now_ms)``, in that order: body =
         ``models.delivery_body(event, delivery)``, signed as
-        ``sign.sign(secret, now_ms, body)`` — the signature timestamp is
+        ``sign.sign(secret, now_ms, body)``, the signature timestamp is
         ``now_ms``, so each attempt is fresh while the BODY stays
-        byte-identical — then ``client.post(endpoint.url,
+        byte-identical, then ``client.post(endpoint.url,
         content=body.encode("utf-8"), headers=...)`` carrying
         ``content-type: application/json``, ``X-Auradefi-Event``,
         ``X-Auradefi-Delivery``, ``X-Auradefi-Timestamp``
@@ -357,7 +357,7 @@ class Deliverer:
         re-serialising would break the signature. Finally
         ``store.record_attempt(...)`` with the status code, or with
         ``status_code=None, error=str(exc)`` for any
-        :data:`_CLIENT_ERRORS` — nothing propagates, one dead receiver
+        :data:`_CLIENT_ERRORS`: nothing propagates, one dead receiver
         must not stop the drain. Returns the updated rows in the order
         attempted, ``()`` when nothing is due (and then no request is
         made at all).

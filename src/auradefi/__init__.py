@@ -1,4 +1,4 @@
-"""auradefi — open-source multi-tenant crypto data aggregator.
+"""auradefi: open-source multi-tenant crypto data aggregator.
 
 Vezgo-style tenancy, DeBank-style DeFi position depth, Plaid wire format.
 Library first, service second: import this package directly; the HTTP API
@@ -14,7 +14,7 @@ __all__ = ["Auradefi", "__version__"]
 
 def __getattr__(name: str):
     # Lazy so `import auradefi` stays dependency-light (SPEC §8:
-    # import, don't call — the facade is the embedding entry point).
+    # import, don't call; the facade is the embedding entry point).
     if name == "Auradefi":
         from auradefi.embed.facade import Auradefi
 

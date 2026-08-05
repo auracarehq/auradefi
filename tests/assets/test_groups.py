@@ -1,4 +1,4 @@
-"""Asset groups with single fallback (SPEC §4.2) — golden-vector tests.
+"""Asset groups with single fallback (SPEC §4.2): golden-vector tests.
 
 Every ast_… and grp_… literal below was derived independently via
 ``python3 -c`` from the algorithms pinned in docs/internal/DECISIONS.md::
@@ -33,10 +33,10 @@ WBTC_ETH = "eip155:1/erc20:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
 BRIDGED_ETH = "eip155:1/erc20:0x0000000000000000000000000000000000000042"
 BRIDGED_POL = "eip155:137/erc20:0x0000000000000000000000000000000000000042"
 
-# Golden vectors — derived with python3 -c hashlib, hardcoded (rule #3).
-AST_USDC_ETH = "ast_a798531c7b37abe1"  # sha256(USDC_ETH) — matches test_models.py
+# Golden vectors: derived with python3 -c hashlib, hardcoded (rule #3).
+AST_USDC_ETH = "ast_a798531c7b37abe1"  # sha256(USDC_ETH): matches test_models.py
 AST_USDC_POL = "ast_1497f0dd93b859f6"  # sha256(USDC_POL)
-AST_ETH = "ast_ed0bcc482c2859ce"  # sha256(ETH_NATIVE) — matches test_models.py
+AST_ETH = "ast_ed0bcc482c2859ce"  # sha256(ETH_NATIVE): matches test_models.py
 AST_WBTC = "ast_6a0a857e5d8dd092"  # sha256(WBTC_ETH)
 AST_MIXED = "ast_9de52c8da87fa1b2"  # sha256(BRIDGED_ETH \n BRIDGED_POL)
 
@@ -93,7 +93,7 @@ def wbtc_asset():
 
 def mixed_decimals_asset():
     """One asset whose own implementations disagree on decimals (a real
-    bridged-asset situation — SPEC §4.2 says decimals live per-impl)."""
+    bridged-asset situation, SPEC §4.2 says decimals live per-impl)."""
     return _asset(
         "BRG",
         "Bridged Mixed",
@@ -232,7 +232,7 @@ def test_single_member_explicit_group_is_kind_group():
 
 def test_asset_claimed_by_two_explicit_groups_raises():
     # Both members share decimals=6 so the ONLY violation is the double
-    # claim — this must not be masked by the decimals law.
+    # claim. This must not be masked by the decimals law.
     usdc_e, usdc_p = usdc_eth_asset(), usdc_pol_asset()
     with pytest.raises(ValidationError):
         group_assets(

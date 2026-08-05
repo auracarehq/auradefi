@@ -1,8 +1,8 @@
-# conduit — an open-source, multi-tenant crypto data aggregator
+# conduit: an open-source, multi-tenant crypto data aggregator
 
 > Working name; check PyPI before committing. Python, no frontend.
 > This document becomes the repo's `docs/internal/SPEC.md`.
-> **Shipping name: `auradefi`** (decided 2026-08-02 — `conduit` is taken on PyPI; see `docs/internal/DECISIONS.md`).
+> **Shipping name: `auradefi`** (decided 2026-08-02, `conduit` is taken on PyPI; see `docs/internal/DECISIONS.md`).
 
 ---
 
@@ -22,19 +22,19 @@ Three of Zerion's seven migration targets died this quarter. Zerion is running a
 
 **The gap, stated precisely.** From the survey of DeBank, Zerion, CoinStats, Moralis, Alchemy, Vezgo, Allium and GoldRush:
 
-> Nothing represents "a person with five wallets, two exchanges and a hardware ledger". Only Vezgo's `loginName` → user token → `accountId` chain does that — and Vezgo has almost no DeFi depth. **That combination — Vezgo's identity model with DeBank's position depth — does not exist as a product.**
+> Nothing represents "a person with five wallets, two exchanges and a hardware ledger". Only Vezgo's `loginName` → user token → `accountId` chain does that, and Vezgo has almost no DeFi depth. **That combination, Vezgo's identity model with DeBank's position depth, does not exist as a product.**
 
 Every onchain-native API (DeBank, Zerion, Moralis, Alchemy, GoldRush, Allium, the late Dune SIM) takes a **raw address per call** and stores nothing. That single choice forecloses cost basis, CEX aggregation, and any notion of "this user". Meanwhile the one vendor with a real tenancy model gates its own address endpoint behind Enterprise and caps free history at 30 days.
 
-**What we build:** the tenancy model of Vezgo, the position depth of DeBank/Allium, the transaction decomposition of Zerion, the adapter economics of LlamaFolio, and **Plaid's wire format** — so crypto merges with Plaid bank and exchange data in one schema downstream.
+**What we build:** the tenancy model of Vezgo, the position depth of DeBank/Allium, the transaction decomposition of Zerion, the adapter economics of LlamaFolio, and **Plaid's wire format**, so crypto merges with Plaid bank and exchange data in one schema downstream.
 
 ### 1.1 Licence position
 
 | Source | Licence | What we may do |
 |---|---|---|
-| **rotki** | AGPLv3 | **Read for architecture only. Copy nothing.** Clean-room. AGPL §13 triggers on network use — fatal for a hosted product. |
-| **LlamaFolio** | GPL-3.0 | Read for design. Don't copy — GPL is inherited on distribution. |
-| **Zapper Studio** | **BUSL-1.1 → MIT** | Change Date was **2024-04-20** and has passed; by the licence's own terms every published version is now MIT. Note `package.json` says MIT and GitHub reports `NOASSERTION` — **the `LICENSE` file governs**. Attribution required if lifted. |
+| **rotki** | AGPLv3 | **Read for architecture only. Copy nothing.** Clean-room. AGPL §13 triggers on network use: fatal for a hosted product. |
+| **LlamaFolio** | GPL-3.0 | Read for design. Don't copy. GPL is inherited on distribution. |
+| **Zapper Studio** | **BUSL-1.1 → MIT** | Change Date was **2024-04-20** and has passed; by the licence's own terms every published version is now MIT. Note `package.json` says MIT and GitHub reports `NOASSERTION`: **the `LICENSE` file governs**. Attribution required if lifted. |
 
 **Ship Apache-2.0.** Maximises adapter contributions, adds a patent grant. Zapper's own post-mortem is the argument: BUSL with `Additional Use Grant: none` bought them nothing and cost them the ecosystem that would have shared the maintenance burden. Contributors who cannot *run* the thing do not maintain it.
 
@@ -46,14 +46,14 @@ Each is a one-line rule with a named casualty.
 
 | # | Rule | Why |
 |---|---|---|
-| 1 | **Money is a tagged decimal string.** `{"amount": "-741.027368947745798389", "currency": "USD"}` | Allium's best idea. Sim, GoldRush, OneBalance and **Plaid itself** put fiat in JSON doubles. Plaid's `quantity`/`amount`/`price` are `format: double` — ~15–17 significant digits against 18-decimal tokens. Silently corrupts exactly the largest balances. |
+| 1 | **Money is a tagged decimal string.** `{"amount": "-741.027368947745798389", "currency": "USD"}` | Allium's best idea. Sim, GoldRush, OneBalance and **Plaid itself** put fiat in JSON doubles. Plaid's `quantity`/`amount`/`price` are `format: double`: ~15–17 significant digits against 18-decimal tokens. Silently corrupts exactly the largest balances. |
 | 2 | **Never emit a JSON integer for a raw amount.** | Allium ships `raw_balance` (integer) beside `raw_balance_str`. Any wei-scale value is past `Number.MAX_SAFE_INTEGER` before it reaches a client. |
-| 3 | **Asset IDs are deterministic CAIP-19 and permanently stable.** | Zerion's docs say verbatim: *"There is a non-zero probability that IDs may change in the future."* Disqualifying for anyone persisting portfolio history — and free to beat. |
+| 3 | **Asset IDs are deterministic CAIP-19 and permanently stable.** | Zerion's docs say verbatim: *"There is a non-zero probability that IDs may change in the future."* Disqualifying for anyone persisting portfolio history, and free to beat. |
 | 4 | **Every movement is a `part`. No exceptions for EVM.** | Vezgo's deepest flaw: on EVM/Solana, `parts[]` holds only the native asset; ERC-20 movements hide in `misc.tokenTransfers[]`, which is **not in their OpenAPI spec**, uses a different vocabulary, and carries **numeric, negative-when-sent** amounts. Their normalised model stops applying on exactly the chains that matter. |
 | 5 | **Golden fixture tests pinned to a block height, per adapter.** | LlamaFolio: **zero** `.test.ts` files in 3,422. Zapper Studio: 3 test files across 1,010 fetchers, none checking a number, typecheck disabled in CI. Both issue trackers are wall-to-wall silent wrongness. The clearest cause of death. |
 | 6 | **Multi-tenancy is designed in, never retrofitted.** | rotki's maintainers' own position: one container per user. A process-singleton orchestrator plus password-derived SQLCipher is a rewrite, not a patch. |
-| 7 | **Version the decoder; expose reprocess.** | Vezgo has no re-decode path — improving your decoder doesn't improve stored rows. Their answer is "delete the connection (all ids change) or email us." |
-| 8 | **Signed webhooks with durable delivery from day one.** | Vezgo authenticates webhooks by **source-IP allowlist** — unusable behind most PaaS ingress. Zerion retries 3× over ~60s then drops permanently, and requires **manual human whitelisting** of each callback URL. |
+| 7 | **Version the decoder; expose reprocess.** | Vezgo has no re-decode path: improving your decoder doesn't improve stored rows. Their answer is "delete the connection (all ids change) or email us." |
+| 8 | **Signed webhooks with durable delivery from day one.** | Vezgo authenticates webhooks by **source-IP allowlist**: unusable behind most PaaS ingress. Zerion retries 3× over ~60s then drops permanently, and requires **manual human whitelisting** of each callback URL. |
 | 9 | **Return the liquidity number, not just a spam boolean.** | The threshold is a product decision, not a vendor decision. Sim gives `pool_size` + `low_liquidity`; Allium gives `total_liquidity_usd`. |
 | 10 | **Publish a per-capability coverage matrix as data.** | Zerion's guides all say "60+ EVM chains"; their supported-blockchains page lists **39**, with DeFi on ~24 and NFTs on ~22. Honest coverage is cheap and is a direct credibility differentiator. |
 | 11 | **Library first, service second.** The HTTP API is a thin shell over an importable core. | Every incumbent is a hosted API you can only reach over the wire. A Python host with its own backend should `import conduit` and pay no serialisation or network cost. This also forces the core to stay free of web-framework assumptions. |
@@ -65,7 +65,7 @@ Each is a one-line rule with a named casualty.
 
 ### 3.1 The object graph
 
-Reconciling Vezgo's model with Plaid's — they line up almost exactly, which is the load-bearing insight of this design:
+Reconciling Vezgo's model with Plaid's: they line up almost exactly, which is the load-bearing insight of this design:
 
 ```
 Organisation                    (billing + quota boundary)
@@ -82,16 +82,16 @@ Organisation                    (billing + quota boundary)
 
 **Vezgo's `Account` is Plaid's `Item`; Vezgo's `wallet` is Plaid's `Account`.** Once you see that, the two models are the same model. An xpub connection yields one Account; an EVM address connection yields one Account per chain, exactly as Plaid's Item→accounts 1:n relation intends.
 
-Plaid already sanctions all of this: `institution_id` is **nullable** — documented as null *"for non-institution Items"* — and there are two crypto subtypes under `type: investment`:
+Plaid already sanctions all of this: `institution_id` is **nullable**, documented as null *"for non-institution Items"*, and there are two crypto subtypes under `type: investment`:
 
-- **`crypto exchange`** — *"Standard cryptocurrency exchange account"*
-- **`non-custodial wallet`** — *"A cryptocurrency wallet where the user controls the private key"*
+- **`crypto exchange`**, *"Standard cryptocurrency exchange account"*
+- **`non-custodial wallet`**, *"A cryptocurrency wallet where the user controls the private key"*
 
 Plaid made the modelling decision for us. **Use `type: investment` for every wallet, never `depository`.**
 
 ### 3.2 Package layout (CUPID / UNIX)
 
-Domains are packages. Files target 300 lines, 400 hard. No directory holds more than 10 non-`__init__` modules — past that it grows subfolders. Tests mirror the source tree exactly.
+Domains are packages. Files target 300 lines, 400 hard. No directory holds more than 10 non-`__init__` modules: past that it grows subfolders. Tests mirror the source tree exactly.
 
 ```
 src/auradefi/
@@ -143,10 +143,10 @@ tests/
 ```
 
 **Style gates** (`tests/style/`):
-- `test_size.py` — 300 soft / **400 hard, no allowlist**
-- `test_structure.py` — foundation modules asserted with `==`; every domain is a package; `MAX_DIR_FILES = 10`
-- `test_placement.py` — table definitions only in a `models.py`; tests mirror source
-- `test_layering.py` — **the important one.** `sources/` may not import `positions/`; `assets/` may not import `prices/`; `project/` may not import anything with I/O; **nothing outside `api/` may import a web framework, and nothing outside `ledger/backends/` may import an ORM.** The dependency graph is acyclic and enforced.
+- `test_size.py`, 300 soft / **400 hard, no allowlist**
+- `test_structure.py`, foundation modules asserted with `==`; every domain is a package; `MAX_DIR_FILES = 10`
+- `test_placement.py`, table definitions only in a `models.py`; tests mirror source
+- `test_layering.py`, **the important one.** `sources/` may not import `positions/`; `assets/` may not import `prices/`; `project/` may not import anything with I/O; **nothing outside `api/` may import a web framework, and nothing outside `ledger/backends/` may import an ORM.** The dependency graph is acyclic and enforced.
 
 That last gate is what makes rule #11 and #12 true rather than aspirational.
 
@@ -178,7 +178,7 @@ Two types, both immutable, both string-serialised. Rules #1 and #2 made concrete
 ```python
 @dataclass(frozen=True, slots=True)
 class Quantity:
-    raw: int          # base units. Python int — arbitrary precision, no ceiling.
+    raw: int          # base units. Python int: arbitrary precision, no ceiling.
     decimals: int
 
     def as_decimal(self) -> Decimal: ...
@@ -202,7 +202,7 @@ Wire form, borrowing Zerion's four-field shape (raw for arithmetic, float for di
 
 > Zerion's `float` legitimately differs from `raw / 10^decimals` for Solana Token-2022 ScaledUiAmount tokens. Handle it in `chains/solana.py`; don't assume the identity holds.
 
-### 4.2 Asset identity — CAIP-19, deterministic and stable
+### 4.2 Asset identity: CAIP-19, deterministic and stable
 
 ```
 eip155:1/erc20:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48    USDC on Ethereum
@@ -211,7 +211,7 @@ bip122:000000000019d6689c085ae165831e93/slip44:0             BTC
 solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp/token:EPjFWdd5…      USDC on Solana
 ```
 
-No `0xeeee…`/`0x0`/`"native"` sentinel zoo — every surveyed vendor invented a different one. CAIP-2 chain ids mean no `eth-mainnet` (GoldRush) vs `ethereum` (Allium) vs `1` (Dune SIM) translation table.
+No `0xeeee…`/`0x0`/`"native"` sentinel zoo: every surveyed vendor invented a different one. CAIP-2 chain ids mean no `eth-mainnet` (GoldRush) vs `ethereum` (Allium) vs `1` (Dune SIM) translation table.
 
 **Chain-agnostic asset with per-chain implementations** (Zerion's best structural idea):
 
@@ -220,7 +220,7 @@ class Asset:            # "USDC", chain-agnostic
     id: str             # deterministic: hash over the sorted implementation set
     symbol: str; name: str; icon: str | None
     implementations: list[Implementation]
-    external_ids: dict[str, str]      # coingecko, cmc — Vezgo ships none, everyone rebuilds it
+    external_ids: dict[str, str]      # coingecko, cmc: Vezgo ships none, everyone rebuilds it
     asset_class: AssetClass
     flags: AssetFlags
 
@@ -233,26 +233,26 @@ class Implementation:
 
 Consequence to hold onto: **you cannot format an amount without knowing which chain it is on.** That is correct, and it is why `decimals` travels inside `Quantity`.
 
-Addressable **both ways**, on every filter — by canonical id or by `chain:address`. Zerion does this and it is why their filters are usable.
+Addressable **both ways**, on every filter: by canonical id or by `chain:address`. Zerion does this and it is why their filters are usable.
 
-`AssetClass` — one enum spanning families, after Allium's polymorphic token `type`:
+`AssetClass`: one enum spanning families, after Allium's polymorphic token `type`:
 `native | token | stablecoin | lp_token | receipt_token | debt_token | vault_share | nft | wrapped | derivative | perp`
 
-**Asset groups** (OneBalance's `ob:usdc`): one "USDC" row across seven chains, with per-chain breakdown underneath, and an explicit `single` fallback bucket so nothing falls out of the model. Aggregation is only sound when implementations share `decimals` — enforce that. Zerion punts this to the client; doing it server-side is a real differentiator.
+**Asset groups** (OneBalance's `ob:usdc`): one "USDC" row across seven chains, with per-chain breakdown underneath, and an explicit `single` fallback bucket so nothing falls out of the model. Aggregation is only sound when implementations share `decimals`: enforce that. Zerion punts this to the client; doing it server-side is a real differentiator.
 
-**Spam** (rotki's layered model, plus rule #9): heuristic score → distributed marks → per-user ignore list → **per-user whitelist for false positives**. Ship `liquidity_usd` and `holder_count` as numbers alongside `is_spam` so the consumer picks the threshold. rotki's scar: a transient source failure once wiped previously-detected tokens — make detection additive, never destructive.
+**Spam** (rotki's layered model, plus rule #9): heuristic score → distributed marks → per-user ignore list → **per-user whitelist for false positives**. Ship `liquidity_usd` and `holder_count` as numbers alongside `is_spam` so the consumer picks the threshold. rotki's scar: a transient source failure once wiped previously-detected tokens. Make detection additive, never destructive.
 
 ### 4.3 Positions
 
 Zapper Studio's ontology is the crown jewel and it survives its author:
 
-**AppToken** — the position *is* a fungible token (aToken, cToken, stETH, UNI-V2 LP, ERC-4626 share). It has a price, a supply, and a `price_per_share`. Because it is priceable, **it composes**: a Curve LP inside a Convex wrapper inside a vault resolves transitively without every integrator re-deriving it.
+**AppToken**. The position *is* a fungible token (aToken, cToken, stETH, UNI-V2 LP, ERC-4626 share). It has a price, a supply, and a `price_per_share`. Because it is priceable, **it composes**: a Curve LP inside a Convex wrapper inside a vault resolves transitively without every integrator re-deriving it.
 
-**ContractPosition** — a leaf. Not tokenised, so no price, no supply, no decimals. It can only be *valued*, per address, by summing its constituent token balances. Zapper's rule of thumb: if you cannot add it to MetaMask, it is a contract position.
+**ContractPosition**: a leaf. Not tokenised, so no price, no supply, no decimals. It can only be *valued*, per address, by summing its constituent token balances. Zapper's rule of thumb: if you cannot add it to MetaMask, it is a contract position.
 
-The asymmetry drives pricing, caching and the balance pipeline. Note the Aave case: supply positions are AppTokens, Compound *borrow* positions are ContractPositions — one protocol splits across both.
+The asymmetry drives pricing, caching and the balance pipeline. Note the Aave case: supply positions are AppTokens, Compound *borrow* positions are ContractPositions: one protocol splits across both.
 
-**MetaType** on each underlying token — one small enum that removes the need for per-protocol schemas, and yields debt sign for free:
+**MetaType** on each underlying token: one small enum that removes the need for per-protocol schemas, and yields debt sign for free:
 
 ```python
 class MetaType(StrEnum):
@@ -264,18 +264,18 @@ class MetaType(StrEnum):
 
 **Two orthogonal classification axes** (Zerion), genuinely better than one flat enum:
 
-- `position_type` — what state the asset is in: `wallet | deposit | loan | locked | staked | reward | investment`
-- `protocol_module` — where in the protocol: `lending | liquidity_pool | yield | farming | staked | leveraged_farming | vesting | rewards | locked | nft_staked | deposit | investment`
+- `position_type`, what state the asset is in: `wallet | deposit | loan | locked | staked | reward | investment`
+- `protocol_module`, where in the protocol: `lending | liquidity_pool | yield | farming | staked | leveraged_farming | vesting | rewards | locked | nft_staked | deposit | investment`
 
 Aave supply = `lending` + `deposit`. Aave borrow = `lending` + `loan`.
 
 **Fix Zerion's two defects:**
 1. **Signed values.** Zerion returns debt as a *positive* `value` on a `loan` row and never says whether the total nets it. Return signed values plus an explicit triple: `gross_assets`, `total_debt`, `net_worth`.
-2. **Group totals.** Zerion returns LP legs as separate rows sharing `group_id` with **no per-group total** — the consumer must group and sum. Ship `PositionGroup` with `total_value`, `health_factor`, `ltv`, `liquidation_price` on the group, after Allium and DeBank's `health_rate`. LlamaFolio had the right instinct: a group is a **risk unit**, not a display unit.
+2. **Group totals.** Zerion returns LP legs as separate rows sharing `group_id` with **no per-group total**. The consumer must group and sum. Ship `PositionGroup` with `total_value`, `health_factor`, `ltv`, `liquidation_price` on the group, after Allium and DeBank's `health_rate`. LlamaFolio had the right instinct: a group is a **risk unit**, not a display unit.
 
-Also carry, because Zerion admits it lacks all of these: `apy` (explicitly typed — APR vs APY, gross vs net, source, staleness — not Zapper's untyped `apy: number`), and for concentrated liquidity `tick_lower`, `tick_upper`, `in_range`, `unclaimed_fees`.
+Also carry, because Zerion admits it lacks all of these: `apy` (explicitly typed, APR vs APY, gross vs net, source, staleness, not Zapper's untyped `apy: number`), and for concentrated liquidity `tick_lower`, `tick_upper`, `in_range`, `unclaimed_fees`.
 
-**Vault shares are valued by redemption, not by price feed** — call `previewRedeem`/`convertToAssets`. Quote what the user would actually get out.
+**Vault shares are valued by redemption, not by price feed**: call `previewRedeem`/`convertToAssets`. Quote what the user would actually get out.
 
 ### 4.4 Transactions
 
@@ -315,13 +315,13 @@ class Part:
 
 Three things this gets right that the incumbents don't:
 
-**Fees are siblings, never movements.** They can never corrupt the trade legs. `fee.act_id` attributes a fee to a leg. Gas is denominated in a *different asset* than the trade (ETH for a USDC transfer), sometimes paid to a paymaster in a third asset, sometimes charged on a *failed* transaction that moved nothing — Plaid's single nullable `fees: double` cannot express any of that. Mark network fees on *inbound* transfers `borne_by: "counterparty"` so naïve summing doesn't over-count; Vezgo gets this wrong.
+**Fees are siblings, never movements.** They can never corrupt the trade legs. `fee.act_id` attributes a fee to a leg. Gas is denominated in a *different asset* than the trade (ETH for a USDC transfer), sometimes paid to a paymaster in a third asset, sometimes charged on a *failed* transaction that moved nothing. Plaid's single nullable `fees: double` cannot express any of that. Mark network fees on *inbound* transfers `borne_by: "counterparty"` so naïve summing doesn't over-count; Vezgo gets this wrong.
 
-**`acts[]` with `act_id` back-references** (Zerion's best idea, nearly unique to them). A real transaction often does several things — a multicall that swaps *and* claims *and* pays a UI fee. One top-level `type` cannot express it. A two-level tree flattened into parallel arrays handles ERC-4337 bundles, Solana Jito tips, and multicalls cleanly. It also **solves Plaid's swap problem natively** — Plaid's `InvestmentTransaction` has exactly one `security_id`, so a swap must become two unlinkable rows; acts give the linkage for free.
+**`acts[]` with `act_id` back-references** (Zerion's best idea, nearly unique to them). A real transaction often does several things: a multicall that swaps *and* claims *and* pays a UI fee. One top-level `type` cannot express it. A two-level tree flattened into parallel arrays handles ERC-4337 bundles, Solana Jito tips, and multicalls cleanly. It also **solves Plaid's swap problem natively**. Plaid's `InvestmentTransaction` has exactly one `security_id`, so a swap must become two unlinkable rows; acts give the linkage for free.
 
 **Staking as a trade into a synthetic asset** (Vezgo, genuinely clever): `ETH` → `ETH.staked`. No new primitives, and staked balances fall out of the normal balance path.
 
-`TxSubtype` covers what Vezgo refuses to normalise — they surface a DEX swap as `misc.isSwap: true`, *a boolean in an unstructured object*: `swap | lp_add | lp_remove | borrow | repay | liquidation | bridge_in | bridge_out | claim | approve | revoke | stake | unstake | nft_mint | nft_purchase | nft_sale | airdrop | reward | fee | …`
+`TxSubtype` covers what Vezgo refuses to normalise: they surface a DEX swap as `misc.isSwap: true`, *a boolean in an unstructured object*: `swap | lp_add | lp_remove | borrow | repay | liquidation | bridge_in | bridge_out | claim | approve | revoke | stake | unstake | nft_mint | nft_purchase | nft_sale | airdrop | reward | fee | …`
 
 **`data_quality` is a first-class field**, expanding Vezgo's `misc.incomplete[]` (which almost nobody ships and which is a genuinely good idea):
 
@@ -333,11 +333,11 @@ class DataQuality:
     sources: list[str]
 ```
 
-`status` must be **real**, not permanently null. Vezgo ships six always-null fields in its public contract, including `transaction.status` — so you cannot tell pending from confirmed except by inferring from `confirmed_at`.
+`status` must be **real**, not permanently null. Vezgo ships six always-null fields in its public contract, including `transaction.status`, so you cannot tell pending from confirmed except by inferring from `confirmed_at`.
 
 ### 4.5 The decoder
 
-rotki's architecture is the reference, and it is a **rule registry over receipt logs** — not a generic ABI decoder, not a trace differ.
+rotki's architecture is the reference, and it is a **rule registry over receipt logs**, not a generic ABI decoder, not a trace differ.
 
 Pipeline: `raw tx → gas + internal txs → per-log dispatch → enrich → post-decode → swap reconstruction → Transaction`.
 
@@ -345,7 +345,7 @@ A protocol decoder contributes dispatch tables, assembled once at startup:
 
 | Hook | Purpose |
 |---|---|
-| `counterparties()` | declares protocol identities this module owns — **required** |
+| `counterparties()` | declares protocol identities this module owns: **required** |
 | `addresses_to_decoders()` | contract address ⇒ handler. Primary dispatch. |
 | `decoding_by_input_data()` | 4-byte selector → topic → handler, for factory-deployed contracts |
 | `enricher_rules()` | run over *already decoded* plain transfers to re-label them |
@@ -357,13 +357,13 @@ Two mechanisms worth lifting outright:
 
 **Enrichers.** How one plain ERC-20 Transfer becomes "Deposit into Aave" *after the fact*.
 
-**Registration is explicit, not filename magic.** Zapper's `@PositionTemplate()` decorator read the **call stack** to derive identity from the file path, and swallowed failures in a bare `catch { console.error(e) }` — a mis-named file silently produced a fetcher with `appId === undefined`. Declare registration in code.
+**Registration is explicit, not filename magic.** Zapper's `@PositionTemplate()` decorator read the **call stack** to derive identity from the file path, and swallowed failures in a bare `catch { console.error(e) }`: a mis-named file silently produced a fetcher with `appId === undefined`. Declare registration in code.
 
-**Zapper's own conclusion deserves a hearing.** After archiving Studio they pivoted to *event interpretation*: one community template describes **~10,000 transactions** (their figure), versus one adapter per protocol per chain. That is a far better leverage ratio, and it is the clearest signal anyone has about the adapter model's economics. Our `decode/` layer is event-interpretation-shaped and `positions/` is adapter-shaped — **watch which one earns its keep**, and let the ratio decide.
+**Zapper's own conclusion deserves a hearing.** After archiving Studio they pivoted to *event interpretation*: one community template describes **~10,000 transactions** (their figure), versus one adapter per protocol per chain. That is a far better leverage ratio, and it is the clearest signal anyone has about the adapter model's economics. Our `decode/` layer is event-interpretation-shaped and `positions/` is adapter-shaped: **watch which one earns its keep**, and let the ratio decide.
 
 ---
 
-## 5. Position discovery — the scaling problem
+## 5. Position discovery: the scaling problem
 
 This is where the money goes, and it is the reason both predecessors died.
 
@@ -375,9 +375,9 @@ This is where the money goes, and it is the reason both predecessors died.
 | Knows the address? | **No** | Yes |
 | Output | static contract descriptors, persisted | amounts attached to those descriptors |
 
-The expensive part — enumerate 1,000+ Uniswap pairs, read reserves, resolve underlyings, price them — **does not depend on the address at all**. Zapper reached the same conclusion independently and cached position discovery on a 45-second refresh-ahead interval, explicitly to avoid a thundering herd.
+The expensive part, enumerate 1,000+ Uniswap pairs, read reserves, resolve underlyings, price them, **does not depend on the address at all**. Zapper reached the same conclusion independently and cached position discovery on a 45-second refresh-ahead interval, explicitly to avoid a thundering herd.
 
-### 5.2 Pre-filtering by interaction — the cost centre, stated honestly
+### 5.2 Pre-filtering by interaction: the cost centre, stated honestly
 
 **Only adapters whose contracts the user has actually touched are run.** An interaction is: the account sent a transaction to the contract, **or** received the token via a `Transfer` event.
 
@@ -387,11 +387,11 @@ LlamaFolio's query joins its contract table against a materialized view over tok
 
 Three options, ascending in cost and independence:
 
-1. **Explorer `txlist` + `tokentx` per address** — cheap, no infrastructure, works today. Derive the touched-contract set from the address's own history. Bounded by explorer page limits.
-2. **A `Transfer`-log index we run** — Postgres, one table, `(chain, contract, holder)`. Backfilled from logs. The real answer, and the largest single infrastructure line item.
-3. **Skip discovery, run every adapter** — viable only while adapter count is small. Honest starting point; must be measured, not assumed.
+1. **Explorer `txlist` + `tokentx` per address**. Cheap, no infrastructure, works today. Derive the touched-contract set from the address's own history. Bounded by explorer page limits.
+2. **A `Transfer`-log index we run**. Postgres, one table, `(chain, contract, holder)`. Backfilled from logs. The real answer, and the largest single infrastructure line item.
+3. **Skip discovery, run every adapter**. Viable only while adapter count is small. Honest starting point; must be measured, not assumed.
 
-**Ship option 1, instrument it, and let the numbers decide when option 2 is due.** Publish the finding — nobody else has.
+**Ship option 1, instrument it, and let the numbers decide when option 2 is due.** Publish the finding. Nobody else has.
 
 ### 5.3 Batching and the read/write split
 
@@ -411,20 +411,20 @@ Zapper's public API worked exactly this way and was candid about the cost: *"Cac
 
 ### 5.4 The adapter contract
 
-The bar is LlamaFolio's claim that most adapters take **under an hour**. What makes that true is not the interface — it is the fork helpers. `lib/uniswap_v2.py`, `lib/masterchef.py`, `lib/erc4626.py`, `lib/aave_v2.py`, `lib/compound_v2.py`, `lib/curve.py`. Zapper's *entire* production Uniswap V2 integration was 15 lines and **zero methods** — a subclass setting `factory_address`, `subgraph_url`, and a label. Aim there.
+The bar is LlamaFolio's claim that most adapters take **under an hour**. What makes that true is not the interface. It is the fork helpers. `lib/uniswap_v2.py`, `lib/masterchef.py`, `lib/erc4626.py`, `lib/aave_v2.py`, `lib/compound_v2.py`, `lib/curve.py`. Zapper's *entire* production Uniswap V2 integration was 15 lines and **zero methods**: a subclass setting `factory_address`, `subgraph_url`, and a label. Aim there.
 
 ```python
 class PositionAdapter(Protocol):
-    id: str                                  # DefiLlama protocol slug — the join key
+    id: str                                  # DefiLlama protocol slug: the join key
     chains: frozenset[str]
 
     def discover(self, ctx: DiscoveryContext) -> ContractSet: ...
     def resolve(self, ctx: ResolveContext, contracts: ContractSet) -> list[Position]: ...
 ```
 
-`ContractSet` arrives at `resolve()` **partially populated or empty** — that is the whole point of pre-filtering. A resolver that raises is caught, logged, and drops only its own slice.
+`ContractSet` arrives at `resolve()` **partially populated or empty**. That is the whole point of pre-filtering. A resolver that raises is caught, logged, and drops only its own slice.
 
-**Two lessons from Zapper's abstraction graveyard:** `Erc4626VaultTemplate` was built and **never adopted by a single app** — most vault integrations predated the standard. Build the abstraction when the third caller shows up, not the first. And don't commit generated bindings: roughly half of Studio's 2,742 files were machine-written code under human review.
+**Two lessons from Zapper's abstraction graveyard:** `Erc4626VaultTemplate` was built and **never adopted by a single app**: most vault integrations predated the standard. Build the abstraction when the third caller shows up, not the first. And don't commit generated bindings: roughly half of Studio's 2,742 files were machine-written code under human review.
 
 ---
 
@@ -434,13 +434,13 @@ class PositionAdapter(Protocol):
 
 | Projection | For |
 |---|---|
-| `native.py` | The full model — positions with groups, acts, data quality. Richest. |
+| `native.py` | The full model: positions with groups, acts, data quality. Richest. |
 | `plaid.py` | Plaid-compatible, so crypto merges with bank/exchange data downstream. |
 | `scalar.py` | `(metric, timestamp, float)` triples for hosts with a scalar metrics pipeline (§8). |
 
-### 6.1 The sign convention — get this wrong and nothing errors
+### 6.1 The sign convention: get this wrong and nothing errors
 
-> **"Positive values when money moves out of the account; negative values when money moves in."** — Plaid docs, verbatim
+> **"Positive values when money moves out of the account; negative values when money moves in."**. Plaid docs, verbatim
 
 Inverted relative to almost every accounting system. Consistent across `/transactions` and `/investments`. A consumer merging our rows with Plaid's under the wrong convention **silently double-counts net worth**. One contract test exists solely for this.
 
@@ -453,15 +453,15 @@ Inverted relative to almost every accounting system. Consistent across `/transac
 | Asset | `Security{type: "cryptocurrency", subtype: "cryptocurrency"}` |
 | Holding | `Holding{quantity, institution_price, institution_value, cost_basis, tax_lots[]}` |
 | Transaction | `InvestmentTransaction{type, subtype}` |
-| Part (direction out) | `type: transfer, subtype: send` — Plaid: *"Inflow or outflow of fiat or cryptocurrency to an address or email"* |
-| Swap | `type: transfer, subtype: trade` — *"Trade of one cryptocurrency for another"* |
+| Part (direction out) | `type: transfer, subtype: send`, Plaid: *"Inflow or outflow of fiat or cryptocurrency to an address or email"* |
+| Swap | `type: transfer, subtype: trade`, *"Trade of one cryptocurrency for another"* |
 | Position | `crypto_positions[]` (extension) **+** synthetic Holdings |
 
-Plaid prices crypto securities intra-day and says so on `close_price` — *"If the security is a cryptocurrency, this field will be updated multiple times a day"* — unlike equities. Their own sandbox ships a `"Plaid Crypto Exchange Account"` holding DOGE.
+Plaid prices crypto securities intra-day and says so on `close_price`, *"If the security is a cryptocurrency, this field will be updated multiple times a day"*, unlike equities. Their own sandbox ships a `"Plaid Crypto Exchange Account"` holding DOGE.
 
 ### 6.3 Where Plaid breaks, and the minimal fix
 
-**`unofficial_currency_code` is a closed 23-value list frozen circa 2018** — `BTC ETH USDT ADA XRP DOGE …` and no `USDC`, `SOL`, `MATIC`, `AVAX`, `ARB`, `stETH`, `WBTC`. You therefore *cannot* denominate a value field in most crypto assets. The only compliant move is to price everything in `iso_currency_code: "USD"` and carry the crypto denomination on the Security.
+**`unofficial_currency_code` is a closed 23-value list frozen circa 2018**. `BTC ETH USDT ADA XRP DOGE …` and no `USDC`, `SOL`, `MATIC`, `AVAX`, `ARB`, `stETH`, `WBTC`. You therefore *cannot* denominate a value field in most crypto assets. The only compliant move is to price everything in `iso_currency_code: "USD"` and carry the crypto denomination on the Security.
 
 > **Consequence: being Plaid-shaped forces us to own a price oracle.** That is the largest hidden cost in this design. Budget for it.
 
@@ -490,22 +490,22 @@ investment_transaction.crypto = {
                                                   //    report is wrong
 ```
 
-Plus a **new top-level `crypto_positions[]`** — do not bend `Holding` into a DeFi position; you end up with a schema that is neither Plaid-compatible nor DeFi-correct.
+Plus a **new top-level `crypto_positions[]`**. Do not bend `Holding` into a DeFi position; you end up with a schema that is neither Plaid-compatible nor DeFi-correct.
 
-**The projection invariant, with a test:** an Aave position supplying 10 ETH and borrowing 5,000 USDC emits two synthetic Holdings — `+10 ETH` and a **negative-quantity** USDC Holding. A Plaid-only client sums `institution_value` and gets the right net worth. Negative `quantity` mildly extends Plaid's semantics; it is the only way to make the naive sum correct, it is consistent with `tax_lots[].position_type: SHORT`, and it must be documented loudly.
+**The projection invariant, with a test:** an Aave position supplying 10 ETH and borrowing 5,000 USDC emits two synthetic Holdings. `+10 ETH` and a **negative-quantity** USDC Holding. A Plaid-only client sums `institution_value` and gets the right net worth. Negative `quantity` mildly extends Plaid's semantics; it is the only way to make the naive sum correct, it is consistent with `tax_lots[].position_type: SHORT`, and it must be documented loudly.
 
 Mint synthetic institutions (`ins_crypto_ethereum`, `ins_crypto_base`) so nothing downstream sees a null; keep `institution_id: null` only for genuinely ad-hoc watched addresses, which Plaid's docs already sanction.
 
-### 6.4 `/crypto/sync` — the endpoint Plaid doesn't have
+### 6.4 `/crypto/sync`: the endpoint Plaid doesn't have
 
-Plaid gives cursor sync to `/transactions` (bank) and **nothing to `/investments`** — where crypto lives. Build it, in exactly Plaid's envelope:
+Plaid gives cursor sync to `/transactions` (bank) and **nothing to `/investments`**. Where crypto lives. Build it, in exactly Plaid's envelope:
 
 ```json
 { "added": [...], "modified": [...], "removed": [{"transaction_id","account_id"}],
   "next_cursor": "...", "has_more": true }
 ```
 
-Keep both of Plaid's hard rules: **order every array by ascending last-modified time** (not by transaction date — that is what lets a two-year-old row reappear in `modified`), and require the client to page until `has_more == false` before persisting the cursor.
+Keep both of Plaid's hard rules: **order every array by ascending last-modified time** (not by transaction date, that is what lets a two-year-old row reappear in `modified`), and require the client to page until `has_more == false` before persisting the cursor.
 
 **This is why the model fits crypto so well: a chain reorg is `removed` + re-`added`.** A last-modified-ordered cursor is precisely the primitive for a ledger that can rewrite its own history. Zerion re-delivers reorged transactions with `deleted: true`; we make it a first-class event rather than a magic boolean.
 
@@ -515,15 +515,15 @@ Keep both of Plaid's hard rules: **order every array by ascending last-modified 
 
 ### 7.1 What to copy from Vezgo, verbatim
 
-**`external_user_id` (their `loginName`) is the entire tenancy model.** There is no user-creation endpoint. A user exists as a side effect of minting a token: get-or-create, idempotent, the same string always resolves to the same user and account set. *The host's* system stays the directory of record; ours is a keyed store. This eliminates a whole class of drift bugs, and it is why Vezgo has no list-users endpoint — there does not need to be one.
+**`external_user_id` (their `loginName`) is the entire tenancy model.** There is no user-creation endpoint. A user exists as a side effect of minting a token: get-or-create, idempotent, the same string always resolves to the same user and account set. *The host's* system stays the directory of record; ours is a keyed store. This eliminates a whole class of drift bugs, and it is why Vezgo has no list-users endpoint. There does not need to be one.
 
-**The `authEndpoint` contract: POST → `{token}`. That is the whole interface.** `external_user_id` is chosen server-side from the host's session, so **a hostile client cannot request a token for a different user — it literally cannot express which user it wants.** This is the single best idea in Vezgo's design. Copy it exactly, including the `authorizer` callback escape hatch for native clients.
+**The `authEndpoint` contract: POST → `{token}`. That is the whole interface.** `external_user_id` is chosen server-side from the host's session, so **a hostile client cannot request a token for a different user. It literally cannot express which user it wants.** This is the single best idea in Vezgo's design. Copy it exactly, including the `authorizer` callback escape hatch for native clients.
 
-**Short-lived JWT, expiry readable client-side.** No refresh token, no revocation store, no `/refresh`. Clients decode `exp` and re-mint on a configurable `minimum_lifetime` — small for API calls, larger before opening a connect flow.
+**Short-lived JWT, expiry readable client-side.** No refresh token, no revocation store, no `/refresh`. Clients decode `exp` and re-mint on a configurable `minimum_lifetime`: small for API calls, larger before opening a connect flow.
 
 Also copy: `?v=` versioned long-poll with `304` (optimistic-concurrency counter, 30s block, no WebSocket needed); `409` conflicts carrying `existing_connection_id` so a UI can navigate to the conflict; the OAuth2-shaped redirect (`code` duplicating the account id) so off-the-shelf AppAuth works on mobile; and a **first-class Demo provider** where every error branch is reachable without a real account.
 
-### 7.2 What to fix — Vezgo's model is genuinely unsafe
+### 7.2 What to fix: Vezgo's model is genuinely unsafe
 
 > **The client secret is an unscoped god key.** `client_id` + `secret` + any `external_user_id` = that user's entire portfolio. No consent step, no per-user grant, no audit trail, no scoping, no revocation, no documented rotation. A leaked secret compromises every user simultaneously and **silently**.
 
@@ -533,22 +533,22 @@ Also copy: `?v=` versioned long-poll with `304` (optimistic-concurrency counter,
 | **Key rotation** | Separate keys per environment, independent rotation, overlap window. |
 | **Revocation** | `POST /auth/revoke` + `jti` in the JWT. A 10-minute TTL is not a substitute for revocation when the app credential is compromised. |
 | **Audit log** | Every token mint: `external_user_id`, key id, IP, timestamp. Vezgo has nothing. |
-| **Opaque ids enforced** | Vezgo *warns* against PII in prose while their OpenAPI `loginName` example is literally `user@example.dev`. Make it an invariant: reject email-shaped input, or hash at the edge. The real reason is one their docs never state — **it is a bearer-equivalent secret, and an email is guessable.** |
-| **`GET /users/me`** | Vezgo has only `DELETE`. Add read, plus a **project-scoped** `GET /users`. "No list endpoint" is defensible for a user token; it is not defensible for the operator — their own clean-up guide is an admission of the gap. |
+| **Opaque ids enforced** | Vezgo *warns* against PII in prose while their OpenAPI `loginName` example is literally `user@example.dev`. Make it an invariant: reject email-shaped input, or hash at the edge. The real reason is one their docs never state. **It is a bearer-equivalent secret, and an email is guessable.** |
+| **`GET /users/me`** | Vezgo has only `DELETE`. Add read, plus a **project-scoped** `GET /users`. "No list endpoint" is defensible for a user token; it is not defensible for the operator. Their own clean-up guide is an admission of the gap. |
 | **`PATCH /users/me/external_id`** | Immutable-forever with no migration path is a footgun. |
 
 ### 7.3 Multi-tenant primitives the whole market lacks
 
-Zerion's `wallet-sets` is capped at **one EVM address and one Solana address** — not a portfolio-of-many-wallets primitive. Their rate limits are **org-scoped** with no per-tenant attribution. Their webhook callback URLs need **manual whitelisting by support**.
+Zerion's `wallet-sets` is capped at **one EVM address and one Solana address**, not a portfolio-of-many-wallets primitive. Their rate limits are **org-scoped** with no per-tenant attribution. Their webhook callback URLs need **manual whitelisting by support**.
 
 | Primitive | Prior art |
 |---|---|
 | **Batch-wallet queries** | Allium `POST` with 100 `{chain, address}` pairs. Strictly better than a one-address GET for a multi-tenant caller. |
-| **Partial success in batches** | Allium's `items[]` is a union of `Result \| Error`, each tagged `{chain, address}` — one bad address does not fail the request. Plus a `warnings[]` array. Both beat all-or-nothing. |
-| **Per-tenant quota headers** | Zerion's three-window shape is right (`Second`/`Day`/`Month`, each limit/remaining/reset) — but scope it **per tenant**, not per org. |
+| **Partial success in batches** | Allium's `items[]` is a union of `Result \| Error`, each tagged `{chain, address}`. One bad address does not fail the request. Plus a `warnings[]` array. Both beat all-or-nothing. |
+| **Per-tenant quota headers** | Zerion's three-window shape is right (`Second`/`Day`/`Month`, each limit/remaining/reset), but scope it **per tenant**, not per org. |
 | **Self-serve webhooks with durable delivery** | HMAC-SHA256 over `timestamp + body`, `delivery_id`, exponential backoff over 24h (Dune SIM's 5-retry model, not Zerion's 3-over-60s), dead-letter view, **replay endpoint**. |
 | **Rich event set** | Vezgo has two terminal events. Ship: `connection.created/disconnected/deleted`, `holdings.updated`, `transactions.available`, `sync.started/failed`, `reorg.detected`. |
-| **Billing by work done** | Dune SIM charged N CU where N = chains touched, 4N for DeFi. GoldRush charges **per item**. Both are more honest than per-call, and they rebut "all chains in one call" — that call is 20× the work. |
+| **Billing by work done** | Dune SIM charged N CU where N = chains touched, 4N for DeFi. GoldRush charges **per item**. Both are more honest than per-call, and they rebut "all chains in one call". That call is 20× the work. |
 
 ---
 
@@ -569,7 +569,7 @@ conn = user.connect_address(chain="eip155:1", address="0x…")
 report = user.sync()                                 # budgeted, resumable, self-throttling
 ```
 
-**Storage is a port.** `ledger/port.py` defines the protocol; `ledger/backends/sqlmodel.py` is the default; `memory.py` backs the test suite. A host binds its own session factory and keeps its own migration story. We never open a connection the host didn't hand us, and nothing outside `ledger/backends/` imports an ORM — enforced by `test_layering.py`.
+**Storage is a port.** `ledger/port.py` defines the protocol; `ledger/backends/sqlmodel.py` is the default; `memory.py` backs the test suite. A host binds its own session factory and keeps its own migration story. We never open a connection the host didn't hand us, and nothing outside `ledger/backends/` imports an ORM: enforced by `test_layering.py`.
 
 **The host owns scheduling; we own throttling.** Many hosts run a single fixed-interval tick across every integration, with no per-integration cadence. So `sync()` must be **self-throttling**: calling it more often than the underlying data changes is a cheap no-op, driven by a module-level minimum interval and the stored cursor. Never assume a scheduler exists, and never require one.
 
@@ -578,27 +578,27 @@ report = user.sync()                                 # budgeted, resumable, self
 **Validate at connect time, not at sync time.** `connect_address()` performs a cheap reachability and liveness check and raises immediately on a bad address or unreachable source. A connector that accepts anything and fails silently on a background tick hours later is the worst possible failure mode for an embedding host.
 
 **Three output shapes, so a host takes only what it can use** (§6):
-- `native` — the full model
-- `plaid` — merges with bank and exchange data
-- `scalar` — `(metric, timestamp, float)` triples for hosts whose metrics pipeline is scalar-only. Emit at minimum `portfolio_value_usd` and `transaction_count`, plus **activity cadence** (transactions per hour-of-day), because timing is a signal in its own right and costs nothing to derive.
+- `native`, the full model
+- `plaid`, merges with bank and exchange data
+- `scalar`, `(metric, timestamp, float)` triples for hosts whose metrics pipeline is scalar-only. Emit at minimum `portfolio_value_usd` and `transaction_count`, plus **activity cadence** (transactions per hour-of-day), because timing is a signal in its own right and costs nothing to derive.
 
 **Nothing in the core imports a web framework.** The HTTP API in `api/` is one adapter among several, not the product.
 
 ---
 
-## 9. Accounting — the clearest open space
+## 9. Accounting: the clearest open space
 
-Every vendor either lacks PnL or ships it as a black box. **Three vendors offer PnL; none document the method** — no wash-sale handling, no transfer-between-own-wallets detection.
+Every vendor either lacks PnL or ships it as a black box. **Three vendors offer PnL; none document the method**, no wash-sale handling, no transfer-between-own-wallets detection.
 
 Zerion is the exception and it is FIFO-only. Their own spec leaks the implementation:
 
-> *"PnL is pre-computed at standard marks (`now`, `1 day ago`, `1 week ago`, `1 month ago`, `1 year ago`, `beginning of the year`). Other values are supported only if fewer than 3,000 transactions sit between your timestamp and the nearest mark — otherwise the request errors out."*
+> *"PnL is pre-computed at standard marks (`now`, `1 day ago`, `1 week ago`, `1 month ago`, `1 year ago`, `beginning of the year`). Other values are supported only if fewer than 3,000 transactions sit between your timestamp and the nearest mark: otherwise the request errors out."*
 
 Plus: 503 on first request for a cold wallet, no wallets over 1M transactions, per-token breakdown only for tokens you name (max 100), no NFT PnL, no per-chain split.
 
 **Arbitrary-date PnL is effectively unavailable on active wallets.** That is the most exploitable weakness in the market for anyone willing to do incremental lot-tracking properly.
 
-Ship `accounting/` with **pluggable methods** — FIFO, LIFO, HIFO, average cost basis — over a real lot ledger, and map to Plaid's `tax_lots[]` (`institution_lot_id`, `original_purchase_datetime`, `quantity`, `purchase_price`, `cost_basis` inclusive of fees, `current_value`, `position_type: LONG|SHORT`). Plaid's lot structure is *better* than most crypto APIs give you — use it.
+Ship `accounting/` with **pluggable methods**, FIFO, LIFO, HIFO, average cost basis, over a real lot ledger, and map to Plaid's `tax_lots[]` (`institution_lot_id`, `original_purchase_datetime`, `quantity`, `purchase_price`, `cost_basis` inclusive of fees, `current_value`, `position_type: LONG|SHORT`). Plaid's lot structure is *better* than most crypto APIs give you. Use it.
 
 `is_internal_transfer` is not optional: without it every self-transfer reads as income and every tax report is wrong.
 
@@ -606,12 +606,12 @@ Ship `accounting/` with **pluggable methods** — FIFO, LIFO, HIFO, average cost
 
 ## 10. Coverage
 
-Chains ship as **source adapters**, one family at a time. Publish the per-capability matrix as an endpoint (`GET /coverage`) so clients grey out what we cannot do rather than silently under-reporting net worth — Dune SIM's `/defi/supported-protocols` is the model.
+Chains ship as **source adapters**, one family at a time. Publish the per-capability matrix as an endpoint (`GET /coverage`) so clients grey out what we cannot do rather than silently under-reporting net worth. Dune SIM's `/defi/supported-protocols` is the model.
 
 | Family | Source | Notes |
 |---|---|---|
 | **EVM** | Etherscan V2 (one key, 50+ chain ids) + RPC multicall | Free tier 3/sec, 100k/day. **July 2026 cuts**: max records per request 10,000 → **1,000**, some high-traffic chains excluded from free. Paginate correctly from day one. |
-| **Bitcoin** | Blockstream Esplora | Free since 2021, ~50 req/s, native **xpub**, 25 tx/page via `last_seen_txid`. Derive locally with BIP32 — **never send an extended key off-box** (rotki does this right). Gap-limit-aware scanning. |
+| **Bitcoin** | Blockstream Esplora | Free since 2021, ~50 req/s, native **xpub**, 25 tx/page via `last_seen_txid`. Derive locally with BIP32, **never send an extended key off-box** (rotki does this right). Gap-limit-aware scanning. |
 | **Solana** | Helius / public RPC | `getSignaturesForAddress` + SPL token accounts. Genuinely messier than EVM; the long pole. Token-2022 ScaledUiAmount breaks the `raw/10^d` identity. |
 | **Cosmos** | LCD/RPC direct | **Nobody serves this.** Allium has ten Cosmos chains warehouse-only; GoldRush, Sim, Zerion, DeBank, Moralis and Alchemy have none. A genuine differentiator, and genuinely a lot of work. Not phase 1. |
 
@@ -625,14 +625,14 @@ Chains ship as **source adapters**, one family at a time. Publish the per-capabi
 |---|---|---|
 | **0** | Foundation: `money`, `assets` (CAIP-19), `chains`, ledger port + memory backend, style gates, cassette harness | `pytest` green on a fresh clone with **no API keys** |
 | **1** | EVM balances → holdings. Etherscan V2 + DefiLlama prices. Single-tenant, library-only. | A known-rich address returns a USD total within a few % of an incumbent |
-| **2** | Tenancy: org/project/key, `external_user_id`, JWT mint, `authEndpoint`, connections, audit log | Two tenants cannot see each other's data — with a test that tries |
+| **2** | Tenancy: org/project/key, `external_user_id`, JWT mint, `authEndpoint`, connections, audit log | Two tenants cannot see each other's data, with a test that tries |
 | **3** | Transactions: `decode/` pipeline, ERC-20 + native, `parts[]`/`acts[]`, cursor sync | A reorg fixture produces `removed` + re-`added` |
 | **4** | Positions: adapter protocol, `tokens.py`, Uniswap V2/V3, Aave, liquid staking. Golden fixtures per adapter. | Projection invariant holds: synthetic Holdings sum to the same net worth |
 | **5** | Embedding surface: SQLModel backend, budgeted two-phase sync, `scalar` projection | A host can import, bind a session, and sync on its own tick |
 | **6** | Bitcoin + xpub | One xpub returns the full derived-address balance set |
 | **7** | Solana | |
 | **8** | HTTP API, webhooks (signed, durable, replayable), quota headers, batch endpoints | |
-| **9** | `accounting/`: lot ledger, FIFO/LIFO/HIFO/ACB, PnL | Arbitrary-date PnL on a 50k-transaction wallet — the thing Zerion cannot do |
+| **9** | `accounting/`: lot ledger, FIFO/LIFO/HIFO/ACB, PnL | Arbitrary-date PnL on a 50k-transaction wallet. The thing Zerion cannot do |
 
 Phase 1 is the honest first milestone. Phases 0–4 are the bulk of the work.
 
@@ -640,12 +640,12 @@ Phase 1 is the honest first milestone. Phases 0–4 are the bulk of the work.
 
 ## 12. Risks
 
-1. **Nobody survived on retail.** Zapper had 2M MAU and died. The warning is in their own post-mortem: free expectations, unbounded indexing cost. Open source sidesteps the revenue problem but not the **cost** problem — which is why §5.2 matters more than any other section.
+1. **Nobody survived on retail.** Zapper had 2M MAU and died. The warning is in their own post-mortem: free expectations, unbounded indexing cost. Open source sidesteps the revenue problem but not the **cost** problem, which is why §5.2 matters more than any other section.
 2. **Adapter rot is the dominant ongoing cost.** rotki patches decoders broken by upstream changes almost every release across 130+ protocols. Zapper's issue tracker is 364 issues of breakage. The failure mode is **silently wrong numbers**, not outages.
 3. **Contribution velocity decays.** Zapper Studio: 1,680 merged PRs in 2022 → 996 in 2023 → **12 in 2024**. Hacktoberfest bursts do not sustain. Design for a small maintainer set; make the fork helpers do the work.
 4. **Owning the price oracle is unavoidable** and is the largest hidden cost (§6.3).
 5. **Etherscan's free tier is degrading.** Expect to pay.
-6. **Docs lie — including your own.** Allium's Holdings page says "Bitcoin and Solana only" while its live endpoint reports PnL on 16 chains. Zerion's Moralis guide says PnL average buy/sell prices are not returned; their OpenAPI says they are. **Generate the coverage matrix from live capability checks, never from prose.**
+6. **Docs lie, including your own.** Allium's Holdings page says "Bitcoin and Solana only" while its live endpoint reports PnL on 16 chains. Zerion's Moralis guide says PnL average buy/sell prices are not returned; their OpenAPI says they are. **Generate the coverage matrix from live capability checks, never from prose.**
 
 ---
 
@@ -655,7 +655,7 @@ Phase 1 is the honest first milestone. Phases 0–4 are the bulk of the work.
 pytest
 ```
 
-Must pass **on a fresh clone with no API keys** — cassettes committed. This is phase 0's acceptance criterion and the single best predictor of whether adapter contributions arrive.
+Must pass **on a fresh clone with no API keys**. Cassettes committed. This is phase 0's acceptance criterion and the single best predictor of whether adapter contributions arrive.
 
 ```bash
 pytest tests/golden -v
@@ -667,9 +667,9 @@ Per-adapter golden fixtures pinned to a block height. A number changes → the t
 pytest tests/style
 ```
 
-Size caps, structure, placement, layering — including the gates that keep the core free of web frameworks and ORMs.
+Size caps, structure, placement, layering, including the gates that keep the core free of web frameworks and ORMs.
 
-**Correctness against reality.** The only real test of a portfolio engine is cross-checking a known-rich public address against a live incumbent and reconciling the delta. Do it in CI weekly against a fixed address set, and **publish the reconciliation** — nobody else does, and it is the most credible artefact an open-source project in this space can show.
+**Correctness against reality.** The only real test of a portfolio engine is cross-checking a known-rich public address against a live incumbent and reconciling the delta. Do it in CI weekly against a fixed address set, and **publish the reconciliation**. Nobody else does, and it is the most credible artefact an open-source project in this space can show.
 
 **Contract tests, each in its own file because each has burned somebody:**
 - Plaid sign convention: outflow is **positive** (§6.1)
@@ -686,9 +686,9 @@ Size caps, structure, placement, layering — including the gates that keep the 
 
 | Decision | Recommendation |
 |---|---|
-| **Name** | ~~`conduit` is a placeholder — check PyPI~~ **Resolved: `auradefi`** (see `docs/internal/DECISIONS.md`) |
+| **Name** | ~~`conduit` is a placeholder, check PyPI~~ **Resolved: `auradefi`** (see `docs/internal/DECISIONS.md`) |
 | **Licence** | **Apache-2.0** (§1.1) |
 | **Database** | Postgres via the default SQLModel backend; SQLite and in-memory for tests |
 | **Interaction index** | Start with explorer-derived (§5.2 option 1); instrument before building the log index |
-| **Web framework** | FastAPI + SQLModel — but confined to `api/` and `ledger/backends/` respectively, per §3.3 |
+| **Web framework** | FastAPI + SQLModel, but confined to `api/` and `ledger/backends/` respectively, per §3.3 |
 | **Primary output** | Serve **all three** projections. `project/` is pure, so this is nearly free. |

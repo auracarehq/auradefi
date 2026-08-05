@@ -10,12 +10,12 @@ three against a receiver it controls:
   compared in constant time. The verifier ships in the package, so the
   receiving side is not left to improvise it;
 * **durable.** A receiver that is down is retried on a schedule that is
-  pinned in code — not "eventually" — and ends in a dead letter queue you
+  pinned in code, not "eventually", and ends in a dead letter queue you
   can list rather than in a log line nobody reads;
 * **replayable.** A dead letter can be re-sent as a NEW delivery row. The
   original is never mutated, so the history of what you attempted survives.
 
-Delivery is driven by `Deliverer.tick(now_ms)` — you call it from your own
+Delivery is driven by `Deliverer.tick(now_ms)`: you call it from your own
 worker. There is no background thread in this package.
 """
 
@@ -47,7 +47,7 @@ class Receiver:
 
 
 def deliverer_for(store: WebhookStore, receiver: Receiver) -> Deliverer:
-    """A Deliverer over an httpx client you own — here, a mock transport."""
+    """A Deliverer over an httpx client you own: here, a mock transport."""
     return Deliverer(store, httpx.Client(transport=httpx.MockTransport(receiver)))
 
 
@@ -58,7 +58,7 @@ store = WebhookStore()
 endpoint, secret = store.register_endpoint(PROJECT, HOOK_URL, clock=clock)
 assert len(secret) == 64
 # The secret is returned once, here, and is not readable off the endpoint
-# afterwards — list your endpoints and it is absent.
+# afterwards: list your endpoints and it is absent.
 assert secret not in repr(endpoint)
 print(f"endpoint {endpoint.id} -> {endpoint.url}")
 print(f"  secret shown once at creation ({len(secret)} hex chars), never again")
@@ -152,9 +152,9 @@ print(f"      -> {settled.id} {settled.status.value} (replay_ordinal="
 print("\nfinal delivery log: " + ", ".join(
     f"{row.id[:14]}…={row.status.value}" for row in store.deliveries(PROJECT)))
 
-# Over HTTP the same three operations are routes — register, list the dead
-# letter queue, replay one — so an operator does not need database access:
+# Over HTTP the same three operations are routes: register, list the dead
+# letter queue, replay one, so an operator does not need database access:
 #     POST /webhooks/endpoints
 #     GET  /webhooks/dead_letter
 #     POST /webhooks/deliveries/{id}/replay
-print("\nOK — signed, retried on a pinned schedule, dead-lettered, replayable.")
+print("\nOK: signed, retried on a pinned schedule, dead-lettered, replayable.")

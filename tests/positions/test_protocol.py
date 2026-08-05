@@ -1,7 +1,7 @@
 """Contract tests for auradefi.positions.protocol (SPEC §5.4, §5.2, §5.1).
 
-``ContractReader`` is the ONLY chain-read abstraction in positions/ —
-positions is not an IO domain, so a dict-backed fake must satisfy the
+``ContractReader`` is the ONLY chain-read abstraction in positions/.
+Positions is not an IO domain, so a dict-backed fake must satisfy the
 protocol and the whole domain stays offline. ``ContractSet`` is the
 pre-filter vehicle: ``restrict_to`` implements SPEC §5.2 (only contracts
 the user actually touched run) and arrives at ``resolve()`` partially
@@ -35,7 +35,7 @@ SOLANA_ADDRESS = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
 
 
 class DictReader:
-    """Dict-backed fake — SPEC §5.4: satisfies ContractReader with no I/O."""
+    """Dict-backed fake. SPEC §5.4: satisfies ContractReader with no I/O."""
 
     def __init__(self, responses: dict[tuple[str, str, tuple], object]) -> None:
         self._responses = dict(responses)
@@ -253,7 +253,7 @@ class TestPositionAdapterProtocol:
 
         adapter = UniswapV2Stub()
         assert isinstance(adapter, PositionAdapter)
-        assert adapter.id == "uniswap-v2"  # DefiLlama slug — the join key
+        assert adapter.id == "uniswap-v2"  # DefiLlama slug: the join key
         assert adapter.chains == frozenset({"eip155:1"})
 
     def test_missing_resolve_does_not_satisfy(self):

@@ -1,4 +1,4 @@
-# AGENT_PROMPTS — the loop that builds auradefi
+# AGENT_PROMPTS: the loop that builds auradefi
 
 This repo was built by a five-role agent graph, phase by phase, and the
 graph is checked in: the roles as agent definitions under
@@ -6,7 +6,7 @@ graph is checked in: the roles as agent definitions under
 [`.claude/workflows/phase-build.js`](../../.claude/workflows/phase-build.js).
 
 This file is the copy-paste runbook. A newcomer with Claude Code and this
-document can run the next phase — or re-run an existing one — unaided.
+document can run the next phase, or re-run an existing one, unaided.
 
 All ten SPEC phases are done (see [`STATUS.md`](STATUS.md)); the loop
 remains the way to add a phase 10, a new chain, or a new adapter family.
@@ -48,7 +48,7 @@ Two things this diagram encodes that are easy to get wrong:
   finishes, because waves encode dependency ordering.
 
 Unresolved blockers/majors after 3 rounds escalate to
-[`STATUS.md`](STATUS.md) — never silently dropped.
+[`STATUS.md`](STATUS.md), never silently dropped.
 
 ## Running a phase with the workflow (recommended)
 
@@ -63,7 +63,7 @@ The workflow returns a summary: per-order verdicts, unresolved findings,
 `shared_files_needed`, and the interpreter's notes.
 
 **Before launching the waves**, the orchestrator must author everything the
-interpreter listed under `shared_files_needed` — new dependencies in
+interpreter listed under `shared_files_needed`: new dependencies in
 `pyproject.toml`, new error classes, new `ALLOWED_IMPORTS` entries in
 `tests/style/test_layering.py`, new cassettes. Agents never touch shared
 files, so a missing one blocks a whole wave.
@@ -81,7 +81,7 @@ If you already have a validated plan, pass it to skip re-interpretation:
 
 ### Running phases concurrently
 
-Phases with disjoint file sets can run at once — 4, 5, 6, 7 and 9 were
+Phases with disjoint file sets can run at once: 4, 5, 6, 7 and 9 were
 built concurrently here. The constraint is file ownership, not phase
 number: check that no two in-flight phases claim the same `src_files`,
 `test_files` or shared files. Run the full suite between merges.
@@ -91,7 +91,7 @@ number: check that no two in-flight phases claim the same `src_files`,
 Each role's full contract is in `.claude/agents/<role>.md`; these prompts
 are the short form that loads it.
 
-### 1 — spec-interpreter
+### 1: spec-interpreter
 ```text
 You are the spec-interpreter for auradefi (read-only). Decompose SPEC
 phase N into work orders. Read docs/internal/SPEC.md §11 for the gate, the phase's
@@ -104,7 +104,7 @@ acceptance criteria, shared_files_needed for anything only the
 orchestrator may touch.
 ```
 
-### 2 — test-author (one per work order)
+### 2: test-author (one per work order)
 ```text
 You are the test-author for the auradefi work order below. Create ONLY its
 test_files plus its src_files as stubs (full typed signatures, docstring
@@ -120,20 +120,20 @@ Never touch pyproject.toml, conftest.py, tests/style/, errors.py, git.
 <WORK ORDER JSON HERE>
 ```
 
-### 3 — implementer (one per work order)
+### 3: implementer (one per work order)
 ```text
 You are the implementer for the auradefi work order below. Fill in the
 stubbed src_files until the order's tests are green. You may not modify
 any test, conftest, gate, errors.py, or pyproject.toml, and you never run
 git. If a test is wrong, implement the rest and report it under
-disputed_tests — do not game it. Done when: order tests green, tests/style
+disputed_tests: do not game it. Done when: order tests green, tests/style
 green, FULL .venv/bin/pytest green, and git diff --stat shows only your
 src_files.
 
 <WORK ORDER JSON HERE>
 ```
 
-### 4 — harsh-reviewer (one per work order, after green)
+### 4: harsh-reviewer (one per work order, after green)
 ```text
 You are the harsh reviewer for the auradefi work order below. The suite is
 green; find what green hides. Six lenses: spec fidelity (cite SPEC §s),
@@ -148,7 +148,7 @@ implementer.
 <WORK ORDER JSON HERE>
 ```
 
-### 4b — test-author, closing test-quality findings
+### 4b: test-author, closing test-quality findings
 ```text
 You are the test-author, closing test-quality review findings on your work
 order below. Add ONLY the missing pinning tests described. Never weaken or
@@ -159,7 +159,7 @@ pinning the bug.
 <WORK ORDER JSON + FINDINGS JSON HERE>
 ```
 
-### 5 — devops-docs (once per phase, after integration)
+### 5: devops-docs (once per phase, after integration)
 ```text
 You are the devops-docs agent for auradefi phase N. Make the phase
 shippable and documented. Your surface: docs/books/*.ipynb,
@@ -172,7 +172,7 @@ docs/internal/AGENT_PROMPTS.md, docs/internal/RELEASING.md, Dockerfile, docker-c
    every cell offline (cassettes or in-memory fixtures), markdown cells
    citing SPEC §numbers, code cells asserting REAL values. Then execute it
    headlessly (.venv/bin/jupyter execute --inplace <nb>) and confirm exit 0
-   — an unexecuted notebook is undelivered work.
+  : an unexecuted notebook is undelivered work.
 2. Extend examples/quickstart.py; it must stay green against the
    installed wheel with only core dependencies (guard optional extras).
 3. Update the README capability table (true TODAY, and say what is NOT
@@ -192,7 +192,7 @@ docs/internal/AGENT_PROMPTS.md, docs/internal/RELEASING.md, Dockerfile, docker-c
 - Adjudicate `disputed_tests` and `blocked_on` reports from implementers.
 - Run the full suite between waves and between concurrent phases; fix only
   cross-order integration breakage.
-- Re-invoke a killed workflow rather than repairing it by hand — the cache
+- Re-invoke a killed workflow rather than repairing it by hand: the cache
   resumes it.
 - Update `STATUS.md` per phase (gate table + unresolved findings + any new
   deliberate caveat).

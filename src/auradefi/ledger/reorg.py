@@ -2,7 +2,7 @@
 
 ``plan_reorg`` is a pure function over the stored view of one chain and
 the canonical view from a fork point. It emits a :class:`ReorgPlan` that
-a backend applies as ``mark_removed`` + ``upsert`` — a first-class
+a backend applies as ``mark_removed`` + ``upsert``: a first-class
 REMOVED/ADDED event pair, never an in-place mutation or a magic boolean.
 """
 
@@ -53,7 +53,7 @@ def plan_reorg(
     and the whole diff assumes it: an id absent from ``canonical`` is
     read as orphaned. Feed it rows from two chains and every row of the
     OTHER chain is absent from this chain's canonical view, so a mainnet
-    reorg plans the removal of live Polygon transactions — silent
+    reorg plans the removal of live Polygon transactions: silent
     cross-chain data loss, and block numbers from different chains are
     not even comparable against ``from_block``. Nothing enforced this
     before 0.1.1, and #26 made it reachable by letting one address be
@@ -94,7 +94,7 @@ def _require_one_chain(
     if len(chains) > 1:
         raise ValidationError(
             "plan_reorg diffs ONE chain: got "
-            f"{sorted(chains)} — pass this chain's rows only, or a reorg on "
+            f"{sorted(chains)}: pass this chain's rows only, or a reorg on "
             "one chain will plan the removal of another chain's live "
             "transactions"
         )

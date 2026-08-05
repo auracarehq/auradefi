@@ -3,9 +3,9 @@
 Golden vectors here are recomputed from docs/internal/DECISIONS.md by hand, not by
 calling the code under test:
 
-* lot id     — ``"lot_" + sha256(f"{tx}|{asset}|{seq}").hexdigest()[:16]``
-* basis      — exact ``Fraction`` proration, never a float, never rounded
-* boundary   — exact Decimal iff the reduced denominator is ``2**a * 5**b``
+* lot id, ``"lot_" + sha256(f"{tx}|{asset}|{seq}").hexdigest()[:16]``
+* basis, exact ``Fraction`` proration, never a float, never rounded
+* boundary, exact Decimal iff the reduced denominator is ``2**a * 5**b``
 
 The numbers are the point. A PnL suite that never asserts a cent is the
 Zapper failure mode (1,010 fetchers, 3 test files).
@@ -100,7 +100,7 @@ def _transaction(
 
 
 def _mixed_entries() -> tuple[Entry, ...]:
-    """IN 2 ETH, OUT 1 USDC, SELF 5 SPAM — one of each direction."""
+    """IN 2 ETH, OUT 1 USDC, SELF 5 SPAM: one of each direction."""
     return (
         Entry(asset_id=ETH, quantity=Quantity(2 * 10**18, 18), direction=Direction.IN),
         Entry(asset_id=USDC, quantity=Quantity(1_000_000, 6), direction=Direction.OUT),
@@ -205,7 +205,7 @@ def test_event_quantity_must_be_a_quantity_not_a_decimal():
 
 
 # --------------------------------------------------------------------------
-# lot id — the wire contract (Plaid institution_lot_id)
+# lot id: the wire contract (Plaid institution_lot_id)
 # --------------------------------------------------------------------------
 
 
@@ -249,7 +249,7 @@ def test_seq_counts_exhausted_lots_so_ids_are_never_reused():
 
 
 # --------------------------------------------------------------------------
-# derive_events — is_internal_transfer is not optional (SPEC §9)
+# derive_events. Is_internal_transfer is not optional (SPEC §9)
 # --------------------------------------------------------------------------
 
 
@@ -323,7 +323,7 @@ def test_internal_transfer_ids_defaults_to_empty():
 
 
 # --------------------------------------------------------------------------
-# LotLedger — opening
+# LotLedger: opening
 # --------------------------------------------------------------------------
 
 
@@ -378,7 +378,7 @@ def test_open_lot_rejects_a_second_cost_currency():
 
 
 # --------------------------------------------------------------------------
-# LotLedger — consuming (exact proration, shortfall never raises)
+# LotLedger: consuming (exact proration, shortfall never raises)
 # --------------------------------------------------------------------------
 
 
@@ -415,7 +415,7 @@ def test_consume_against_an_empty_ledger_is_all_shortfall():
 
 
 def test_thirds_leave_no_basis_drift():
-    """Three exact thirds of a 10 USD lot sum back to 10 — the whole
+    """Three exact thirds of a 10 USD lot sum back to 10. The whole
     reason basis is a Fraction and not a Decimal."""
     ledger = LotLedger(ASSET)
     lot = ledger.open_lot(_acquisition(raw=3, cost="10"))
@@ -561,14 +561,14 @@ def test_lot_is_deliberately_mutable_ledger_internal_state():
 
 
 # --------------------------------------------------------------------------
-# exact_mul — context-free, never rounded
+# exact_mul: context-free, never rounded
 # --------------------------------------------------------------------------
 
 
 def test_exact_mul_golden_vectors():
     assert exact_mul(Decimal("1.5"), Decimal("2.5")) == Decimal("3.75")
     assert str(exact_mul(Decimal("1.5"), Decimal("2.5"))) == "3.75"
-    # trailing zero preserved — the same vector positions/drill.py pins
+    # trailing zero preserved: the same vector positions/drill.py pins
     assert str(exact_mul(Decimal("10"), Decimal("3584.17"))) == "35841.70"
     assert str(exact_mul(Decimal("-1.5"), Decimal("2.5"))) == "-3.75"
     assert str(exact_mul(Decimal("-1.5"), Decimal("-2.5"))) == "3.75"
@@ -584,7 +584,7 @@ def test_exact_mul_survives_a_forty_digit_operand_without_context_rounding():
 
 
 # --------------------------------------------------------------------------
-# fraction_to_money — the ONE rounding boundary, always flagged
+# fraction_to_money: the ONE rounding boundary, always flagged
 # --------------------------------------------------------------------------
 
 
@@ -596,7 +596,7 @@ def test_terminating_denominator_is_exact():
 
 
 def test_exactness_survives_beyond_the_context_precision():
-    """1/2**50 needs 35 significant digits and is still EXACT — a naive
+    """1/2**50 needs 35 significant digits and is still EXACT: a naive
     Decimal division at 28 digits would silently round and mis-flag it."""
     money, is_exact = fraction_to_money(Fraction(1, 2**50))
     assert is_exact is True
@@ -655,7 +655,7 @@ def test_fraction_to_money_rejects_a_malformed_currency():
 
 
 # --------------------------------------------------------------------------
-# purity — accounting/ is pure over ledger reads (SPEC §3.3)
+# purity. Accounting/ is pure over ledger reads (SPEC §3.3)
 # --------------------------------------------------------------------------
 
 

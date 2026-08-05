@@ -1,16 +1,16 @@
-"""Price inquirer — the prices seam, Phase 1 current-USD lookups only
+"""Price inquirer: the prices seam, Phase 1 current-USD lookups only
 (SPEC §3.2 prices/inquirer.py, §3.3 layer contract).
 
 :class:`PriceOracle` is the structural seam: any object with a conforming
-``usd_prices`` method is an oracle — concrete oracles (e.g.
+``usd_prices`` method is an oracle: concrete oracles (e.g.
 ``prices/oracles/defillama.py``) conform WITHOUT this module importing
 them, which keeps the build orders independent. This module performs no
 HTTP and never imports ``httpx`` or ``auradefi.prices.oracles``.
 
 Oracle implementation contract:
 
-* return only ids you can price — result keys are a subset of the input;
-* every returned :class:`~auradefi.money.fiat.Money` has currency ``"USD"`` —
+* return only ids you can price, result keys are a subset of the input;
+* every returned :class:`~auradefi.money.fiat.Money` has currency ``"USD"``,
   ENFORCED by :class:`Inquirer`, which raises
   :class:`~auradefi.errors.CurrencyMismatchError` on anything else rather
   than letting a non-USD quote be relabelled downstream (§5 #23).
@@ -20,7 +20,7 @@ Oracle implementation contract:
 * deduplicate the input, preserving first occurrence;
 * query oracles in construction order; ask each subsequent oracle only
   for ids still unpriced; skip remaining oracles once everything priced;
-* return the merged dict — unpriced ids are ABSENT, never an error;
+* return the merged dict. Unpriced ids are ABSENT, never an error;
 * a syntactically invalid CAIP-19 raises
   :class:`~auradefi.errors.CaipParseError` BEFORE any oracle call
   (validation delegates to :func:`auradefi.assets.caip.parse_caip19`).
@@ -63,7 +63,7 @@ class Inquirer:
         call), deduplicates preserving first occurrence, then walks the
         oracles in order asking each only for the still-unpriced ids and
         stopping early once everything is priced. Unpriced ids are absent
-        from the result — never an error.
+        from the result, never an error.
         """
         for caip19 in caip19s:
             parse_caip19(caip19)
@@ -84,7 +84,7 @@ def _checked_usd(
 
     The oracle contract at the top of this module says every returned
     ``Money`` has currency ``"USD"``. It was documented and never checked,
-    and oracles are HOST-SUPPLIED — so a EUR quote flowed through
+    and oracles are HOST-SUPPLIED, so a EUR quote flowed through
     ``portfolio.holdings``, which multiplied it by a quantity and stamped
     the product ``"USD"``. The result was a portfolio total wrong by the
     FX rate, labelled as dollars, with the asset absent from ``unpriced``

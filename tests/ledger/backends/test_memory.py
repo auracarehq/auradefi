@@ -6,7 +6,7 @@ first-class REMOVED event, and state-based sync pages ascending by
 last-modified seq.
 
 Cursor literals are ``f"{seq:020d}"`` (DECISIONS pinned) and transaction
-ids come from the pinned id algorithm — both derived independently via
+ids come from the pinned id algorithm: both derived independently via
 ``python3 -c``, never from the code under test.
 """
 
@@ -26,7 +26,7 @@ from auradefi.ledger.port import LedgerPort
 from auradefi.ledger.reorg import ReorgPlan, plan_reorg
 
 # Derived independently; NEVER regenerate from the implementation.
-# f"{seq:020d}" — 20 ASCII digits, lexicographic order == numeric order.
+# f"{seq:020d}". 20 ASCII digits, lexicographic order == numeric order.
 CURSOR_0 = "00000000000000000000"
 CURSOR_1 = "00000000000000000001"
 CURSOR_2 = "00000000000000000002"
@@ -38,7 +38,7 @@ CURSOR_6 = "00000000000000000006"
 # chain eip155:1, acct_1 (pinned id algorithm over chain|tx_hash|account).
 ID_A = "txn_fb618872cdc184c0"  # 0xaaa
 ID_B = "txn_9d8e7888ce01e8a5"  # 0xbbb
-ID_BB2 = "txn_6b20cedf697f79fb"  # 0xbb2 — the reorg replacement
+ID_BB2 = "txn_6b20cedf697f79fb"  # 0xbb2: the reorg replacement
 ID_C = "txn_07c85f8766037afc"  # 0xccc
 ID_D = "txn_5a76d20d6d9b55d6"  # 0xddd
 ID_E = "txn_eca5ea7d6313e253"  # 0xeee
@@ -262,7 +262,7 @@ class TestMarkRemoved:
         ledger.upsert(TENANT_A, [txn_a])
         ledger.mark_removed(TENANT_A, [ID_A])
         page = ledger.sync(TENANT_A)
-        # State-based: ONE event per row, at its current seq — the old
+        # State-based: ONE event per row, at its current seq: the old
         # ADDED at seq 1 no longer exists.
         assert len(page.events) == 1
         assert page.events[0].kind is SyncEventKind.REMOVED

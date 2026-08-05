@@ -1,11 +1,11 @@
-"""SEAM AUDIT — wave 0.1.1-wave2: the backfill window meets the ledger.
+"""SEAM AUDIT: wave 0.1.1-wave2: the backfill window meets the ledger.
 
 Order ``embed-backfill`` owns ``src/auradefi/embed/sync.py`` and nothing
 else. Its declared seams say two things this file tests from OUTSIDE the
 module:
 
 1. "SyncEngine keys sync state by (tenant_id, connection.id) … your
-   cursor keying must keep working" — the cursor is the ONLY thing that
+   cursor keying must keep working". The cursor is the ONLY thing that
    survives a call, and the new backfill walks pages 1, 2, … of ONE
    window inside a single call. ``SyncState``
    (``src/auradefi/embed/models.py``, order ``embed-ids-loop``) has no
@@ -15,7 +15,7 @@ module:
 2. "The ledger write path is ``src/auradefi/ledger/`` which you do not
    own. Dedup by transaction id MUST be done on your side of that
    boundary or reported as a finding." ``sync.py``'s new docstring
-   delegates it across the boundary instead — "deduplicated by
+   delegates it across the boundary instead: "deduplicated by
    TRANSACTION ID at the ledger, where an id-and-payload-identical
    redelivery emits no ADDED event". ``LedgerPort.upsert``
    (``src/auradefi/ledger/port.py``) declares the OPPOSITE for one case:
@@ -51,7 +51,7 @@ ADDRESS = "0x1111111111111111111111111111111111111111"
 TENANT = "usr_seam_backfill"
 NATIVE = "eip155:1/slip44:60"
 
-#: Four transactions, THREE of them in block 100 — a page of 2 cannot
+#: Four transactions, THREE of them in block 100. A page of 2 cannot
 #: end on a block boundary. Newest first, the order a desc page serves.
 ROWS = (
     {"blockNumber": "100", "hash": "0xcc", "timeStamp": "1700000003"},
@@ -66,7 +66,7 @@ class PartitioningFetcher:
 
     It honours every stated requirement including the one this wave
     added: "successive pages of ONE window must PARTITION it … the row
-    order must be total and stable across page requests — including
+    order must be total and stable across page requests, including
     BETWEEN transactions of the SAME block". The total order is
     ``(block_number, hash)``, which is stable by construction.
     """
@@ -153,7 +153,7 @@ class TestCursorSeam:
         window now INCLUSIVE of the cursor block, a host whose budget
         affords one live page plus one backfill page re-requests
         ``[0, 100] page=1`` on every tick, so the third transaction in
-        block 100 — and everything older — never arrives, and the
+        block 100, and everything older, never arrives, and the
         request is spent again every tick, forever.
         """
         ledger, state, fetcher = MemoryLedger(), MemorySyncState(), PartitioningFetcher()
@@ -176,7 +176,7 @@ class TestCursorSeam:
         """Twelve ticks must not spend twelve identical page requests.
 
         A budget spent on a window that can never advance is a silent,
-        permanent stall — no exception, no log, and the flag stays
+        permanent stall, no exception, no log, and the flag stays
         ``False`` forever.
         """
         ledger, state, fetcher = MemoryLedger(), MemorySyncState(), PartitioningFetcher()
@@ -217,7 +217,7 @@ class TestLedgerDedupSeam:
         assert ledger.get(TENANT, "txn_0xbb").removed is True, (
             "the backfill re-delivered the boundary block and the ledger's "
             "declared re-add semantics resurrected a transaction the host "
-            "had removed — the removal did not survive one tick"
+            "had removed: the removal did not survive one tick"
         )
 
     def test_a_tick_that_only_redelivers_a_live_row_does_not_claim_an_ingest(self):
@@ -260,7 +260,7 @@ class TestLedgerDedupSeam:
         This file's concern was that the backfill's every-tick redelivery
         of the boundary block would silently UNDO a reorg removal. With a
         fixed window and a stored page, a drained backfill stops
-        redelivering, so that path is closed — but the ledger contract
+        redelivering, so that path is closed, but the ledger contract
         itself still has to hold, because it is what #22 turns on: an
         identical redelivery of a REMOVED row is a resurrection with an
         ADDED event, not a no-op. Pinned here at the port, since a
@@ -287,7 +287,7 @@ class TestLedgerDedupSeam:
         events = ledger.upsert(TENANT, redelivered)
 
         assert [event.kind.name for event in events] == ["ADDED"], (
-            "an unchanged redelivery of a REMOVED row must be re-added — "
+            "an unchanged redelivery of a REMOVED row must be re-added: "
             "leaving it removed is the #22 defect"
         )
         assert victim in _stored_ids(ledger)
@@ -354,7 +354,7 @@ class TestRecordedFixtureSeam:
     recorded fixtures only." A change to the window arithmetic in
     ``embed/sync.py`` changes the URL sequence, and the recording in
     ``tests/cassettes/embed_gate.json`` is owned by NEITHER order in this
-    wave — so the two sides can drift with nothing to catch it inside
+    wave, so the two sides can drift with nothing to catch it inside
     either module.
     """
 
@@ -386,6 +386,6 @@ class TestRecordedFixtureSeam:
         missing = sorted({url for url in fetcher.urls if url not in recorded})
         assert not missing, (
             "the engine asked the offline fixture for windows it never "
-            "recorded — the suite can only answer these with a live "
+            "recorded: the suite can only answer these with a live "
             "request:\n" + "\n".join(missing)
         )

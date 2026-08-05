@@ -1,11 +1,11 @@
-"""api/routes/auth.py — mint, revoke, and the two user reads.
+"""api/routes/auth.py: mint, revoke, and the two user reads.
 
 Offline throughout: ``TestClient`` speaks ASGI in-process.
 
 The pinned privilege rule is the point of this file. Vezgo's key can mint
 any token; ours cannot mint a token more powerful than itself, and the
 proof is that a key without ``accounts:write`` gets a 403 with an
-UNCHANGED audit log — nothing minted, nothing recorded.
+UNCHANGED audit log: nothing minted, nothing recorded.
 
 The nine-header block is arithmetic, not a fixture: FrozenClock's
 1_754_000_000_000 is 2025-07-31T22:13:20Z, where the next UTC day
@@ -129,8 +129,8 @@ def test_mint_answers_exactly_a_token_and_audits_once(wired):
     #       X-Forwarded-For hop"), which pinned RELEASE_0.1.1 §4 #30 as a
     #       feature: any caller could choose the IP its own audit row would
     #       record, permanently, in a log with no mutation surface. The
-    #       request below still SENDS the header — that is the point of the
-    #       test — it just no longer decides the attribution.
+    #       request below still SENDS the header. That is the point of the
+    #       test: it just no longer decides the attribution.
     assert entries[0].ip == "testclient", "socket peer, never the caller's header"
     assert entries[0].ip_source == "peer"
     assert entries[0].at_ms == NOW
@@ -288,7 +288,7 @@ def test_revoking_another_projects_token_is_indistinguishable_from_any_failure()
     #       "authentic and live", 401 AuthError meant "bad signature" and 401
     #       TokenExpiredError meant "authentic but expired", so an attacker
     #       with any free project could sort captured JWTs into replayable
-    #       and not — for projects they hold no credential for — without ever
+    #       and not, for projects they hold no credential for, without ever
     #       knowing the victim's signing secret. The uniform answer is the fix;
     #       test_revoke_failure_modes_are_byte_identical proves all four agree.
     deps, project, clock, vault = _build(limits=QuotaLimits(50, 500, 5_000))
@@ -395,7 +395,7 @@ def test_users_needs_a_key_not_a_user_token(wired):
 
 
 # ==========================================================================
-# 0.1.1 security regressions — RELEASE_0.1.1 §4 #20, #30, #33, #35, #36.
+# 0.1.1 security regressions. RELEASE_0.1.1 §4 #20, #30, #33, #35, #36.
 # Every test below carries a `pins:` line naming the ONE falsifiable
 # behaviour it discriminates.
 # ==========================================================================
@@ -443,7 +443,7 @@ def _tamper(token: str) -> str:
 # --------------------------------------------------------------------- #20
 
 
-# pins: an explicitly empty `scopes` list mints a token carrying NO scopes —
+# pins: an explicitly empty `scopes` list mints a token carrying NO scopes, 
 #       never every scope the API key itself holds.
 def test_an_explicitly_empty_scopes_list_mints_a_zero_privilege_token(wired):
     client, _deps, project, clock, _vault, _record, plaintext = wired
@@ -463,7 +463,7 @@ def test_an_explicitly_empty_scopes_list_mints_a_zero_privilege_token(wired):
     )
 
 
-# pins: a zero-privilege token is REFUSED by a scoped route — the empty
+# pins: a zero-privilege token is REFUSED by a scoped route: the empty
 #       scopes claim is enforced, not merely printed on the wire.
 def test_a_zero_privilege_token_is_refused_by_a_scoped_route(wired):
     client, _deps, _project, _clock, _vault, _record, plaintext = wired
@@ -485,7 +485,7 @@ def test_a_zero_privilege_token_is_refused_by_a_scoped_route(wired):
 
 
 # pins: a key whose stored scopes are plain `str` mints a token instead of an
-#       unformatted 500 — the route reads scopes as tolerantly as it filters
+#       unformatted 500. The route reads scopes as tolerantly as it filters
 #       them.
 def test_a_key_with_wire_string_scopes_mints_instead_of_a_500():
     deps, project, clock, _vault = _build()
@@ -500,7 +500,7 @@ def test_a_key_with_wire_string_scopes_mints_instead_of_a_500():
     client = TestClient(create_app(deps), raise_server_exceptions=False)
 
     assert client.get("/users", headers=_bearer(plaintext)).status_code == 200, (
-        "the same key authenticates on every sibling route — only minting breaks"
+        "the same key authenticates on every sibling route: only minting breaks"
     )
 
     response = client.post(
@@ -518,7 +518,7 @@ def test_a_key_with_wire_string_scopes_mints_instead_of_a_500():
 
 
 # pins: quota is consumed AFTER authentication and BEFORE the privilege
-#       check — an exhausted tenant asking for a scope it lacks is refused
+#       check: an exhausted tenant asking for a scope it lacks is refused
 #       429, not 403.
 def test_an_exhausted_quota_refuses_a_mint_before_the_privilege_check():
     deps, project, _clock, _vault = _build(limits=QuotaLimits(0, 100, 1_000))
@@ -560,7 +560,7 @@ def test_a_refused_mint_is_charged_one_unit_and_never_audited():
     )
 
 
-# pins: a SUCCESSFUL mint costs exactly one quota unit — charging in the
+# pins: a SUCCESSFUL mint costs exactly one quota unit: charging in the
 #       route must not charge a second time downstream.
 def test_a_successful_mint_is_charged_exactly_one_unit_not_two(wired):
     client, deps, project, _clock, _vault, _record, plaintext = wired
@@ -592,8 +592,8 @@ def _own_signature_foreign_claim(deps, project, other) -> str:
     This is the ONLY fixture that reaches the ownership guard. Every other
     foreign case in this file is signed with ``other.signing_secret`` and dies
     at the signature, so ``claims.project_id != key.project_id`` is never
-    evaluated. A caller can build this one unaided — it holds its own signing
-    secret by definition — and ``RevocationSet`` is not tenant-scoped, so
+    evaluated. A caller can build this one unaided, it holds its own signing
+    secret by definition, and ``RevocationSet`` is not tenant-scoped, so
     accepting it would revoke a jti belonging to a project the caller cannot
     name.
     """
@@ -616,7 +616,7 @@ def _unowned_revoke_tokens(deps, client, project, other, plaintext, other_plaint
     must be indistinguishable from it.
 
     The fifth case is signed with the CALLER'S OWN secret, so it is the only
-    one that survives verification and reaches the ownership guard — the last
+    one that survives verification and reaches the ownership guard: the last
     thing binding a verified token to the calling tenant.
     """
     return {
@@ -649,8 +649,8 @@ def _unowned_revoke_tokens(deps, client, project, other, plaintext, other_plaint
     }
 
 
-# pins: no property of a token belonging to another project — authentic, live,
-#       expired, unknown, or signed by us and merely CLAIMING that project —
+# pins: no property of a token belonging to another project. Authentic, live,
+#       expired, unknown, or signed by us and merely CLAIMING that project, 
 #       is observable through POST /auth/revoke; every unowned token answers
 #       with the same status and the same body bytes as a forged one.
 def test_revoke_answers_identically_for_every_token_the_caller_does_not_own():
@@ -674,7 +674,7 @@ def test_revoke_answers_identically_for_every_token_the_caller_does_not_own():
         (response.status_code, response.content) for response in answers.values()
     }
     assert len(distinct) == 1, (
-        "POST /auth/revoke is a cross-tenant authenticity oracle — it answers "
+        "POST /auth/revoke is a cross-tenant authenticity oracle: it answers "
         f"{len(distinct)} different ways:\n"
         + "\n".join(
             f"  {label}: {response.status_code} {response.text}"
@@ -687,7 +687,7 @@ def test_revoke_answers_identically_for_every_token_the_caller_does_not_own():
     assert one.json()["error"]["status"] == 401
 
 
-# pins: a revoke the route refuses REVOKES NOTHING — the foreign token is
+# pins: a revoke the route refuses REVOKES NOTHING. The foreign token is
 #       still live for the project that owns it.
 def test_a_refused_cross_tenant_revoke_leaves_the_foreign_token_live():
     deps, project, _clock, vault = _build(limits=QuotaLimits(50, 500, 5_000))
@@ -707,7 +707,7 @@ def test_a_refused_cross_tenant_revoke_leaves_the_foreign_token_live():
 
 
 # pins: a token that PASSES verification under the caller's own secret while
-#       claiming another project's id revokes nothing — the ownership guard,
+#       claiming another project's id revokes nothing: the ownership guard,
 #       not the signature, is what refuses it.
 def test_a_verified_token_claiming_another_project_revokes_nothing():
     deps, project, _clock, vault = _build(limits=QuotaLimits(50, 500, 5_000))
@@ -750,7 +750,7 @@ def _audited_mint(client, plaintext, forwarded: str):
 
 
 # pins: with the default zero trusted proxy hops the socket peer is the ONLY
-#       source of the audited IP — X-Forwarded-For is not consulted at all.
+#       source of the audited IP. X-Forwarded-For is not consulted at all.
 def test_a_forwarded_for_header_never_reaches_the_audit_row_by_default():
     deps, project, _clock, _vault = _build()
     assert deps.trusted_proxy_hops == 0, "the pinned default: trust no proxy"
@@ -777,7 +777,7 @@ def test_the_audit_row_declares_a_socket_derived_ip_as_peer():
 
 
 # pins: with one trusted proxy hop the audited IP is the FIRST hop from the
-#       right — the one that proxy appended — declared as header-derived.
+#       right, the one that proxy appended, declared as header-derived.
 def test_one_trusted_hop_audits_that_hop_and_declares_it_forwarded():
     deps, project, _clock, _vault = _build()
     _record, plaintext = _issue(deps, project)
@@ -787,21 +787,21 @@ def test_one_trusted_hop_audits_that_hop_and_declares_it_forwarded():
 
     (record,) = deps.audit.entries(project.id)
     assert record.ip == "198.51.100.4", (
-        "trusted_proxy_hops=1 trusts the 1st hop from the RIGHT — the address "
-        "our own proxy appended — and never the leftmost, caller-written one"
+        "trusted_proxy_hops=1 trusts the 1st hop from the RIGHT: the address "
+        "our own proxy appended: and never the leftmost, caller-written one"
     )
     assert record.ip_source == "forwarded"
 
 
 # pins: the trusted hop is picked from EVERY X-Forwarded-For FIELD LINE joined,
 #       so a proxy that appends its own line instead of extending the caller's
-#       still supplies the audited IP — the caller's line is never the hop.
+#       still supplies the audited IP. The caller's line is never the hop.
 def test_a_repeated_forwarded_for_field_line_is_joined_before_the_hop_is_picked():
     deps, project, _clock, _vault = _build()
     _record, plaintext = _issue(deps, project)
     client = _behind_proxies(deps, 1)
 
-    # TWO field lines, not one comma list — RFC 9110 §5.3 makes them one
+    # TWO field lines, not one comma list. RFC 9110 §5.3 makes them one
     # comma-joined value, and a proxy appending its own line is an ordinary
     # wire form. The list-of-tuples form is required: `headers={...}` cannot
     # express a repeated field name, which is why the comma fixture above
@@ -832,7 +832,7 @@ def test_a_repeated_forwarded_for_field_line_is_joined_before_the_hop_is_picked(
     assert record.ip_source == "forwarded"
 
 
-# pins: a chain shorter than the trusted hop count is not trusted at all —
+# pins: a chain shorter than the trusted hop count is not trusted at all, 
 #       a caller-written hop never lands in the audit row as forwarded.
 def test_a_chain_shorter_than_the_trusted_hop_count_is_not_trusted():
     deps, project, _clock, _vault = _build()
@@ -846,7 +846,7 @@ def test_a_chain_shorter_than_the_trusted_hop_count_is_not_trusted():
     assert record.ip_source != "forwarded"
 
 
-# pins: an EMPTY trusted hop is no address at all — the peer is audited and the
+# pins: an EMPTY trusted hop is no address at all. The peer is audited and the
 #       provenance says peer, so a blank value is never stamped "forwarded".
 def test_an_empty_trusted_hop_falls_back_to_the_peer_not_a_blank_forwarded_ip():
     deps, project, _clock, _vault = _build()

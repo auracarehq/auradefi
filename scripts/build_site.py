@@ -1,6 +1,6 @@
-"""Build the published docs site into `dist/site/` — no network, no CDN.
+"""Build the published docs site into `dist/site/`, no network, no CDN.
 
-    pip install '.[docs]'
+    Pip install '.[docs]'
     python scripts/build_site.py            # then open dist/site/index.html
     python scripts/build_site.py --no-run   # skip executing the examples
 
@@ -42,7 +42,7 @@ REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "dist" / "site"
 STYLE = Path(__file__).resolve().parent / "site_style.css"
 
-TAGLINE = ("Open-source multi-tenant crypto data aggregator — Vezgo's "
+TAGLINE = ("Open-source multi-tenant crypto data aggregator: Vezgo's "
            "tenancy, DeBank's DeFi depth, Plaid's wire format.")
 
 #: Examples needing an optional extra, and the import that proves it is there.
@@ -105,7 +105,7 @@ def collect(run_examples: bool) -> list[Page]:
     this", so the first four pages answer it: five lines that run, how to
     install, what credentials you need (almost none), and how to swap in your
     own infrastructure. The reference comes after, and the design documents
-    do not come at all — they answer a different question and used to be the
+    do not come at all: they answer a different question and used to be the
     first thing on the site.
     """
     pages: list[Page] = []
@@ -121,7 +121,7 @@ def collect(run_examples: bool) -> list[Page]:
 
     for source, title, summary in (
         ("docs/authentication.md", "Authentication & keys",
-         "What credentials you need — at most one, and it is optional."),
+         "What credentials you need: at most one, and it is optional."),
         ("docs/bring-your-own.md", "Bring your own",
          "Your API, your database, your prices: every port and its methods."),
         ("docs/schema.md", "Database schema",
@@ -162,7 +162,7 @@ def collect(run_examples: bool) -> list[Page]:
         pages.append(Page(f"books/{path.stem}.html", path.stem.replace("_", " "),
                           body, outline, "Notebooks", ""))
 
-    # The design and build documents are NOT published — see
+    # The design and build documents are NOT published. See
     # site_render.INTERNAL_DOCS. A spec, a build log and a release
     # post-mortem answer "what is this and how was it made"; a developer
     # opening these docs is asking "how do I use it". They stay in the

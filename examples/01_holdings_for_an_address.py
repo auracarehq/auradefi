@@ -8,7 +8,7 @@ production one, so what you see here is what live code does.
 
 The three things worth noticing are the whole design:
 
-* the total is exact. It is computed in `Decimal`, never a float — the
+* the total is exact. It is computed in `Decimal`, never a float: the
   comparison at the end shows the float answer already wrong at the 17th
   digit, and that error compounds across a portfolio;
 * an asset nobody will price is **held, listed and named** in
@@ -42,7 +42,7 @@ print(f"  {'TOTAL':<6}{'':>12}{'':>14}    {report.total_value}")
 assert report.total_value == Money(Decimal("5025"), "USD")
 
 # ------------------------------------------------------------------ exactness
-# These sandbox numbers are round, so a float would survive them — 5025.0 is
+# These sandbox numbers are round, so a float would survive them. 5025.0 is
 # 5025. That is exactly why the guarantee has to be structural rather than
 # lucky: below is a real wallet-sized balance, and the float answer is wrong
 # at the 17th digit before anything is even summed.
@@ -60,7 +60,7 @@ print(f"    drift  {abs(exact - lossy)} USD on ONE holding")
 # something is: the asset stays in `holdings` with price=None and value=None,
 # and its id is named in `report.unpriced`. It is NEVER counted as zero, and
 # there is no price source for Bitcoin or Solana assets in this package at
-# all — so this is the normal case for them, not an edge case.
+# all, so this is the normal case for them, not an edge case.
 print(f"\n  unpriced: {report.unpriced or '(none in the sandbox recording)'}")
 for holding in report.holdings:
     if holding.price is None:
@@ -76,8 +76,8 @@ print(f"\n  quantity on the wire: {wire}")
 print(f"  total on the wire:    {money_to_wire(report.total_value)}")
 
 # --------------------------------------------------------------- going live
-# One line different. The key is OPTIONAL — without it Etherscan's keyless
-# tier applies — and one key covers every eip155 chain.
+# One line different. The key is OPTIONAL, without it Etherscan's keyless
+# tier applies, and one key covers every eip155 chain.
 if os.environ.get("AURADEFI_ETHERSCAN_API_KEY"):
     live = Auradefi.from_env()
     user = live.user("your-opaque-user-id")
@@ -89,4 +89,4 @@ else:
     print("\n  live: set AURADEFI_ETHERSCAN_API_KEY and this file will also")
     print("        run Auradefi.from_env() against mainnet. Same code below it.")
 
-print("\nOK — priced exactly, offline, with one line between here and mainnet.")
+print("\nOK: priced exactly, offline, with one line between here and mainnet.")

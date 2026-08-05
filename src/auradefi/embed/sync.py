@@ -3,7 +3,7 @@
 The host owns scheduling; we own throttling. Many hosts run one fixed
 interval tick across every integration with no per-integration cadence,
 so :meth:`SyncEngine.sync_connection` called more often than
-``min_interval_ms`` is a cheap no-op — zero requests, zero writes (SPEC
+``min_interval_ms`` is a cheap no-op. Zero requests, zero writes (SPEC
 §13's "sync() twice in quick succession is a no-op the second time").
 
 One shared budget of page requests per call, spent in two phases:
@@ -17,7 +17,7 @@ Both cursors persist after EVERY page, so a crash resumes at page
 granularity. The live cursor advances ONLY when its window drains: if
 the budget cuts the window mid-way the pages beyond the cut would be
 stranded behind an advanced cursor, so it stays put and the next call
-refetches them — free, because a payload-identical redelivery emits no
+refetches them: free, because a payload-identical redelivery emits no
 event (``ledger.models.payload_equal``).
 
 Transport is a port: :class:`PageFetcher` is a ``runtime_checkable``
@@ -55,7 +55,7 @@ HEAD_BLOCK = 99_999_999
 class PageFetcher(Protocol):
     """Structural seam: ONE page of raw explorer rows for one window.
 
-    A host satisfies it by shape (rule #12) — no base class, no
+    A host satisfies it by shape (rule #12), no base class, no
     registration. Rows are the explorer's RAW dicts (Etherscan txlist
     rows); parsing is the decoder's job, not this seam's.
     """
@@ -74,14 +74,14 @@ class PageFetcher(Protocol):
         """Raw rows in ``[start_block, end_block]``, ``sort`` asc|desc.
 
         ``page`` is 1-based and ``offset`` is the page size. An empty
-        history is ``[]`` — Etherscan's status-0 "No transactions found"
+        history is ``[]``. Etherscan's status-0 "No transactions found"
         is NOT an error (SPEC §3.3); a real failure raises
         ``auradefi.errors.SourceError``.
 
         REQUIRED of the transport: successive pages of ONE window must
         PARTITION it. For a fixed ``(start_block, end_block, sort)`` the
-        row order must be total and stable across page requests —
-        including BETWEEN transactions of the SAME block — so no row is
+        row order must be total and stable across page requests,
+        including BETWEEN transactions of the SAME block, so no row is
         served twice and none is skipped. That is what makes a page
         shorter than ``offset`` mean "the window drained", the signal
         both phases stop on. A transport that reorders rows inside a
@@ -186,32 +186,32 @@ class SyncEngine:
 
         ``budget`` is a count of page REQUESTS, not of transactions.
         ``budget < 1`` raises ``auradefi.errors.ValidationError`` before
-        anything — no clock read, no fetch, no state write.
+        anything, no clock read, no fetch, no state write.
 
-        THROTTLE — with ``now = clock.now_ms()``, a stored
+        THROTTLE, with ``now = clock.now_ms()``, a stored
         ``last_sync_at_ms`` closer than ``min_interval_ms`` returns a
         no-op report (every count 0, the stored cursors echoed) having
         made ZERO fetcher calls and written NO state. Otherwise the run
         persists ``last_sync_at_ms = now`` with every state write.
 
-        ANCHOR (``backfill_cursor is None``, i.e. never synced) — ONE
+        ANCHOR (``backfill_cursor is None``, i.e. never synced). ONE
         desc page over ``[0, head_block]``: the newest page IS the first
         live window, so it counts as a live page. ``live_cursor`` becomes
         its max block, ``backfill_cursor`` its min (both ``0`` for an
         empty page), and ``backfill_complete`` is True iff the page was
-        short. The live phase is skipped this call — the anchor already
+        short. The live phase is skipped this call: the anchor already
         covered the head.
 
-        LIVE — ``[live_cursor + 1, head_block]`` ascending, pages
+        LIVE. ``[Live_cursor + 1, head_block]`` ascending, pages
         1, 2, … while budget remains, each ingested IMMEDIATELY. A short
         page means the window DRAINED: ``live_cursor`` becomes the
         highest block seen this phase (unchanged if the phase saw none).
         If the budget runs out mid-window the cursor does NOT advance and
-        the backfill is SKIPPED this call — otherwise the pages the
+        the backfill is SKIPPED this call: otherwise the pages the
         budget cut would sit behind an advanced cursor forever. Their
         refetch next call is event-free.
 
-        BACKFILL — while budget remains and the phase is incomplete, desc
+        BACKFILL, while budget remains and the phase is incomplete, desc
         pages over the FIXED window ``[0, backfill_end]``, resuming at
         ``backfill_page + 1`` so no tick re-reads another's pages; only a
         SHORT page completes it (see :meth:`_backfill`).
@@ -269,7 +269,7 @@ class SyncEngine:
             # The window END is fixed HERE, for the whole phase, and never
             # moves again: that is what keeps page numbers meaningful across
             # ticks. It is INCLUSIVE of this block, because the anchor page
-            # may have cut it in half. A SHORT anchor page leaves it unset —
+            # may have cut it in half. A SHORT anchor page leaves it unset, 
             # there is no history left to walk, so there is no window.
             run.backfill_end = run.backfill_cursor
             run.backfill_page = 0
@@ -303,13 +303,13 @@ class SyncEngine:
     def _backfill(self, run: _Run) -> None:
         """Page ONE FIXED window backwards until drained or out of budget.
 
-        The window is ``[0, backfill_end]`` — set once by the anchor,
-        never moved — walked desc pages ``backfill_page + 1, +2, …``,
+        The window is ``[0, backfill_end]``, set once by the anchor,
+        never moved, walked desc pages ``backfill_page + 1, +2, …``,
         RESUMING across calls rather than restarting at page 1. A block is
         not a page, and neither boundary choice on a ``min(block)`` cursor
         can express that; ``SyncState`` carries the reasoning and
-        RELEASE_0.1.1 §5 #18 the defect. Only a SHORT page — proof the
-        window drained — completes the phase; block 0 can be split too.
+        RELEASE_0.1.1 §5 #18 the defect. Only a SHORT page, proof the
+        window drained, completes the phase; block 0 can be split too.
         """
         if run.backfill_end is None:  # pragma: no cover - anchor sets it
             run.backfill_end = 0 if run.backfill_cursor is None else run.backfill_cursor
@@ -331,7 +331,7 @@ class SyncEngine:
     ) -> tuple[list[dict], list[int]]:
         """One page request; spends one unit of budget.
 
-        Returns ``(rows, block_numbers)`` — the block numbers are parsed
+        Returns ``(rows, block_numbers)``. The block numbers are parsed
         eagerly so a malformed page raises before anything is written.
         """
         rows = list(
@@ -381,7 +381,7 @@ class SyncEngine:
         )
 
     def _report(self, run: _Run) -> ConnectionSyncReport:
-        """The run's :class:`ConnectionSyncReport` — never a no-op.
+        """The run's :class:`ConnectionSyncReport`, never a no-op.
 
         A non-throttled call always spends at least one page, so
         ``no_op`` is False and ``pages_fetched`` is the two phases' sum.

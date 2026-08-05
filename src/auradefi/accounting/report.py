@@ -12,9 +12,9 @@ answer an arbitrary date (SPEC §9, the thing Zerion cannot do).
 
 Three frozen value types carry the answer:
 
-* :class:`PnLReport` — the whole picture at one instant under one method.
-* :class:`AssetPnL` — one asset's slice of that picture.
-* :class:`TaxLot` — one surviving lot already in Plaid's ``tax_lots[]``
+* :class:`PnLReport`: the whole picture at one instant under one method.
+* :class:`AssetPnL`: one asset's slice of that picture.
+* :class:`TaxLot`: one surviving lot already in Plaid's ``tax_lots[]``
   shape (SPEC §6.2, DECISIONS "Plaid TaxLot mapping"), so nothing
   downstream needs a second mapping layer to reach the wire.
 
@@ -33,7 +33,7 @@ rationals and are converted at the end, so a report never sums numbers
 that have each already been rounded.
 
 Pure: ``auradefi.money``, ``auradefi.accounting`` and the standard
-library — no I/O and no clock. ``as_of_ms`` is supplied by the caller and
+library, no I/O and no clock. ``as_of_ms`` is supplied by the caller and
 never read from ``now()``, which is what keeps a report replayable rather
 than pinned to the moment it was taken.
 """
@@ -84,7 +84,7 @@ class AssetPnL:
 
     ``realized`` sums only the disposals of this asset whose realised
     amount is KNOWN, and is an exact zero in the report's currency when
-    the asset has none — an asset that only ever had unknown outcomes
+    the asset has none: an asset that only ever had unknown outcomes
     reports zero here while the report's ``missing_realized_count``
     records that something was left out.
 
@@ -123,7 +123,7 @@ class TaxLot:
     ``quantity``, ``cost_basis`` and ``current_value`` all describe what
     is LEFT of the lot: units remaining, the exact un-disposed part of
     the basis rounded once into ``Money``, and those units at the mark.
-    ``purchase_price`` is the exception — it is
+    ``purchase_price`` is the exception. It is
     ``cost_total / quantity_original``, a fact of the ACQUISITION that
     does not move as the lot is drawn down, so a half-consumed lot still
     reports the price it was bought at.
@@ -149,7 +149,7 @@ class PnLReport:
 
     ``as_of_ms`` is the instant the caller asked about, carried through
     verbatim; it is not read from a clock and need not coincide with any
-    event. ``method`` is the method the state was replayed under — a
+    event. ``method`` is the method the state was replayed under. A
     report cannot be re-costed, because the lot ledger behind it has
     already been consumed one particular way.
 
@@ -158,7 +158,7 @@ class PnLReport:
     that sum; a caller that ignores the count will silently read an
     understated total, which is why the count is not optional.
     ``unrealized`` is ``None`` if ANY held asset is uncertain, so it is
-    the conservative whole-portfolio figure rather than a partial sum —
+    the conservative whole-portfolio figure rather than a partial sum:
     the per-asset detail in ``per_asset`` is where the known parts stay
     visible.
 
@@ -173,7 +173,7 @@ class PnLReport:
     reporting their own remaining basis, because they stay ground truth for
     lot-level reporting (docs/internal/DECISIONS.md, "ACB pooling"). Buy 1 at 10, 1
     at 20 and 1 at 15, sell one, and the pool holds 30 while the surviving
-    lots sum to 35 — a permanent, intended gap of 5.
+    lots sum to 35: a permanent, intended gap of 5.
 
     Summing ``TaxLot.cost_basis`` and comparing it with what ``unrealized``
     implies is therefore the wrong check, and it is an easy one to reach for.
@@ -191,7 +191,7 @@ class PnLReport:
     per_asset: Mapping[str, AssetPnL]
     open_lots: tuple[TaxLot, ...]
     flags: tuple[str, ...] = ()
-    #: ``"pool"`` under ACB, ``"lots"`` for every lot-tracking method — which
+    #: ``"pool"`` under ACB, ``"lots"`` for every lot-tracking method, which
     #: cost :attr:`unrealized` subtracted. Never cosmetic: under ``"pool"``
     #: it is the ONLY signal that summing the lots will give another number.
     basis_source: str = BASIS_FROM_LOTS
@@ -205,7 +205,7 @@ class PnLReport:
 
         The lot-side counterpart to :attr:`unrealized_basis`. Equal to it
         under every lot-tracking method and deliberately NOT equal under
-        ACB. ``None`` when any open lot is unpriced — an unknown basis is
+        ACB. ``None`` when any open lot is unpriced. An unknown basis is
         declared, never summed as zero.
         """
         if not self.open_lots:
@@ -224,7 +224,7 @@ def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLRep
     ``state`` is READ, never advanced: the caller may report the same
     state repeatedly, at different instants and against different marks,
     and each answer is independent of the others. ``as_of_ms`` is
-    recorded on the result and is otherwise inert — the state has already
+    recorded on the result and is otherwise inert. The state has already
     been replayed to the cutoff the caller chose, so a report does not
     re-filter events by time.
 
@@ -236,14 +236,14 @@ def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLRep
     ``unrealized`` is the exact sum over assets of
     ``mark x units held - remaining basis``, and ``None`` if ANY held
     asset lacks a mark or lacks a complete basis. Under ``"acb"`` the
-    basis subtracted is the POOL's, not the surviving lots' — the pool is
+    basis subtracted is the POOL's, not the surviving lots'. The pool is
     what that method actually costs with, so the two will not agree and
     the lots remain ground truth only for open-lot reporting (DECISIONS
     "ACB pooling"). An asset holding nothing needs no mark and
     contributes an exact zero.
 
     ``marks`` maps asset id to a unit price in the report's currency. A
-    mark in another currency raises ``CurrencyMismatchError`` — silently
+    mark in another currency raises ``CurrencyMismatchError``. Silently
     mixing denominations is the failure that makes a tax report wrong
     without looking wrong. A mark for an asset that is not held is
     ignored, so a caller may pass one price table for a whole portfolio.
@@ -344,7 +344,7 @@ def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLRep
 def _held(open_lots: tuple[Lot, ...], decimals: int) -> tuple[Quantity, Fraction | None]:
     """Surviving units and their exact remaining basis.
 
-    The basis stays a ``Fraction`` — every lot's ``cost_remaining`` is
+    The basis stays a ``Fraction``. Every lot's ``cost_remaining`` is
     exact rational, and summing them before the single rounding boundary
     is what stops a portfolio total from drifting by the accumulated
     error of its parts (DECISIONS "Fraction->Money boundary").
@@ -373,9 +373,9 @@ def _tax_lot(lot: Lot, mark: Money | None, currency: str) -> TaxLot:
     rounds what is left of the exact ``cost_remaining``; ``current_value``
     marks the remaining units with :func:`exact_mul`, which is
     context-free so a 40-digit quantity survives the multiplication
-    intact. All three are ``None`` when the input they need is missing —
+    intact. All three are ``None`` when the input they need is missing,
     an unpriced lot has no price and no basis, an unmarked asset has no
-    value — rather than defaulting to zero.
+    value, rather than defaulting to zero.
     """
     remaining = lot.quantity_remaining.as_decimal()
     exact = True

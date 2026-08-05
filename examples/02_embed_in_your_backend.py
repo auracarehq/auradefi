@@ -17,7 +17,7 @@ things a host actually has to get right:
 2. a **budgeted** sync you call on your own schedule, and its throttle;
 3. a **restart**: a new process over the same stores resumes stored work;
 4. one dead chain **failing on its own row** instead of failing the tick;
-5. **your database** — the three lines, and why it is not an env var.
+5. **your database**: the three lines, and why it is not an env var.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from auradefi.embed import bootstrap
 from auradefi.errors import SourceError, UnknownChainError, ValidationError
 from auradefi.sources import sandbox as recording
 
-# The default port set, as a plain dict — this is what `sandbox()` and
+# The default port set, as a plain dict. This is what `sandbox()` and
 # `from_env()` hand to the constructor, and what makes an override a
 # one-keyword change rather than a fork of the wiring.
 clock = FrozenClock(recording.SANDBOX_NOW_MS)
@@ -49,7 +49,7 @@ for chain, address, expected in (
     try:
         user.connect_address(chain, address)
     except expected as exc:
-        print(f"  refused now, not later: {type(exc).__name__} — {str(exc)[:58]}")
+        print(f"  refused now, not later: {type(exc).__name__}: {str(exc)[:58]}")
 
 # --------------------------------------------------- 2. sync on your tick
 # `budget` is the maximum source pages one call may spend. The cursor makes
@@ -58,7 +58,7 @@ first = aura.sync(budget=2)
 print(f"\nsync(budget=2): {first.pages_fetched} pages, "
       f"{first.transactions_ingested} transactions, no_op={first.no_op}")
 print(f"  same instant again: no_op={aura.sync(budget=2).no_op} "
-      "(throttled by settings.sync_min_interval_s — zero requests)")
+      "(throttled by settings.sync_min_interval_s: zero requests)")
 
 # ----------------------------------------------------- 3. restart resume
 # A new process binds fresh objects over the SAME stores. Connections come
@@ -83,8 +83,8 @@ class DeadChain:
 
     def fetch_txlist(self, chain_id, address, **window):
         # Raise SourceError (any AuradefiError) for an upstream failure and
-        # the library contains it to this ONE connection. Anything else —
-        # a KeyError in your adapter — propagates, because that is your bug.
+        # the library contains it to this ONE connection. Anything else, 
+        # a KeyError in your adapter. Propagates, because that is your bug.
         raise SourceError(f"{chain_id} RPC did not answer")
 
 
@@ -92,13 +92,13 @@ clock.advance(60_000)
 degraded = Auradefi(**{**ports, "source": DeadChain(ports["source"])}).sync(budget=2)
 assert degraded.failed_connections == (connection.id,)
 print(f"\nRPC down: failed_connections={degraded.failed_connections}")
-print("  branch on report.failed_connections every tick — a partial failure")
+print("  branch on report.failed_connections every tick: a partial failure")
 print("  can never hide behind an aggregate that reads like a clean one")
 
 # ------------------------------------------------------ 5. your database
 # Storage defaults to memory and says so. There is no AURADEFI_DATABASE_URL
 # on purpose: the SQL ledger takes a SESSION FACTORY because your
-# application owns the engine, the pool and the migrations — auradefi never
+# application owns the engine, the pool and the migrations: auradefi never
 # opens a connection you did not hand it, and never emits DDL.
 #
 #     from sqlalchemy import create_engine
@@ -113,4 +113,4 @@ print("  can never hide behind an aggregate that reads like a clean one")
 #
 # See 04_persist_to_your_database.py for that running end to end, and
 # 03_write_a_source_adapter.py to replace the transport instead.
-print("\nOK — defaults to start with, ports to replace, your tick throughout.")
+print("\nOK: defaults to start with, ports to replace, your tick throughout.")

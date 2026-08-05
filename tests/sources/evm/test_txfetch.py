@@ -1,7 +1,7 @@
 """Contract tests for the Etherscan V2 txlist/tokentx fetchers (SPEC §10).
 
 All HTTP replays through the committed ``etherscan_txlist`` cassette
-(SPEC §13) or synthetic ``httpx.MockTransport`` handlers — never a
+(SPEC §13) or synthetic ``httpx.MockTransport`` handlers, never a
 socket. Golden records are hardcoded literals derived BY HAND from the
 cassette bodies: ``int("1000000000000000000") == 10**18``,
 ``int("10000000000") == 10**10``, ``int("25000000") == 25 * 10**6``.
@@ -95,7 +95,7 @@ TOKENTX_GOLDEN = (
 
 
 def _query(action: str, address: str, page: int, offset: int) -> str:
-    """The pinned wire-format query string — param order is contractual."""
+    """The pinned wire-format query string. Param order is contractual."""
     return (
         f"chainid=1&module=account&action={action}&address={address}"
         f"&startblock=0&endblock=99999999&page={page}&offset={offset}"
@@ -115,7 +115,7 @@ def _recording_client(cas) -> tuple[httpx.Client, list[httpx.Request]]:
 
 
 def _synthetic_client(handler) -> httpx.Client:
-    """A client whose every response comes from ``handler`` — no cassette."""
+    """A client whose every response comes from ``handler``, no cassette."""
     return httpx.Client(transport=httpx.MockTransport(handler))
 
 
@@ -366,7 +366,7 @@ class TestModuleHygiene:
         imported = _imports_of(_module_path())
         assert any(
             name.startswith("auradefi.sources.evm.txlist") for name in imported
-        ), "txlist.py is the only parsing authority — txfetch must import it"
+        ), "txlist.py is the only parsing authority: txfetch must import it"
 
     def test_reimport_does_no_io(self):
         name = "auradefi.sources.evm.txfetch"

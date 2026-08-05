@@ -1,8 +1,8 @@
-"""api/routes/sync.py — Plaid's sync envelope and Allium's batch union.
+"""api/routes/sync.py. Plaid's sync envelope and Allium's batch union.
 
 Offline throughout. The ledger is the real ``MemoryLedger`` and the
 holdings provider is a structural stand-in (``api`` may not import
-``portfolio``, so neither may its tests pretend otherwise — the stand-in
+``portfolio``, so neither may its tests pretend otherwise, the stand-in
 returns a real ``HoldingsReport``, which is what a host would bind).
 
 Two rules get the most attention: the ledger tenant key is the caller's
@@ -384,7 +384,7 @@ def test_a_bad_batch_body_is_422(batch_wired, body):
 
 
 # --------------------------------------------------------------------------
-# RELEASE_0.1.1 §5 #32 — a 422 must not burn quota
+# RELEASE_0.1.1 §5 #32. A 422 must not burn quota
 
 
 def test_a_rejected_limit_costs_the_caller_no_quota():
@@ -392,7 +392,7 @@ def test_a_rejected_limit_costs_the_caller_no_quota():
     #       rule POST /batch/holdings already states in _checked_size ("an
     #       over-sized batch costs the caller nothing"). Consuming first let
     #       a client with a hard-coded bad limit drain the project's per-day
-    #       window and then 429 EVERY OTHER USER of that project — a 422 the
+    #       window and then 429 EVERY OTHER USER of that project: a 422 the
     #       client can never succeed at, charged every time it retries.
     deps, project, clock = _build(limits=QuotaLimits(500, 5_000, 50_000))
     record, plaintext = deps.keys.issue(
