@@ -1,6 +1,7 @@
 """How do I point this at MY chain data: my RPC, my vendor, my archive?
 
-    pip install auradefi && python 03_write_a_source_adapter.py
+    pip install auradefi
+    python examples/03_write_a_source_adapter.py
 
 **You may not have to.** `EtherscanSource` ships and satisfies both seams
 over one Etherscan V2 key, and `Auradefi.from_env()` binds it for you. This

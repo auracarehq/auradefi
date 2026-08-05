@@ -100,8 +100,7 @@ traffic.
 The public endpoint needs no key and is aggressively rate-limited upstream; a
 429 surfaces as `SourceError: solana rpc HTTP 429`. For a keyed provider, pass
 the entire URL. `AURADEFI_HELIUS_API_KEY` is parsed by `Settings` and consumed
-by nothing, because the Helius adapter is declared in the spec and does not
-ship:
+by nothing, because the Helius adapter does not ship:
 
 ```python
 SolanaRpc(client, url="https://mainnet.helius-rpc.com/?api-key=…")

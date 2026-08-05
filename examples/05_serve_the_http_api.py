@@ -1,6 +1,7 @@
 """How do I expose this over HTTP, the way Plaid clients already expect?
 
-    pip install 'auradefi[api]' && python 05_serve_the_http_api.py
+    pip install 'auradefi[api]'
+    python examples/05_serve_the_http_api.py
 
 `create_app(Deps(...))` returns a FastAPI app. It is a shell: it holds no
 state, opens no connections and invents no stores: you inject the same

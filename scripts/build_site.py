@@ -19,10 +19,12 @@ behind any CSP that allows inline script.
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from html import escape
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -90,12 +92,35 @@ def _run_example(path: Path) -> tuple[str | None, str | None]:
 
 
 def _first_sentence(path: Path) -> str:
-    """An example's docstring title line, for the index and the nav."""
+    """An example's docstring title line, for the index and the nav.
+
+    Every guide opens its docstring with the question it answers ("How do I
+    get a priced portfolio for one address?"), and that question IS the page
+    title. The filename is not: `01_holdings_for_an_address` tells a reader
+    scanning the sidebar nothing, and the leading number is an ordering
+    device for the runner's glob, not information.
+    """
     for line in path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip().strip('"').strip()
         if stripped:
             return stripped
     return path.name
+
+
+def _notebook_title(path: Path) -> str:
+    """A notebook's own H1, minus the "PyBook" prefix, for the nav.
+
+    Read from the file so the nav cannot disagree with the page. Titles carry
+    no phase number: the phases are how the project was built, which is not
+    what somebody reading the notebook came for.
+    """
+    notebook = json.loads(path.read_text(encoding="utf-8"))
+    for cell in notebook.get("cells", []):
+        for line in cell.get("source", []):
+            if line.startswith("# "):
+                title = line[2:].strip()
+                return title[len("PyBook ") :] if title.startswith("PyBook ") else title
+    return path.stem.replace("_", " ")
 
 
 def collect(run_examples: bool) -> list[Page]:
@@ -142,24 +167,25 @@ def collect(run_examples: bool) -> list[Page]:
     for path in example_files:
         output, note = _run_example(path) if run_examples else (None, None)
         body, outline = render_example(path, output, note)
-        pages.append(Page(f"examples/{path.stem}.html", path.stem, body, outline,
-                          "Guides", _first_sentence(path)))
+        question = _first_sentence(path)
+        pages.append(Page(f"examples/{path.stem}.html", question, body, outline,
+                          "Guides", question))
 
     books = sorted((REPO / "docs" / "books").glob("*.ipynb"))
     book_rows = "\n".join(
-        f'<li><a href="{path.stem}.html">{path.stem.replace("_", " ")}</a></li>'
+        f'<li><a href="{path.stem}.html">{_notebook_title(path)}</a></li>'
         for path in books
     )
     pages.append(Page(
         "books/index.html", "PyBooks",
-        "<h1>PyBooks</h1><p>Twelve executable notebooks, one per SPEC phase. "
+        "<h1>PyBooks</h1><p>Twelve executable notebooks, one per capability. "
         "Each runs offline against committed fixtures, asserts its own "
         "outputs, and is executed headlessly in CI, so it cannot drift from "
         f"the code.</p><ul class=\"cards\">{book_rows}</ul>",
         section="Notebooks", summary="Twelve executable notebooks, run in CI."))
     for path in books:
         body, outline = render_notebook(path, 1)
-        pages.append(Page(f"books/{path.stem}.html", path.stem.replace("_", " "),
+        pages.append(Page(f"books/{path.stem}.html", _notebook_title(path),
                           body, outline, "Notebooks", ""))
 
     # The design and build documents are NOT published. See
@@ -232,8 +258,8 @@ def write(page: Page, pages: list[Page]) -> None:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{page.title} · auradefi</title>
-<meta name="description" content="{page.summary or TAGLINE}">
+<title>{escape(page.title)} · auradefi</title>
+<meta name="description" content="{escape(page.summary or TAGLINE, quote=True)}">
 <link rel="stylesheet" href="{up}style.css">
 <script>
   // Apply the reader's saved choice BEFORE first paint; absent one, the CSS

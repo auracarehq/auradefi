@@ -174,7 +174,7 @@ code {
 a code { color: inherit; }
 
 /* ------------------------------------------------------------------ code */
-pre.code, pre.out {
+pre.code, pre.out, pre.run {
   font: 0.82rem/1.55 var(--mono);
   padding: 0.9rem 1rem;
   margin: 1.1rem 0;
@@ -184,7 +184,7 @@ pre.code, pre.out {
   background: var(--panel);
   tab-size: 4;
 }
-pre.code code, pre.out code { background: none; padding: 0; font-size: 1em; }
+pre.code code, pre.out code, pre.run code { background: none; padding: 0; font-size: 1em; }
 pre.out {
   background: transparent;
   border-style: dashed;
@@ -333,3 +333,9 @@ code.pname, code.fname {
 
 /* The reference nav is long; let its own entries stay compact. */
 .nav a { line-height: 1.35; }
+
+/* The install-and-run command each guide opens with. */
+pre.run {
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+}

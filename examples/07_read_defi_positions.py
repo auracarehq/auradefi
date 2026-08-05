@@ -1,6 +1,7 @@
 """How do I get DeFi positions, an LP, a loan, and not lie about them?
 
-    pip install auradefi && python 07_read_defi_positions.py
+    pip install auradefi
+    python examples/07_read_defi_positions.py
 
 A wallet balance is one number. A DeFi position is a claim on other assets,
 sometimes negative, and the way most tools get it wrong is to flatten it too

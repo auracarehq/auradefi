@@ -1,6 +1,7 @@
 """How do I serve many customers from one deployment without leaking?
 
-    pip install auradefi && python 06_isolate_two_tenants.py
+    pip install auradefi
+    python examples/06_isolate_two_tenants.py
 
 Multi-tenancy here is not a `WHERE` clause you must remember to write. The
 hierarchy is organisation -> project -> end user, and the tenant key is

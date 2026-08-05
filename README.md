@@ -9,8 +9,8 @@ It is a library first and a service second. A Python host imports `auradefi`
 directly and pays no serialisation or network cost. The HTTP API is a thin
 shell over the same importable core.
 
-> Status: alpha, and 0.1.1 is the release to use. All ten SPEC phases are
-> implemented. The suite is 3,247 tests green offline on a fresh clone with no
+> Status: alpha, and 0.1.1 is the release to use. Every planned capability
+> is implemented. The suite is 3,247 tests green offline on a fresh clone with no
 > API keys, all twelve notebooks execute clean, and every example under
 > [`examples/`](examples) runs against the published wheel.
 >
@@ -46,7 +46,7 @@ handles it):
 git clone https://github.com/auracarehq/auradefi
 cd auradefi && bash scripts/bootstrap.sh
 .venv/bin/pytest                           # the whole suite, offline, no keys
-.venv/bin/python examples/quickstart.py    # every phase, end to end
+.venv/bin/python examples/quickstart.py    # every capability, end to end
 bash scripts/run_examples.sh               # all eleven examples
 ```
 
@@ -77,8 +77,7 @@ every example with its real output.
 
 ## Using it
 
-As a library, where the host owns storage, transport, prices and the tick
-(SPEC §8):
+As a library, where the host owns storage, transport, prices and the tick:
 
 ```python
 from auradefi import Auradefi
@@ -113,24 +112,24 @@ Coverage is published as data (rule #10). Every row below has an executable
 notebook under [`docs/books/`](docs/books) that runs offline and asserts its
 own outputs, plus a gate test under `tests/`.
 
-| Capability | Phase | Limits, and what proves it |
-|---|---|---|
-| `Quantity`/`Money`: exact at 10^77, four-field wire form, `raw` always a JSON string, strict wire grammar | 0 | [`02_money`](docs/books/02_money.ipynb) |
-| CAIP-2/CAIP-19 parse + canonicalize, deterministic `ast_…` ids, both-ways asset registry | 0 | 5 seed chains (Ethereum, Polygon, Base, Bitcoin, Solana); [`03_assets_chains`](docs/books/03_assets_chains.ipynb) |
-| Asset groups (decimals-equality law, `single` fallback) + additive spam scoring (score + numbers, caller threshold) | 0 | [`03_assets_chains`](docs/books/03_assets_chains.ipynb) |
-| Ledger port: idempotent upsert, cursor sync with `has_more` paging, reorg as `removed` + re-`added`, resurrection, tenant isolation | 0 | memory and SQLModel backends; [`04_ledger`](docs/books/04_ledger.ipynb) |
-| Cassette replay harness (`CassetteMissError` offline guarantee) | 0 | [`01_foundation`](docs/books/01_foundation.ipynb) |
-| Style gates: size, structure, placement, layering (`tests/style`) | 0 | no allowlist |
-| EVM balances to holdings, exact-`Decimal` USD totals, unpriced assets named | 1 | Etherscan V2 source + DefiLlama prices; [`05_holdings`](docs/books/05_holdings.ipynb) |
-| Tenancy: org/project/end-user, scoped `adk_` keys, `authEndpoint` JWT mint, three-window quota, audit log | 2 | the isolation gate actively tries to leak; [`06_tenancy`](docs/books/06_tenancy.ipynb) |
-| Rich transactions: `parts[]`/`acts[]`, fees as siblings carrying `borne_by`, derived `type`, ledger bridge, reorg + resurrection | 3 | EVM only, one act per transaction; [`07_transactions`](docs/books/07_transactions.ipynb) |
-| DeFi positions: adapter protocol, drill-down, group totals + health factor, signed synthetic-Holdings projection | 4 | Uniswap v2/v3, Aave v3, Lido/Rocket Pool; fixture-driven, see below; [`08_positions`](docs/books/08_positions.ipynb) |
-| Embedding: `from auradefi import Auradefi`, host-owned session, budgeted two-phase sync, 26-metric scalar projection | 5 | chain-scoped connection ids, restart resume enumerated from the state port, one connection's failure contained to its own row (0.1.1 #18/#21/#24/#26); [`09_embedding`](docs/books/09_embedding.ipynb), [`02_embed_in_your_backend.py`](examples/02_embed_in_your_backend.py) |
-| Bitcoin: pure-Python BIP32 xpub derivation, gap-20 scan, confirmed-only UTXO balances | 6 | p2wpkh + Esplora only; the extended key never reaches HTTP; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
-| Solana: SPL + Token-2022 balances, ScaledUiAmount carried both ways, signature history | 7 | balances only, no decode; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
-| HTTP API: Plaid `/crypto/sync` envelope, connections, `/coverage` generated as data, nine quota headers, batch holdings | 8 | [`12_http_api`](docs/books/12_http_api.ipynb) |
-| Webhooks: HMAC-SHA256 signed, durable over a pinned retry schedule, dead letter + replay | 8 | [`12_http_api`](docs/books/12_http_api.ipynb) |
-| Accounting: lot ledger, FIFO/LIFO/HIFO/ACB, realised + unrealised PnL, arbitrary-date PnL, Plaid `tax_lots` | 9 | 50,000-event gate; [`11_accounting`](docs/books/11_accounting.ipynb) |
+| Capability | Limits, and what proves it |
+|---|---|
+| `Quantity`/`Money`: exact at 10^77, four-field wire form, `raw` always a JSON string, strict wire grammar | [`02_money`](docs/books/02_money.ipynb) |
+| CAIP-2/CAIP-19 parse + canonicalize, deterministic `ast_…` ids, both-ways asset registry | 5 seed chains (Ethereum, Polygon, Base, Bitcoin, Solana); [`03_assets_chains`](docs/books/03_assets_chains.ipynb) |
+| Asset groups (decimals-equality law, `single` fallback) + additive spam scoring (score + numbers, caller threshold) | [`03_assets_chains`](docs/books/03_assets_chains.ipynb) |
+| Ledger port: idempotent upsert, cursor sync with `has_more` paging, reorg as `removed` + re-`added`, resurrection, tenant isolation | memory and SQLModel backends; [`04_ledger`](docs/books/04_ledger.ipynb) |
+| Cassette replay harness (`CassetteMissError` offline guarantee) | [`01_foundation`](docs/books/01_foundation.ipynb) |
+| Style gates: size, structure, placement, layering (`tests/style`) | no allowlist |
+| EVM balances to holdings, exact-`Decimal` USD totals, unpriced assets named | Etherscan V2 source + DefiLlama prices; [`05_holdings`](docs/books/05_holdings.ipynb) |
+| Tenancy: org/project/end-user, scoped `adk_` keys, `authEndpoint` JWT mint, three-window quota, audit log | the isolation gate actively tries to leak; [`06_tenancy`](docs/books/06_tenancy.ipynb) |
+| Rich transactions: `parts[]`/`acts[]`, fees as siblings carrying `borne_by`, derived `type`, ledger bridge, reorg + resurrection | EVM only, one act per transaction; [`07_transactions`](docs/books/07_transactions.ipynb) |
+| DeFi positions: adapter protocol, drill-down, group totals + health factor, signed synthetic-Holdings projection | Uniswap v2/v3, Aave v3, Lido/Rocket Pool; fixture-driven, see below; [`08_positions`](docs/books/08_positions.ipynb) |
+| Embedding: `from auradefi import Auradefi`, host-owned session, budgeted two-phase sync, 26-metric scalar projection | chain-scoped connection ids, restart resume enumerated from the state port, one connection's failure contained to its own row (0.1.1 #18/#21/#24/#26); [`09_embedding`](docs/books/09_embedding.ipynb), [`02_embed_in_your_backend.py`](examples/02_embed_in_your_backend.py) |
+| Bitcoin: pure-Python BIP32 xpub derivation, gap-20 scan, confirmed-only UTXO balances | p2wpkh + Esplora only; the extended key never reaches HTTP; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
+| Solana: SPL + Token-2022 balances, ScaledUiAmount carried both ways, signature history | balances only, no decode; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
+| HTTP API: Plaid `/crypto/sync` envelope, connections, `/coverage` generated as data, nine quota headers, batch holdings | [`12_http_api`](docs/books/12_http_api.ipynb) |
+| Webhooks: HMAC-SHA256 signed, durable over a pinned retry schedule, dead letter + replay | [`12_http_api`](docs/books/12_http_api.ipynb) |
+| Accounting: lot ledger, FIFO/LIFO/HIFO/ACB, realised + unrealised PnL, arbitrary-date PnL, Plaid `tax_lots` | 50,000-event gate; [`11_accounting`](docs/books/11_accounting.ipynb) |
 
 ### What is not there
 
@@ -148,10 +147,10 @@ Rule #10 applies to the absences too.
 - There is no multicall anywhere, so token balances cost one request each.
 - One price oracle (DefiLlama), current prices only. There is no fallback
   feed and no historical price service: `prices/historian.py` and
-  `prices/store.py` are declared in the spec's layout and absent, as are the
+  `prices/store.py` are declared in the module layout and absent, as are the
   `coingecko`, `manual` and `onchain_amm` oracles, so accounting marks are
   the caller's.
-- No `jobs/` package. The spec declares `scheduler.py`, `discover.py`,
+- No `jobs/` package. The layout declares `scheduler.py`, `discover.py`,
   `refresh.py`, `reprocess.py` and `backfill.py`; none of them ship. There is
   no scheduler, no background worker and no reprocess path. The host owns
   every tick, and a backfill is a `sync()` budget you spend yourself.

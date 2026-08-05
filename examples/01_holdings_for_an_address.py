@@ -1,6 +1,7 @@
 """How do I get a priced portfolio for one address?
 
-    pip install auradefi && python 01_holdings_for_an_address.py
+    pip install auradefi
+    python examples/01_holdings_for_an_address.py
 
 No keys, no setup: this runs in the Sandbox environment, which replays a
 recording bundled in the package. Every layer above the transport is the

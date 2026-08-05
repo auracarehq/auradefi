@@ -1,6 +1,7 @@
 """auradefi in five lines, then the whole library in one file.
 
-    Pip install auradefi && python quickstart.py
+    pip install auradefi
+    python examples/quickstart.py
 
 No keys. No network. No configuration. `Auradefi.sandbox()` replays a
 recording bundled inside the package, and every layer above the transport is

@@ -224,6 +224,25 @@ def render_notebook(path: Path, depth: int) -> tuple[str, list]:
     return rewrite_links(body, str(path), depth), outline
 
 
+def _split_run_command(rest: str) -> tuple[str, str]:
+    """The leading indented command block, and the prose after it.
+
+    Returns ``("", rest)`` when a docstring does not open with one, so a guide
+    written without a command still renders.
+    """
+    lines = rest.split("\n")
+    index = 0
+    while index < len(lines) and not lines[index].strip():
+        index += 1
+    command: list[str] = []
+    while index < len(lines) and lines[index].startswith("    "):
+        command.append(lines[index].strip())
+        index += 1
+    if not command:
+        return "", rest
+    return "\n".join(command), "\n".join(lines[index:]).strip("\n")
+
+
 def render_example(path: Path, output: str | None, note: str | None) -> tuple[str, list]:
     """An example .py -> its docstring as prose, its source, and its output."""
     text = path.read_text(encoding="utf-8")
@@ -234,7 +253,16 @@ def render_example(path: Path, output: str | None, note: str | None) -> tuple[st
     # Strip NEWLINES only. These docstrings are written flush-left, so an
     # indented line is a deliberate code block and `.strip()` would flatten
     # the first one into a paragraph.
-    chunks = [f"<h1>{html.escape(title.strip())}</h1>", md.render(rest.strip("\n"))]
+    rest = rest.strip("\n")
+    # Each guide's docstring opens with its own install-and-run command as an
+    # indented block. Lift it out under a heading, so the page answers "how do
+    # I run this?" above the fold instead of leaving the command to be noticed.
+    run_block, rest = _split_run_command(rest)
+    chunks = [f"<h1>{html.escape(title.strip())}</h1>"]
+    if run_block:
+        chunks.append("<h2>Run it</h2>")
+        chunks.append(f'<pre class="run">{html.escape(run_block)}</pre>')
+    chunks.append(md.render(rest))
     if note:
         chunks.append(f'<p class="note">{html.escape(note)}</p>')
     if output is not None:

@@ -1,6 +1,7 @@
 """How do I handle a Bitcoin xpub and Solana's token zoo?
 
-    pip install auradefi && python 10_scan_bitcoin_and_solana.py
+    pip install auradefi
+    python examples/10_scan_bitcoin_and_solana.py
 
 Two chains that are not EVM, and each breaks an assumption:
 

@@ -1,6 +1,7 @@
 """How do I store this in MY database, and stream changes to my clients?
 
-    pip install 'auradefi[sql]' && python 04_persist_to_your_database.py
+    pip install 'auradefi[sql]'
+    python examples/04_persist_to_your_database.py
 
 The ledger is a port with four methods. This file uses the shipped
 SQLModel backend against a sqlite file you can open with any client

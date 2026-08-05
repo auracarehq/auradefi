@@ -1,6 +1,7 @@
 """How do I answer "what did they make, and what tax lots are open"?
 
-    pip install auradefi && python 08_report_cost_basis_and_pnl.py
+    pip install auradefi
+    python examples/08_report_cost_basis_and_pnl.py
 
 Cost basis is where crypto tools quietly disagree with each other. This
 package's position is that there is no single right answer. There are four

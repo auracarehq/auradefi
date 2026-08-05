@@ -1,6 +1,7 @@
 """How do I run this inside my own backend, with my own database?
 
-    pip install auradefi && python 02_embed_in_your_backend.py
+    pip install auradefi
+    python examples/02_embed_in_your_backend.py
 
 `Auradefi.from_env()` gives you working defaults; every collaborator is
 still a port you can replace one at a time. That is the whole shape:

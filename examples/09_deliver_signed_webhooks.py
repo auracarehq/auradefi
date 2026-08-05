@@ -1,6 +1,7 @@
 """How do I get told when something changes, and trust what arrives?
 
-    pip install auradefi && python 09_deliver_signed_webhooks.py
+    pip install auradefi
+    python examples/09_deliver_signed_webhooks.py
 
 Webhooks are the part of an integration that fails silently. Three things
 have to be true or you cannot rely on them, and this file exercises all
