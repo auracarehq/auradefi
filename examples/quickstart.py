@@ -1,39 +1,60 @@
-"""auradefi quickstart — the whole library, offline, in one file.
+"""auradefi in five lines, then the whole library in one file.
 
-Runs against the INSTALLED package with no API keys, no network and no
-optional extras: `python quickstart.py` is what CI, `scripts/release_check.sh`
-(against a freshly built wheel in a clean venv) and `docker run --network none`
-all execute as a smoke test.
+    pip install auradefi && python quickstart.py
 
-Each section maps to one SPEC phase and to one executable notebook under
-`docs/books/`, which goes considerably deeper:
+No keys. No network. No configuration. `Auradefi.sandbox()` replays a
+recording bundled inside the package, and every layer above the transport is
+the production one — the same source, decoder, ledger and pricing a live
+instance uses. Sandbox data is a RECORDING, so the numbers here are
+constants, which is what makes them safe to assert.
 
-    0  money, chains, assets, ledger      01_foundation … 04_ledger
-    1  balances -> holdings               05_holdings
-    2  tenancy and the authEndpoint mint  06_tenancy
-    3  transaction decode and reorg       07_transactions
-    4  DeFi positions and the projection  08_positions
-    5  the embedding facade               09_embedding
-    6  Bitcoin xpub derivation            10_bitcoin_solana
-    7  Solana Token-2022                  10_bitcoin_solana
-    8  webhook signing                    12_http_api
-    9  cost basis and PnL                 11_accounting
+This file is also the smoke test CI, `scripts/release_check.sh` (against a
+freshly built wheel in a clean venv) and `docker run --network none` all
+execute, so nothing in it may depend on the repository.
+
+Each section maps to one SPEC phase, and to a guide that goes deeper:
+
+    the five lines                      examples/01_holdings_for_an_address.py
+    0  money, chains, assets, ledger    docs/books/01_foundation … 04_ledger
+    1  balances -> holdings             examples/01, examples/04
+    2  tenancy and the token mint       examples/06
+    3  transaction decode and reorg     examples/04
+    4  DeFi positions                   examples/07
+    5  embedding in your backend        examples/02, examples/03
+    6  Bitcoin xpub derivation          examples/10
+    7  Solana Token-2022                examples/10
+    8  webhook signing                  examples/09
+    9  cost basis and PnL               examples/08
 """
 
 from __future__ import annotations
 
 import json
-import tempfile
 from decimal import Decimal
-from pathlib import Path
 
 import auradefi
 
-print(f"auradefi {auradefi.__version__} — offline quickstart\n")
+print(f"auradefi {auradefi.__version__} — sandbox quickstart, no keys\n")
 
 
 def section(title: str) -> None:
     print(f"\n--- {title} " + "-" * max(0, 62 - len(title)))
+
+
+# ===================================================== the whole ask, first
+section("a priced portfolio, in five lines")
+
+from auradefi import Auradefi
+
+aura = Auradefi.sandbox()
+for holding in aura.holdings()[0].holdings:
+    print(f"  {holding.symbol:>5} {str(holding.quantity):>4} @ {holding.price}"
+          f" = {holding.value}")
+
+(sandbox_report,) = aura.holdings()
+assert str(sandbox_report.total_value) == "5025.000000000000000000 USD"
+print(f"  total {sandbox_report.total_value}")
+print("  ^ that is the entire program. Everything below is detail.")
 
 
 # --------------------------------------------------------------- phase 0
@@ -66,94 +87,37 @@ print(f"{len(chains.chains())} chains seeded; CAIP-19 canonicalised: {canonical_
 
 
 # --------------------------------------------------------------- phase 1
-section("phase 1: balances + prices -> holdings (replayed HTTP)")
+section("phase 1: balances + prices -> holdings, exactly")
 
-from auradefi.clock import FrozenClock
+from auradefi.money.decimal_json import money_to_wire
+from auradefi.money.fiat import Money
+
+# The five lines above already did this. What matters is HOW the number is
+# built: exact `Decimal` throughout, and an asset nobody prices is named in
+# `report.unpriced` rather than valued at zero.
+for holding in sandbox_report.holdings:
+    print(f"  {holding.symbol:>5} {str(holding.quantity):>4} @ "
+          f"{str(holding.price):>9} = {holding.value}")
+assert sandbox_report.total_value == Money(Decimal("5025"), "USD")
+assert sandbox_report.unpriced == ()
+print(f"  total {sandbox_report.total_value} (exact Decimal, never a float)")
+print(f"  on the wire: {json.dumps(money_to_wire(sandbox_report.total_value))}")
+
+# The offline guarantee is a guarantee: an unrecorded request fails loudly
+# rather than reaching the network.
 from auradefi.errors import CassetteMissError
-from auradefi.portfolio.holdings import HoldingsService
-from auradefi.prices.inquirer import Inquirer
-from auradefi.prices.oracles.defillama import DefiLlamaOracle
-from auradefi.sources.evm.etherscan import EtherscanV2
-from auradefi.testing.cassettes import load
+from auradefi.sources import sandbox as recording
 
-ADDRESS = "0x1111111111111111111111111111111111111111"
-USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-ETHERSCAN = "https://api.etherscan.io/v2/api"
-CASSETTE = {
-    "interactions": [
-        {
-            "request": {
-                "method": "GET",
-                "url": f"{ETHERSCAN}?chainid=1&module=account&action=balance"
-                f"&address={ADDRESS}&tag=latest",
-            },
-            "response": {"status": 200, "json": {"status": "1", "message": "OK",
-                                                 "result": "2000000000000000000"}},
-        },
-        {
-            "request": {
-                "method": "GET",
-                "url": f"{ETHERSCAN}?chainid=1&module=account&action=tokentx"
-                f"&address={ADDRESS}&startblock=0&endblock=99999999&page=1"
-                "&offset=1000&sort=asc",
-            },
-            "response": {"status": 200, "json": {"status": "1", "message": "OK", "result": [
-                {"contractAddress": USDC, "tokenSymbol": "USDC", "tokenDecimal": "6"},
-                {"contractAddress": USDC.upper(), "tokenSymbol": "USDC", "tokenDecimal": "6"},
-                {"contractAddress": "0xdead", "tokenSymbol": "SPAM", "tokenDecimal": ""},
-            ]}},
-        },
-        {
-            "request": {
-                "method": "GET",
-                "url": f"{ETHERSCAN}?chainid=1&module=account&action=tokenbalance"
-                f"&contractaddress={USDC}&address={ADDRESS}&tag=latest",
-            },
-            "response": {"status": 200, "json": {"status": "1", "message": "OK",
-                                                 "result": "25000000"}},
-        },
-        {
-            "request": {
-                "method": "GET",
-                "url": "https://coins.llama.fi/prices/current/"
-                f"coingecko:ethereum,ethereum:{USDC}",
-            },
-            "response": {"status": 200, "json": {"coins": {
-                "coingecko:ethereum": {"price": 2500, "symbol": "ETH"},
-                f"ethereum:{USDC}": {"price": 1, "symbol": "USDC"},
-            }}},
-        },
-    ]
-}
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = Path(tmp) / "quickstart.json"
-    path.write_text(json.dumps(CASSETTE), encoding="utf-8")
-    client = load(path).client()  # one client, both hosts — no sockets
-
-    report = HoldingsService(
-        EtherscanV2(client, api_key=None),
-        Inquirer([DefiLlamaOracle(client)]),
-        clock=FrozenClock(1_754_000_000_000),
-    ).holdings("eip155:1", ADDRESS)
-
-    # The duplicate mixed-case contract dedupes; the tokenDecimal="" row is skipped.
-    assert [holding.symbol for holding in report.holdings] == ["ETH", "USDC"]
-    assert report.total_value == Money(Decimal("5025"), "USD")  # 2*2500 + 25*1
-    assert report.unpriced == ()
-    for holding in report.holdings:
-        print(f"  {holding.symbol:>5} {str(holding.quantity):>6} @ {holding.price} = {holding.value}")
-    print(f"  total {report.total_value} (exact Decimal, never a float)")
-
-    try:
-        client.get("https://api.etherscan.io/v2/api?chainid=999")
-    except CassetteMissError:
-        print("  unrecorded request refused — the offline guarantee holds")
+try:
+    recording.client().get("https://api.etherscan.io/v2/api?chainid=999")
+except CassetteMissError:
+    print("  an unrecorded request is refused — sandbox cannot reach the network")
 
 
 # --------------------------------------------------------------- phase 2
 section("phase 2: two tenants, and one cannot see the other")
 
+from auradefi.clock import FrozenClock
 from auradefi.errors import AuthError
 from auradefi.tenancy.audit import AuditLog
 from auradefi.tenancy.keys import ApiKeyStore
@@ -252,6 +216,7 @@ from auradefi.positions.models import (
     position_id,
 )
 
+USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 ETH_ID = "eip155:1/slip44:60"
 USDC_ID = f"eip155:1/erc20:{USDC}"
 AAVE_POOL = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
@@ -291,99 +256,30 @@ print(f"  a Plaid-only client summing institution_value gets {naive_sum} — exa
 
 
 # --------------------------------------------------------------- phase 5
-section("phase 5: a host embeds the library and syncs on its own tick")
+section("phase 5: embedding — your ports, your tick, your database")
 
-from auradefi import Auradefi
-from auradefi.config import Settings
-from auradefi.embed.state import MemorySyncState
-from auradefi.errors import UnknownChainError
-from auradefi.sources.evm.etherscan import BalanceRecord
+# `sandbox()` and `from_env()` differ by one line and nothing else:
+#
+#     aura = Auradefi.from_env()                    # your Etherscan key
+#     aura = Auradefi.from_env(ledger=MyLedger())   # + your database
+#
+# `sync(budget=N)` caps the source pages ONE call may spend; cursors make
+# the next call resume; calling it again inside
+# `settings.sync_min_interval_s` is a no-op that touches no transport.
+synced = aura.sync(budget=10)
+assert (synced.pages_fetched, synced.transactions_ingested) == (5, 7)
+assert aura.sync(budget=10).no_op is True
+assert synced.failed_connections == ()
+print(f"  sync: {synced.pages_fetched} pages, {synced.transactions_ingested} "
+      f"transactions across {len(synced.connections)} connection(s)")
+print(f"  immediate re-sync: no_op=True, zero requests")
+print("  one connection's failure lands in report.failed_connections, never")
+print("  in a lost tick — branch on it every time (examples/02)")
 
-
-class HostSource:
-    """Everything is a port: the host owns the transport, both seams."""
-
-    def __init__(self) -> None:
-        self.calls = 0
-
-    def balances(self, chain_id: str, address: str) -> list[BalanceRecord]:
-        return [BalanceRecord(caip19=ETH_ID, symbol="ETH",
-                              quantity=Quantity(2 * 10**18, 18), contract_address=None)]
-
-    @staticmethod
-    def _row(index: int) -> dict:
-        return {
-            "hash": "0x" + f"{index:02x}" * 32, "blockNumber": str(100 + index),
-            "timeStamp": str(1_700_000_000 + index * 3600), "from": "0x" + "99" * 20,
-            "to": ME, "value": "1000000000000000000", "gasUsed": "21000",
-            "gasPrice": "10000000000", "isError": "0",
-        }
-
-    def fetch_txlist(self, chain_id, address, *, start_block, end_block, page, offset, sort):
-        self.calls += 1
-        if offset == 1:               # connect-time liveness probe
-            return [self._row(2)]
-        if page > 1 or start_block > 0:
-            return []                 # three transactions, one short page
-        return [self._row(index) for index in range(3)]
-
-
-class HostPrices:
-    def usd_prices(self, caip19s):
-        return {ETH_ID: Money(Decimal("2500"), "USD")}
-
-
-host_clock = FrozenClock(1_754_000_000_000)
-source = HostSource()
-host_ledger = MemoryLedger()
-host_state = MemorySyncState()   # the host's cursor store; it outlives the facade
-embedded = Auradefi(host_ledger, source, HostPrices(), host_clock,
-                    Settings(sync_min_interval_s=60), sync_state=host_state,
-                    sync_page_size=10)
-user = embedded.user("host-user-1")
-connection = user.connect_address("eip155:1", ME)
-
-synced = embedded.sync(budget=3)
-calls_after_sync = source.calls
-noop = embedded.sync(budget=3)  # throttled: must not touch the transport
-assert noop.no_op is True and source.calls == calls_after_sync
-
-(holdings_report,) = embedded.holdings()
-metrics = embedded.scalar_metrics()
-assert holdings_report.total_value == Money(Decimal("5000"), "USD")
+metrics = {metric.name: metric.value for metric in aura.scalar_metrics()}
 assert len(metrics) == 26
-print(f"  connected {connection.id} for tenant {user.tenant_id}")
-print(f"  sync: {synced.pages_fetched} pages, {synced.transactions_ingested} transactions; "
-      f"immediate re-sync no_op={noop.no_op} with 0 extra requests")
-print(f"  holdings {holdings_report.total_value}; {len(metrics)} scalar metrics "
-      f"(portfolio_value_usd={dict((m.name, m.value) for m in metrics)['portfolio_value_usd']})")
-
-# 0.1.1 (docs/RELEASE_0.1.1.md §5): the connection id is chain-scoped, an
-# unseeded chain is refused at connect, and the sync loop enumerates the
-# STATE PORT — so a restarted worker resumes stored work instead of
-# reporting a success-shaped no-op.
-polygon = user.connect_address("eip155:137", ME)
-assert polygon.id != connection.id, "#26: the same address on two chains is two connections"
-
-try:                                   # #24: not in the ChainRegistry
-    user.connect_address("eip155:42161", ME)
-    raise AssertionError("an unseeded chain must be refused at connect time")
-except UnknownChainError as exc:
-    refusal = str(exc)
-
-restarted = Auradefi(host_ledger, source, HostPrices(), host_clock,
-                     Settings(sync_min_interval_s=60), sync_state=host_state,
-                     sync_page_size=10)          # a "new process": only the state carries over
-assert host_state.tenants() == (user.tenant_id,)
-after_restart = restarted.sync(budget=3)
-assert [row.connection_id for row in after_restart.connections] == [
-    connection.id, polygon.id
-], "#21: a restart must enumerate the stored connections, not an empty in-process list"
-assert after_restart.failed_connections == ()
-print(f"  chain-scoped ids: {connection.id} (eip155:1) vs {polygon.id} (eip155:137)")
-print(f"  unseeded chain refused at connect: {refusal}")
-print(f"  after a restart, sync() enumerated {len(after_restart.connections)} stored "
-      f"connection(s) from the state port, {len(after_restart.failed_connections)} failed")
+print(f"  26 scalar metrics: portfolio_value_usd={metrics['portfolio_value_usd']}, "
+      f"transaction_count={metrics['transaction_count']}")
 
 
 # --------------------------------------------------------------- phase 6/7
