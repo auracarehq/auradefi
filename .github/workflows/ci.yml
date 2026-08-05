@@ -32,6 +32,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # release_check.sh calls `python -m build` and `python -m twine`; neither
+      # is on a bare runner, so this job failed at its second step on EVERY
+      # pull request — including ones that touched nothing but config. The
+      # release gate has been reporting a red X for a missing dependency
+      # rather than for anything about the release.
+      - name: Install packaging tools
+        run: python -m pip install --quiet --upgrade build twine
       - name: Release check (build, twine, wheel contents, fresh-venv smoke)
         run: bash scripts/release_check.sh
 
