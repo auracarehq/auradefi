@@ -98,8 +98,14 @@ SHIPPED_BUT_UNDECLARED = frozenset(
         "api/sinks.py",  # 0.1.1 §5 Wave C: the webhook seam, split out of deps.py
         "api/wire.py",
         "decode/models.py",
+        # The developer-experience change: nothing shipped a DEFAULT for any
+        # port, so the shortest working program began with forty lines of
+        # adapter. These four give `Auradefi.sandbox()` / `.from_env()` a
+        # wiring to hand back, and split what no longer fits the line budget.
+        "embed/bootstrap.py",  # default port sets for sandbox + live
         "embed/dispatch.py",  # 0.1.1 §5 #24: budget dispatch + containment
         "embed/facade.py",
+        "embed/handle.py",  # UserHandle, split off at facade.py's 400-line cap
         "embed/models.py",
         "embed/state.py",
         "embed/sync.py",
@@ -109,8 +115,10 @@ SHIPPED_BUT_UNDECLARED = frozenset(
         "portfolio/models.py",
         "positions/models.py",
         "sources/bitcoin/encoding.py",
+        "sources/evm/source.py",  # both seams over one client, so a host writes none
         "sources/evm/txfetch.py",
         "sources/evm/txlist.py",
+        "sources/sandbox.py",  # the Sandbox environment's replay transport
         "tenancy/store.py",
         "testing/cassettes.py",
         "webhooks/urls.py",
