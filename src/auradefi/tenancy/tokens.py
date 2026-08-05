@@ -72,7 +72,17 @@ _HEADER_B64 = _encode_segment({"alg": "HS256", "typ": "JWT"})
 
 
 def _decode_json_segment(segment: str) -> object:
-    """Strictly decode one base64url segment to JSON, or raise AuthError."""
+    """Strictly decode one base64url segment to JSON, or raise AuthError.
+
+    ``RecursionError`` is caught alongside the value errors deliberately.
+    It is a ``RuntimeError``, so the obvious ``(ValueError,
+    UnicodeDecodeError)`` pair misses it, and ~10,000 nested arrays reach
+    ``json.loads`` from every caller that verifies a caller-supplied
+    bearer token — not only from the peek that selects a secret. Letting
+    it escape turns a pinned 401 into an unformatted 500 and leaks a
+    stack trace, so the malformed-input answer must be the same here as
+    everywhere else on this surface (RELEASE_0.1.1 §4 #34).
+    """
     padded = segment + "=" * (-len(segment) % 4)
     try:
         raw = base64.b64decode(padded, altchars=b"-_", validate=True)
@@ -80,7 +90,7 @@ def _decode_json_segment(segment: str) -> object:
         raise AuthError(_REJECTED) from exc
     try:
         return json.loads(raw)
-    except (ValueError, UnicodeDecodeError) as exc:
+    except (ValueError, UnicodeDecodeError, RecursionError) as exc:
         raise AuthError(_REJECTED) from exc
 
 
