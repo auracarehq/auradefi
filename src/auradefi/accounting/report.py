@@ -48,6 +48,10 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from auradefi.accounting.lots import Lot, exact_mul, fraction_to_money
+
+#: The one flag this module emits, pinned in docs/DECISIONS.md
+#: ("Fraction->Money boundary … always flagged").
+ROUNDED_BASIS = "rounded_basis"
 from auradefi.errors import CurrencyMismatchError
 from auradefi.money.fiat import Money
 from auradefi.money.quantity import Quantity
@@ -86,11 +90,19 @@ class AssetPnL:
     ``quantity_held`` carries the asset's own scale, taken from the last
     event seen for it, so an asset sold down to nothing still reports
     zero at 18 decimals rather than at scale 0.
+
+    ``flags`` records boundary facts the numbers alone cannot carry.
+    ``"rounded_basis"`` means at least one figure here left the exact
+    rational domain at the Fraction->Money boundary, so it is accurate to
+    28 significant digits rather than exactly right. DECISIONS pins that
+    this boundary "is always flagged"; without the flag a rounded figure
+    is indistinguishable from an exact one (RELEASE_0.1.1 §5 #29).
     """
 
     realized: Money
     unrealized: Money | None
     quantity_held: Quantity
+    flags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +134,7 @@ class TaxLot:
     cost_basis: Money | None
     current_value: Money | None
     position_type: str = POSITION_LONG
+    flags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,6 +168,7 @@ class PnLReport:
     unrealized: Money | None
     per_asset: Mapping[str, AssetPnL]
     open_lots: tuple[TaxLot, ...]
+    flags: tuple[str, ...] = ()
 
 
 def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLReport:
@@ -226,20 +240,42 @@ def report(state: PnLState, as_of_ms: int, marks: Mapping[str, Money]) -> PnLRep
             total = None
         elif total is not None:
             total += gap
-        per_asset[asset_id] = AssetPnL(
-            by_asset.get(asset_id, zero),
-            None if gap is None else fraction_to_money(gap, currency)[0],
-            held,
-        )
-        rows.extend(
+        # The `is_exact` bit is CAPTURED, not indexed away: DECISIONS pins
+        # that this boundary "is always flagged", and every site here used
+        # to drop it, so a rounded figure read as an exact one (§5 #29).
+        asset_flags: tuple[str, ...] = ()
+        if gap is None:
+            gap_money = None
+        else:
+            gap_money, gap_exact = fraction_to_money(gap, currency)
+            if not gap_exact:
+                asset_flags = (ROUNDED_BASIS,)
+        lot_rows = [
             (asset_id, lot.opened_at_ms, lot.lot_id, _tax_lot(lot, mark, currency))
             for lot in open_lots
+        ]
+        if any(ROUNDED_BASIS in row[3].flags for row in lot_rows):
+            asset_flags = (ROUNDED_BASIS,)
+        per_asset[asset_id] = AssetPnL(
+            by_asset.get(asset_id, zero), gap_money, held, asset_flags
         )
+        rows.extend(lot_rows)
     rows.sort(key=lambda row: row[:3])
+    if total is None:
+        total_money, total_exact = None, True
+    else:
+        total_money, total_exact = fraction_to_money(total, currency)
+    # The report flags if ITS total rounded or if anything it contains did:
+    # a caller reading only the top-level figure must still learn that some
+    # number underneath it is not exact.
+    report_flags: tuple[str, ...] = ()
+    if not total_exact or any(
+        ROUNDED_BASIS in slice_.flags for slice_ in per_asset.values()
+    ):
+        report_flags = (ROUNDED_BASIS,)
     return PnLReport(
-        as_of_ms, state.method, realized, missing,
-        None if total is None else fraction_to_money(total, currency)[0],
-        MappingProxyType(per_asset), tuple(row[3] for row in rows),
+        as_of_ms, state.method, realized, missing, total_money,
+        MappingProxyType(per_asset), tuple(row[3] for row in rows), report_flags,
     )
 
 
@@ -280,12 +316,23 @@ def _tax_lot(lot: Lot, mark: Money | None, currency: str) -> TaxLot:
     value — rather than defaulting to zero.
     """
     remaining = lot.quantity_remaining.as_decimal()
-    price = None if lot.cost_total is None else fraction_to_money(
-        Fraction(lot.cost_total.amount) / Fraction(lot.quantity_original.as_decimal()),
-        currency,
-    )[0]
-    basis = None if lot.cost_remaining is None else fraction_to_money(
-        lot.cost_remaining, currency
-    )[0]
+    exact = True
+    if lot.cost_total is None:
+        price = None
+    else:
+        price, price_exact = fraction_to_money(
+            Fraction(lot.cost_total.amount)
+            / Fraction(lot.quantity_original.as_decimal()),
+            currency,
+        )
+        exact = exact and price_exact
+    if lot.cost_remaining is None:
+        basis = None
+    else:
+        basis, basis_exact = fraction_to_money(lot.cost_remaining, currency)
+        exact = exact and basis_exact
     value = None if mark is None else Money(exact_mul(mark.amount, remaining), currency)
-    return TaxLot(lot.lot_id, lot.opened_at_ms, remaining, price, basis, value)
+    return TaxLot(
+        lot.lot_id, lot.opened_at_ms, remaining, price, basis, value,
+        flags=() if exact else (ROUNDED_BASIS,),
+    )

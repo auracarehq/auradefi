@@ -242,3 +242,59 @@ class TestImmutability:
         result = report(process(CLASSIC, "fifo"), 5_000, {})
         with pytest.raises(TypeError):
             result.per_asset["x"] = None  # type: ignore[index]
+
+
+class TestRoundedBasisIsFlagged:
+    """RELEASE_0.1.1 §5 #29 — the boundary that rounds must SAY it rounded.
+
+    docs/DECISIONS.md pins the Fraction->Money boundary as "ROUND_HALF_EVEN
+    at 28 significant digits with flag `rounded_basis` … rounding exists
+    only at this boundary and is always flagged", and
+    ``fraction_to_money`` returns ``(money, is_exact)`` with its own
+    docstring saying ``is_exact=False`` is "what the caller reports as the
+    ``rounded_basis`` flag". Every call site indexed ``[0]`` and dropped
+    the bit, so a rounded figure was indistinguishable from an exact one
+    and the pinned promise was never kept.
+    """
+
+    #: 1 unit bought for $10 and 3 units bought for $10 in one ACB pool:
+    #: the per-unit basis is 10/3, whose denominator is not 2^a·5^b, so the
+    #: boundary MUST round.
+    THIRDS = (
+        buy(1_000, units(3), usd(10), "tx_thirds"),
+        sell(2_000, units(1), usd(5), "tx_thirds_sell"),
+    )
+
+    def test_a_rounded_unrealized_total_is_flagged(self):
+        # pins: the report-level flag. A total the caller cannot tell is
+        #       inexact is the whole defect — it reads as cent-accurate.
+        result = report(process(self.THIRDS, "acb"), 3_000, {ASSET: usd(7)})
+
+        assert result.unrealized is not None
+        assert "rounded_basis" in result.flags, (
+            f"unrealized={result.unrealized.amount} was rounded at the "
+            f"Fraction->Money boundary but flags={result.flags}"
+        )
+
+    def test_a_rounded_per_asset_figure_is_flagged(self):
+        result = report(process(self.THIRDS, "acb"), 3_000, {ASSET: usd(7)})
+
+        assert "rounded_basis" in result.per_asset[ASSET].flags
+
+    def test_a_rounded_tax_lot_basis_is_flagged(self):
+        result = report(process(self.THIRDS, "fifo"), 3_000, {ASSET: usd(7)})
+
+        assert result.open_lots, "the fixture must leave a lot open"
+        assert any("rounded_basis" in lot.flags for lot in result.open_lots), (
+            "no open lot flagged a rounded basis: "
+            f"{[(lot.cost_basis, lot.flags) for lot in result.open_lots]}"
+        )
+
+    def test_an_exact_report_carries_no_flag(self):
+        # The control. Flagging everything would be as useless as flagging
+        # nothing: CLASSIC is exact to the cent by construction.
+        result = report(process(CLASSIC, "fifo"), 5_000, {ASSET: usd(25)})
+
+        assert result.flags == ()
+        assert result.per_asset[ASSET].flags == ()
+        assert all(lot.flags == () for lot in result.open_lots)
