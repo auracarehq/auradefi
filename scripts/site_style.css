@@ -263,6 +263,10 @@ footer {
   color: var(--ink-faint); font-size: 0.84rem;
 }
 footer a { color: var(--ink-soft); }
+footer p { margin: 0 0 0.35rem; }
+footer p:last-child { margin-bottom: 0; }
+footer p.by { color: var(--ink-soft); }
+footer p.by a { border-bottom: 1px solid var(--rule); }
 
 /* ------------------------------------------------------------- narrow */
 @media (max-width: 74rem) {

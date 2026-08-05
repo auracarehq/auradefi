@@ -261,8 +261,11 @@ def write(page: Page, pages: list[Page]) -> None:
 <main id="content">
 {page.body}
 <footer>
-<p>Apache-2.0 · <a href="{REPO_URL}">auracarehq/auradefi</a> ·
-built from the repository, examples executed at build time.</p>
+<p class="by">Built by <a href="https://stephenokita.com">Stephen Okita</a> at
+<a href="https://auracarehealth.com">auracarehealth.com</a>.</p>
+<p>Licensed under <a href="{REPO_URL}/blob/main/LICENSE">Apache-2.0</a>. Source
+at <a href="{REPO_URL}">auracarehq/auradefi</a>, built from the repository with
+every example executed at build time.</p>
 </footer>
 </main>
 {toc_html(page)}
