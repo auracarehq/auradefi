@@ -65,15 +65,16 @@ where a human catches a spec misreading before it compounds.
 ## The pipeline
 
 ```
-Interpret ──▶ Gate ──▶ Build ──▶ Prove ──┐
-   (1)        (2)       (3)      (4)     │
-                         ▲               ▼
-                         └── fix ◀── Seam ──▶ Sweep ──▶ Ship
-                                     (5)       (6)      (7)
+Audit ──▶ Interpret ──▶ Gate ──▶ Build ──▶ Prove ──┐
+  (0)        (1)         (2)       (3)      (4)    │
+                                    ▲              ▼
+                                    └── fix ◀── Seam ──▶ Sweep ──▶ Ship ──▶ Integrate
+                                                (5)       (6)      (7)        (8)
 ```
 
 | # | Phase | Agent | Barrier? | Deliverable |
 |---|-------|-------|----------|-------------|
+| 0 | Audit | `spec-auditor` | — | the spec's own claims checked against the enforced gates |
 | 1 | Interpret | `spec-interpreter` | — | work orders with disjoint file ownership |
 | 2 | Gate | `gate-author` | — | the phase acceptance test, written **blind** |
 | 3 | Build | `test-author` → `implementer` → `harsh-reviewer` (≤3 rounds) | per order | green tests + implementation |
@@ -81,11 +82,17 @@ Interpret ──▶ Gate ──▶ Build ──▶ Prove ──┐
 | 5 | Seam | `seam-auditor` | **per wave** | third-party-binding tests across boundaries |
 | 6 | Sweep | `pattern-sweeper` | per finding | the finding's *class* eliminated tree-wide |
 | 7 | Ship | `devops-docs` | end of phase | docs, packaging, release gate |
+| 8 | Integrate | `integrator` | end of phase | the real dependency graph, one branch per order |
 
 Stages 3–4 **pipeline** per work order: order B can be mutating while order
 C is still implementing. Stage 5 is a genuine barrier — it exists precisely
 to look between orders, so it needs them all finished. Stage 6 pipelines per
 confirmed finding.
+
+Stages 0 and 8 bracket the rest and were added in v3. Both exist because a
+build can be internally perfect and still be wrong at its edges: **0** checks
+the instructions before anyone follows them, **8** checks that work which was
+decomposed cleanly can also be *delivered* separately.
 
 ---
 
