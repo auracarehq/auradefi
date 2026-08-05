@@ -77,9 +77,14 @@ class TestTheClient:
         """The offline guarantee, and the error a reader will actually meet."""
         with pytest.raises(CassetteMissError) as caught:
             sandbox.client().get("https://api.etherscan.io/v2/api?chainid=999")
-        # The message must name what IS recorded, so the reader can tell
-        # "I asked for something else" from "the library is broken".
-        assert "api.etherscan.io" in str(caught.value)
+        message = str(caught.value)
+        # The message must name the recording and enumerate what IS in it, so
+        # a reader can tell "I asked for something else" from "the library is
+        # broken". Asserted on those two structural parts rather than on a
+        # hostname substring, which is the shape of a bad URL check.
+        assert sandbox.FIXTURE.name in message
+        assert "Recorded interactions" in message
+        assert message.count("GET ") > 1
 
 
 class TestConstantsMatchTheRecording:
