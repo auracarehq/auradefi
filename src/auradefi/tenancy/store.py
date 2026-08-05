@@ -242,6 +242,7 @@ class TenancyStore:
         audit: AuditLog,
         quota: QuotaCounter | None = None,
         jti: str | None = None,
+        ip_source: str = "unknown",
     ) -> str:
         """Mint a user token under the project's signing secret (§7.1/§7.2).
 
@@ -256,10 +257,21 @@ class TenancyStore:
         4. ``audit.record_token_mint`` — EVERY successful mint is
            audited; failures never are.
 
-        ``key_id`` and ``ip`` are passed-in data recorded to the audit
-        log (key auth arrives in Phase 8 — this module never imports
-        ``tenancy.keys``). Unknown ``project_id`` raises
-        ``NotFoundError``; email-shaped ``external_user_id`` raises
+        ``quota`` is OPTIONAL because a caller that must charge a refusal
+        too has to consume it earlier, before it can know whether the mint
+        is even permitted: ``POST /auth/token`` consumes quota in the route
+        (RELEASE_0.1.1 §4 #36) and therefore passes no ``quota`` here, so
+        a mint is charged exactly once. Step 1 is skipped in that case; the
+        other three keep this order, and a failure anywhere still audits
+        nothing.
+
+        ``key_id``, ``ip`` and ``ip_source`` are passed-in data recorded to
+        the audit log (key auth arrives in Phase 8 — this module never
+        imports ``tenancy.keys``). This store cannot tell a verified socket
+        peer from a caller-supplied header, so ``ip_source`` is the
+        caller's declaration of that provenance and defaults to
+        ``"unknown"`` rather than being guessed. Unknown ``project_id``
+        raises ``NotFoundError``; email-shaped ``external_user_id`` raises
         ``ValidationError``.
         """
         if quota is not None:
@@ -275,5 +287,7 @@ class TenancyStore:
             clock=clock,
             jti=jti,
         )
-        audit.record_token_mint(project_id, external_user_id, key_id, ip, clock)
+        audit.record_token_mint(
+            project_id, external_user_id, key_id, ip, clock, ip_source=ip_source
+        )
         return token
