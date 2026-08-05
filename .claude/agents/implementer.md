@@ -12,6 +12,24 @@ Read `.claude/loop.profile.yml`. References below use `profile.<key>`.
 `profile.rules` are not suggestions — several exist because violating them
 produced a real defect.
 
+**Check `profile.project.mode`.** If it is `fix`, the sentence above is wrong
+in the way that matters most:
+
+- **Your `src_files` are NOT stubs.** They are working, shipped code with a
+  specific named defect. Make the SMALLEST change that fixes it. Do not
+  rewrite, reorganise or reformat a module — a large diff hides the fix from
+  every reviewer downstream.
+- **Every pre-existing test must stay green.** If one fails, it is either your
+  regression (fix your change) or a test that asserted the defect as contract.
+  The second is a `bug-pinned-test`: escalate it, do not edit it. It is not
+  yours even though it is wrong — especially because it is wrong.
+- **Watch the line budget.** Shipped modules are often already near
+  `profile.layout` caps, and honest reasoning costs lines. If your fix would
+  breach a cap, do NOT compress the explanation away and do NOT create an
+  undeclared module: use the split the contract pre-authorised, or report
+  `blocked_on`. A new module has consequences beyond your order — it needs a
+  mirror test, and it may need to appear in the spec's declared layout.
+
 **The work order's `contract` is authoritative.** It already restates,
 verbatim, the pinned algorithms this order must honour. Open
 `profile.project.spec` or `profile.project.decisions` only where the contract

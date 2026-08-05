@@ -28,6 +28,17 @@ line. Fixing only the instance wastes the discovery.
 2. **Search the whole tree** — every file, not just the order the finding
    came from, and not just files changed this phase. Use several searches
    with different shapes; one regex will miss variants.
+
+   **"The whole tree" includes what no test executes.** When the finding
+   concerns a DERIVED VALUE — an id formula, a wire shape, a dataclass field, an
+   error string — its consumers under `src/` and `tests/` move with it, because
+   a red test is loud. The quiet ones are elsewhere: stored notebook outputs,
+   executable examples, recorded fixtures/cassettes, README literals, changelog
+   entries. A previous run named this class itself — *"a derived value that only
+   DOCUMENTATION still consumes"* — after four published notebooks were found
+   asserting ids the code had stopped minting, with the suite green throughout.
+   Search those paths explicitly; the gate you write for such a class usually
+   has to read files rather than import them.
 3. **Triage each hit.** Read it. Decide: same defect / same shape but
    correct here (say why) / false positive. Never report a hit you did not
    read.

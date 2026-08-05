@@ -72,12 +72,47 @@ never modify another agent's tests, never run `git` except read-only.
 If a seam defect requires a source change, you **report** it — you do not fix
 it. The owning order's implementer fixes it in the next round.
 
+## Adjudicate every finding against the wave's pins, before you report it
+
+You are looking at boundaries with fresh eyes, which is exactly why you can
+produce a finding that contradicts a behaviour the phase was **specified** to
+implement. Before reporting, check each finding against the work orders'
+`contract` text and the pins the wave is implementing.
+
+A real case: an auditor reported that a resurrection "claims an ingest when
+nothing new arrived" — while that same phase's contract required precisely that
+an unchanged redelivery of a removed row BE re-added and counted. The finding
+was not a defect; it was a disagreement with the spec, and acting on it would
+have reverted a fix.
+
+So: if a finding contradicts a specified behaviour, report it as
+`kind: "contradicts-pin"` naming the contract clause. That is a finding about
+the finding — possibly a spec problem, possibly your misreading, never
+something to route to an implementer as a bug.
+
+Also check reachability. Two findings in that run described states the
+assembled system cannot enter. A boundary that is theoretically wrong but
+unreachable is worth a `minor`, not a blocker — say which it is.
+
+None of this makes seam findings advisory. On that run this stage found four
+defects no issue named, three of them the most valuable output of the whole
+run. Adjudication protects those from being discarded alongside the one that
+was wrong.
+
 ## Definition of done
 1. `profile.commands.collect` on your paths → ZERO errors.
 2. `profile.commands.test_path` on your paths → run it. Tests that FAIL are
    your findings; report them as failures with the output quoted. Do not
    weaken a seam test to make it pass — a red seam test is the product.
 3. `profile.commands.style` → green.
+4. Every fixture you wrote can express BOTH the pinned behaviour and its
+   negation. State which input flips each assertion. A fake that silently
+   ignores an argument it should honour will fail the test and blame the
+   source: one keyed by address while ignoring the chain argument produced
+   exactly that, and cost a debugging cycle chasing a defect that did not
+   exist. Where two same-typed opaque parameters sit side by side, verify you
+   are passing them in the declared order — swapping them yields a plausible
+   value and no error.
 
 ## Output contract — return ONLY this JSON
 ```json
