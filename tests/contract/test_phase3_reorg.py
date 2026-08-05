@@ -26,7 +26,7 @@ from __future__ import annotations
 from auradefi.decode.pipeline import decode_account
 from auradefi.ledger.backends.memory import MemoryLedger
 from auradefi.ledger.bridge import to_ledger_transaction
-from auradefi.ledger.models import Direction, Entry, SyncEventKind
+from auradefi.ledger.models import Direction, Entry, SyncEventKind, payload_equal
 from auradefi.ledger.reorg import plan_reorg
 from auradefi.money.quantity import Quantity
 from auradefi.sources.evm.txlist import NormalTxRecord, TokenTxRecord
@@ -123,9 +123,15 @@ def _b_prime():
     return _bridge_one([_normal_b(105, 1_700_000_500)], [_token_b(105, 1_700_000_500)])
 
 
-def _c_prime():
-    """C re-decoded after resurfacing at block 106 (ts 1700000600)."""
-    return _bridge_one([_normal_c(106, 1_700_000_600)], [_token_c(106, 1_700_000_600)])
+def _c_unchanged():
+    """C re-decoded after resurfacing at its ORIGINAL block 102.
+
+    Byte-identical to the stored C payload on purpose: the resurrection
+    branch is only reached when NOTHING about the payload changed. A
+    fixture that moved the block would route through the payload-changed
+    path and never test resurrection at all (RELEASE_0.1.1 §5 #22).
+    """
+    return _bridge_one([_normal_c()], [_token_c()])
 
 
 def _seeded():
@@ -210,19 +216,36 @@ def test_gate_sync_after_reorg_returns_exactly_removed_plus_added():
 
 
 def test_gate_resurrection_re_add_of_c():
+    # pins: C, orphaned by the reorg and now canonical again with a
+    #       BYTE-IDENTICAL payload, is planned as a re-add and reaches the
+    #       client as ADDED — never stranded at removed=True forever.
     ledger, _, _ = _reorged()
-    events = ledger.upsert(TENANT, [_c_prime()])
+    assert ledger.get(TENANT, TXN_C).removed is True
+
+    c_back = _c_unchanged()
+    stored = [ledger.get(TENANT, txn_id) for txn_id in ALL_IDS]
+    # Guard the fixture: if this were False the row would route through the
+    # payload-changed bucket and the resurrection branch would go untested.
+    assert payload_equal(c_back, ledger.get(TENANT, TXN_C))
+
+    plan = plan_reorg(
+        stored, [_b_prime(), c_back, _bridged_fixture()[3]], from_block=101
+    )
+    assert plan.remove_ids == ()
+    assert plan.add == (c_back,)
+
+    events = ledger.apply_reorg(TENANT, plan)
     assert [(e.kind, e.transaction.id) for e in events] == [
         (SyncEventKind.ADDED, TXN_C),
     ]
     assert events[0].transaction.removed is False
-    assert events[0].transaction.block_number == 106
+    assert events[0].transaction.block_number == 102
 
     page = ledger.sync(TENANT, CURSOR_6)
     assert [(e.kind, e.transaction.id) for e in page.events] == [
         (SyncEventKind.ADDED, TXN_C),
     ]
-    assert page.events[0].transaction.block_number == 106
+    assert page.events[0].transaction.block_number == 102
     assert page.next_cursor == CURSOR_7
     assert page.has_more is False
 
@@ -234,7 +257,7 @@ def test_gate_cursors_strictly_increase_across_the_whole_story():
     plan = plan_reorg(stored, [_b_prime(), _bridged_fixture()[3]], from_block=101)
     ledger.apply_reorg(TENANT, plan)
     second = ledger.sync(TENANT, first).next_cursor  # drains the reorg pair
-    ledger.upsert(TENANT, [_c_prime()])
+    ledger.upsert(TENANT, [_c_unchanged()])
     third = ledger.sync(TENANT, second).next_cursor  # drains the resurrection
     assert (first, second, third) == (CURSOR_4, CURSOR_6, CURSOR_7)
     assert first < second < third  # lexicographic == numeric (pinned token)

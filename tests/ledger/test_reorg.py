@@ -16,6 +16,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
+from auradefi.ledger.models import payload_equal
 from auradefi.ledger.reorg import ReorgPlan, plan_reorg
 
 # Derived independently; NEVER regenerate from the implementation.
@@ -142,6 +143,8 @@ class TestAddSide:
         assert plan.remove_ids == ()
         assert plan.add == (remined,)
 
+    # pins: a bookkeeping-only difference against a LIVE stored row is not a
+    #       re-add — the survivor stays untouched.
     def test_bookkeeping_only_difference_is_not_readded(
         self, replaced_old, make_txn
     ):
@@ -153,9 +156,70 @@ class TestAddSide:
             block_number=FORK + 1,
             last_modified_seq=7,
         )
+        assert replaced_old.removed is False  # the LIVE half of the pair
         plan = plan_reorg([replaced_old], [twin], FORK)
         assert plan.add == ()
         assert plan.remove_ids == ()
+
+    # pins: the SAME bookkeeping-only difference against a REMOVED stored row
+    #       IS a re-add — removed is part of the decision, not ignored.
+    def test_bookkeeping_only_difference_on_a_removed_row_is_readded(
+        self, make_txn
+    ):
+        # Identical to the live case above except for the stored removed
+        # flag, which is the only thing that may change the outcome.
+        removed = make_txn(
+            id=ID_REPLACED,
+            tx_hash="0xbbb",
+            block_number=FORK + 1,
+            removed=True,
+            last_modified_seq=5,
+        )
+        twin = make_txn(
+            id=ID_REPLACED,
+            tx_hash="0xbbb",
+            block_number=FORK + 1,
+            last_modified_seq=7,
+        )
+        plan = plan_reorg([removed], [twin], FORK)
+        assert plan.add == (twin,)
+        assert plan.remove_ids == ()
+
+    # pins: a row orphaned by an earlier reorg that is back in the canonical
+    #       view with a BYTE-IDENTICAL payload is re-added, not left removed.
+    def test_removed_stored_row_returning_unchanged_is_readded(self, make_txn):
+        removed = make_txn(
+            id=ID_ORPHANED,
+            tx_hash="0xaaa",
+            block_number=FORK,
+            removed=True,
+            last_modified_seq=5,
+        )
+        back_on_chain = make_txn(
+            id=ID_ORPHANED, tx_hash="0xaaa", block_number=FORK
+        )
+        # Guard the fixture: anything but an identical payload would reach
+        # the payload-changed branch instead of the one named above.
+        assert payload_equal(back_on_chain, removed)
+
+        plan = plan_reorg([removed], [back_on_chain], FORK)
+        assert plan.add == (back_on_chain,)
+        assert plan.remove_ids == ()
+
+    # pins: a removed row still absent from the canonical view is not
+    #       resurrected — being removed alone never forces a re-add.
+    def test_removed_stored_row_absent_from_canonical_is_not_readded(
+        self, make_txn, survivor
+    ):
+        removed = make_txn(
+            id=ID_ORPHANED,
+            tx_hash="0xaaa",
+            block_number=FORK,
+            removed=True,
+            last_modified_seq=5,
+        )
+        plan = plan_reorg([removed, survivor], [survivor], FORK)
+        assert plan.add == ()
 
     def test_confirmed_at_shift_is_readded(self, survivor, make_txn):
         shifted = make_txn(
