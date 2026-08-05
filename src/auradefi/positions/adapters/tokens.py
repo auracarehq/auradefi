@@ -175,7 +175,17 @@ class ReceiptTokenAdapter:
         }
         positions: list[Position] = []
         for descriptor in contracts:
-            receipt = receipts_by_address[descriptor.address]
+            # .get + continue, matching the Aave adapter. Descriptor sets are
+            # "persisted between discovery runs" (ContractDescriptor), so one
+            # can outlive the receipt table that produced it — a delisted
+            # receipt, a renamed adapter, a set written by an older release.
+            # Indexing raised KeyError on the FIRST such descriptor, and
+            # because this loop builds its whole list before returning, that
+            # dropped EVERY Lido/Rocket Pool position out of net_worth
+            # instead of the one stale row (RELEASE_0.1.1 §5 #31).
+            receipt = receipts_by_address.get(descriptor.address)
+            if receipt is None:
+                continue
             share_raw = erc20_balance(ctx.reader, descriptor.address, ctx.address)
             if share_raw == 0:
                 continue
