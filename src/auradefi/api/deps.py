@@ -137,6 +137,15 @@ class Deps:
     must never become a 404 — whether the resolver returns ``None`` or
     raises the way this repo's other lookups do (see
     :func:`_signing_secret` and :func:`require_user_token`).
+
+    ``trusted_proxy_hops`` is how many rightmost ``X-Forwarded-For`` hops
+    this deployment's own proxies append, and so how far back a client IP
+    may be trusted. It defaults to **0**: no proxy is trusted and the
+    socket peer is the only verified source. This is the injection point
+    for ``Settings.trusted_proxy_hops``; a host that terminates TLS behind
+    one proxy passes 1. An audit row attributed to a caller-supplied
+    header is permanently wrong and indistinguishable from a real one, so
+    the default never reads the header at all.
     """
 
     tenancy: TenancyStore
@@ -156,6 +165,7 @@ class Deps:
     sync_limit_default: int = 100
     sync_limit_max: int = 500
     batch_max_items: int = 100
+    trusted_proxy_hops: int = 0
 
 
 def _bearer_credential(request: Request) -> str:
