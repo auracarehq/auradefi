@@ -8,7 +8,7 @@ NUMBER, while the pagination unit is a ROW. A block number cannot express
 * EXCLUSIVE (``[0, cursor - 1]``) silently drops the rows of the boundary
   block that the page cut in half, and still reports the phase complete;
 * INCLUSIVE (``[0, cursor]``) can never advance once one block holds more
-  rows than the budgeted window can fetch — page 1 is re-requested every
+  rows than the budgeted window can fetch. Page 1 is re-requested every
   tick forever, older history is never reached, and there is no log and
   no raise.
 
@@ -18,8 +18,8 @@ INSIDE the bucket the walk stopped (a within-window page number, or the
 count of boundary-bucket rows already ingested) next to the cursor.
 
 So the gate: if a module assigns a persisted ``*_cursor`` /
-``*_watermark`` / ``*_checkpoint`` field from ``min(...)`` or ``max(...)``
-— i.e. derives the resume position from a page's own values — then every
+``*_watermark`` / ``*_checkpoint`` field from ``min(...)`` or ``max(...)``:
+i.e. derives the resume position from a page's own values, then every
 dataclass declaring that field must ALSO declare an intra-bucket
 position field. No aggregate-derived cursor, no requirement: this gate is
 silent on cursors that are per-row sequences (``last_modified_seq`` in
@@ -127,7 +127,7 @@ def offenders(root: Path) -> list[str]:
             problems.append(
                 f"{where}: {field!r} is derived from a page aggregate at "
                 f"{', '.join(sites)} but the state declares no "
-                f"within-bucket position (fields: {', '.join(fields)}) — "
+                f"within-bucket position (fields: {', '.join(fields)}): "
                 f"the walk cannot resume inside a bucket, so one oversized "
                 f"bucket either loses rows or never advances"
             )

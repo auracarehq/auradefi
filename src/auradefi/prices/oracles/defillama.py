@@ -1,4 +1,4 @@
-"""DefiLlama current-price oracle (SPEC §3.2; §6.3 — being Plaid-shaped
+"""DefiLlama current-price oracle (SPEC §3.2; §6.3: being Plaid-shaped
 forces us to own a price oracle).
 
 Keyless, no retry, no rate limiting. The injected ``httpx.Client`` is the
@@ -10,7 +10,7 @@ Pinned request layout (deterministic URLs so cassettes replay):
 deduplicated, lexicographically sorted key set joined by ``','``, at most
 ``CHUNK_SIZE`` keys per request, chunks issued in global sorted order.
 
-Pinned price conversion: ``Decimal(str(price))`` — NEVER ``Decimal(price)``
+Pinned price conversion: ``Decimal(str(price))``, NEVER ``Decimal(price)``
 from the raw float.
 """
 
@@ -37,14 +37,14 @@ EVM_SLUGS: dict[int, str] = {
 }
 
 # Chains whose slip44:60 native asset IS ether (pinned). BSC's and
-# Polygon's natives are BNB/POL — deliberately absent.
+# Polygon's natives are BNB/POL: deliberately absent.
 NATIVE_ETH_CHAINS: frozenset[int] = frozenset({1, 10, 8453, 42161})
 
 
 def coin_key(caip19: str) -> str | None:
     """DefiLlama coin key for a CAIP-19 id, or ``None`` if unmapped.
 
-    Pinned mapping (pure — no I/O, no registry):
+    Pinned mapping (pure, no I/O, no registry):
       * ``eip155:{N}/erc20:0x…`` -> ``'{slug}:0x…'`` with the address
         lowercased, for ``N`` in ``EVM_SLUGS``.
       * ``eip155:{N}/slip44:60`` -> ``'coingecko:ethereum'`` for ``N`` in
@@ -78,7 +78,7 @@ def chunk_keys(keys: Sequence[str]) -> list[list[str]]:
     """Deduplicate and lexicographically sort ``keys``, then split into
     chunks of at most ``CHUNK_SIZE`` preserving the global sorted order.
 
-    Empty input yields ``[]``. Pure — the request layout, unit-testable
+    Empty input yields ``[]``. Pure: the request layout, unit-testable
     without HTTP.
     """
     ordered = sorted(set(keys))
@@ -91,7 +91,7 @@ def chunk_keys(keys: Sequence[str]) -> list[list[str]]:
 class DefiLlamaOracle:
     """Current USD prices from DefiLlama's keyless ``coins.llama.fi``.
 
-    ``client`` is REQUIRED and injected — the oracle never constructs a
+    ``client`` is REQUIRED and injected: the oracle never constructs a
     transport of its own, never retries, never rate-limits. Structurally a
     ``prices.inquirer.PriceOracle``; does not import it.
     """

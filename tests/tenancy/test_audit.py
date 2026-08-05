@@ -1,4 +1,4 @@
-"""Audit: append-only token-mint log (SPEC §7.2 — the gap Vezgo shipped).
+"""Audit: append-only token-mint log (SPEC §7.2: the gap Vezgo shipped).
 
 Pinned record shape (docs/internal/DECISIONS.md "Audit record shape"): seq is
 per-project from 1, event is exactly "token.minted", append-only with no
@@ -162,7 +162,7 @@ def test_record_token_mint_records_a_stated_ip_provenance():
     assert log.entries(A) == (record,)
 
 
-# pins: an UNSTATED provenance is declared "unknown" — never defaulted to
+# pins: an UNSTATED provenance is declared "unknown", never defaulted to
 #       "peer", which would launder a header-derived ip into a verified one.
 def test_an_unstated_ip_provenance_is_declared_unknown():
     record = mint(AuditLog(), FrozenClock(T0))

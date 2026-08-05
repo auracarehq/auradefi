@@ -1,4 +1,4 @@
-"""api/routes/admin.py — the public coverage route and webhook admin.
+"""api/routes/admin.py: the public coverage route and webhook admin.
 
 Offline throughout. ``GET /coverage`` is the only route in the whole
 surface with no credential; the test that it carries NO ``X-RateLimit-*``
@@ -6,7 +6,7 @@ header is really a test that it authenticates nobody, since the middleware
 emits on ``request.state.project_id`` alone.
 
 The webhook tests are the rule #8 tests: a project self-serves its own
-endpoint and gets a signing secret back immediately and exactly once —
+endpoint and gets a signing secret back immediately and exactly once,
 no allowlist, no support ticket, no source-IP check.
 """
 
@@ -124,7 +124,7 @@ def wired():
 
 
 # --------------------------------------------------------------------------
-# GET /coverage — the single public route
+# GET /coverage: the single public route
 
 
 def test_coverage_needs_no_credential_and_carries_no_quota_headers():
@@ -408,7 +408,7 @@ def test_there_is_no_endpoint_that_runs_the_deliverer():
 
 
 # --------------------------------------------------------------------------
-# RELEASE_0.1.1 §5 Wave C #27 / #28 — a sink written from the Protocol alone
+# RELEASE_0.1.1 §5 Wave C #27 / #28: a sink written from the Protocol alone
 #
 # Both defects are one class: the route requires MORE than
 # ``api.deps.WebhookSink`` promises, so every host-supplied sink gets an
@@ -421,7 +421,7 @@ def test_there_is_no_endpoint_that_runs_the_deliverer():
 # declaration and nothing else, wrapped so it can expose no more than the
 # Protocol promises, driving EVERY webhook route.
 
-#: This sink's fixed ids — invented here, not derived from webhooks/models.py,
+#: This sink's fixed ids: invented here, not derived from webhooks/models.py,
 #: so the expected bodies below are literals a reader can check by eye.
 SINK_ENDPOINT_ID = "whe_minimal000000001"
 SINK_EVENT_ID = "evt_minimal000000001"
@@ -434,7 +434,7 @@ class _MinimalSink:
     """A webhook sink written from ``api.deps.WebhookSink`` and nothing else.
 
     Deliberately NOT derived from ``auradefi.webhooks.deliver.WebhookStore``:
-    this is what a HOST writes when it reads the Protocol — flat dicts, fixed
+    this is what a HOST writes when it reads the Protocol: flat dicts, fixed
     ids, no retry schedule, no signing, no entropy. Every method here exists
     because the seam declares it, and nothing else exists at all.
     """
@@ -539,8 +539,8 @@ def _declared_members(protocol: type) -> frozenset[str]:
 class _DeclaredSurfaceOnly:
     """``deps.webhooks`` as a HOST's deployment sees it.
 
-    An attribute WebhookSink does not declare raises ``AttributeError`` — the
-    host never wrote it, because the Protocol never asked for it — and every
+    An attribute WebhookSink does not declare raises ``AttributeError``, the
+    host never wrote it, because the Protocol never asked for it, and every
     call is first bound against the Protocol's DECLARED signature, so a route
     passing arguments the seam does not promise is recorded rather than
     silently absorbed by the shipped store's wider signature.
@@ -653,7 +653,7 @@ def protocol_only():
 
 
 # pins: every webhook route completes over a sink that implements ONLY what
-#       WebhookSink declares — no route reaches for an undeclared attribute
+#       WebhookSink declares, no route reaches for an undeclared attribute
 #       and no route calls a declared one outside its declared signature.
 def test_every_webhook_route_drives_a_sink_written_only_from_the_protocol(protocol_only):
     client, project, plaintext, sink, facade = protocol_only
@@ -672,14 +672,14 @@ def test_every_webhook_route_drives_a_sink_written_only_from_the_protocol(protoc
 
     assert facade._refused == [], (
         "a webhook route requires sink attributes WebhookSink does not "
-        f"declare: {sorted(set(facade._refused))} — every host-supplied sink "
+        f"declare: {sorted(set(facade._refused))}: every host-supplied sink "
         "gets an unhandled 500 there"
     )
     assert facade._mismatched == [], (
         "a webhook route called a declared member outside its declared "
         f"signature: {facade._mismatched}"
     )
-    assert facade._used, "the Protocol-only sink was never used — this proves nothing"
+    assert facade._used, "the Protocol-only sink was never used: this proves nothing"
 
     statuses = [
         registered.status_code,
@@ -719,7 +719,7 @@ def test_every_webhook_route_drives_a_sink_written_only_from_the_protocol(protoc
     )
 
 
-# pins: widening WebhookSink never outruns the shipped store — every declared
+# pins: widening WebhookSink never outruns the shipped store: every declared
 #       member exists on webhooks.deliver.WebhookStore and accepts the
 #       parameters the Protocol declares.
 def test_the_shipped_webhook_store_satisfies_every_declared_member():
@@ -748,7 +748,7 @@ def test_the_shipped_webhook_store_satisfies_every_declared_member():
     )
 
 
-# pins: the minimal sink really is limited to the declaration — it satisfies
+# pins: the minimal sink really is limited to the declaration: it satisfies
 #       WebhookSink structurally, and its own surface adds nothing the seam
 #       does not promise.
 def test_the_minimal_sink_is_exactly_the_declared_surface():
@@ -763,6 +763,6 @@ def test_the_minimal_sink_is_exactly_the_declared_surface():
     assert isinstance(sink, WebhookSink)
     assert implemented - declared == set(), (
         f"the sink implements {sorted(implemented - declared)}, which "
-        "WebhookSink does not declare — a host reading the Protocol would "
+        "WebhookSink does not declare: a host reading the Protocol would "
         "never have written it, so the route driving it is untested for hosts"
     )

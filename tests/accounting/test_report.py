@@ -1,9 +1,9 @@
-"""The reporting projection over replayed PnL state — SPEC §9, SPEC §6.2.
+"""The reporting projection over replayed PnL state. SPEC §9, SPEC §6.2.
 
 Every expected number is hand-computed from the pinned rules in
 docs/internal/DECISIONS.md ("Shortfall semantics", "ACB pooling", "None-propagation
 (PnL)", "Fraction->Money boundary", "Plaid TaxLot mapping") and asserted as
-an exact ``Decimal`` — never a float.
+an exact ``Decimal``, never a float.
 
 The classic four-event scenario (buy 1@$10, 1@$20, 1@$15, sell 1@$18) is
 the discriminator: a method that is not really plugged in cannot produce
@@ -13,7 +13,7 @@ input.
 The engine that produces the state under test lives in
 ``auradefi.accounting.pnl`` and is covered by ``test_pnl.py``; the
 generator constants below are duplicated between the two modules on
-purpose — the suite has no cross-test imports and no ``tests/__init__.py``.
+purpose. The suite has no cross-test imports and no ``tests/__init__.py``.
 """
 
 from __future__ import annotations
@@ -153,7 +153,7 @@ class TestMarkCurrency:
 
 
 class TestTaxLots:
-    """DECISIONS "Plaid TaxLot mapping" — the wire shape, pinned."""
+    """DECISIONS "Plaid TaxLot mapping": the wire shape, pinned."""
 
     def test_an_open_lot_maps_to_the_pinned_plaid_fields(self):
         events = (
@@ -245,9 +245,9 @@ class TestImmutability:
 
 
 class TestRoundedBasisIsFlagged:
-    """RELEASE_0.1.1 §5 #29 — the boundary that rounds must SAY it rounded.
+    """RELEASE_0.1.1 §5 #29. The boundary that rounds must SAY it rounded.
 
-    docs/internal/DECISIONS.md pins the Fraction->Money boundary as "ROUND_HALF_EVEN
+    Docs/internal/DECISIONS.md pins the Fraction->Money boundary as "ROUND_HALF_EVEN
     at 28 significant digits with flag `rounded_basis` … rounding exists
     only at this boundary and is always flagged", and
     ``fraction_to_money`` returns ``(money, is_exact)`` with its own
@@ -267,7 +267,7 @@ class TestRoundedBasisIsFlagged:
 
     def test_a_rounded_unrealized_total_is_flagged(self):
         # pins: the report-level flag. A total the caller cannot tell is
-        #       inexact is the whole defect — it reads as cent-accurate.
+        #       inexact is the whole defect. It reads as cent-accurate.
         result = report(process(self.THIRDS, "acb"), 3_000, {ASSET: usd(7)})
 
         assert result.unrealized is not None
@@ -301,7 +301,7 @@ class TestRoundedBasisIsFlagged:
 
 
 class TestAcbPoolVersusLotsIsDiscoverable:
-    """Issue #16 — the divergence is deliberate; SILENCE about it was not.
+    """Issue #16. The divergence is deliberate; SILENCE about it was not.
 
     Under `method="acb"`, `unrealized` subtracts the ACB POOL's cost while
     each open lot reports its own remaining basis, and the two do not agree.
@@ -358,7 +358,7 @@ class TestAcbPoolVersusLotsIsDiscoverable:
         assert result.unrealized != usd("15")
 
     def test_open_lots_basis_is_none_when_any_open_lot_is_unpriced(self):
-        # pins: the sum does not silently treat an unknown basis as zero —
+        # pins: the sum does not silently treat an unknown basis as zero, 
         #       profile rule "incomplete data is DECLARED, never defaulted".
         events = (
             buy(1_000, units(1), usd(10), "tx_priced"),

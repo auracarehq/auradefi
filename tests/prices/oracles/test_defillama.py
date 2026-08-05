@@ -1,6 +1,6 @@
 """DefiLlama oracle (SPEC §3.2, §6.3): pinned coin_key mapping, the
 deterministic sorted-chunked request layout, Decimal(str(price)) conversion,
-SourceError on failure — all offline (cassette + inline MockTransport)."""
+SourceError on failure: all offline (cassette + inline MockTransport)."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ ETH_PRICE = Decimal("3584.17")
 
 
 def _recording_client(payload, status: int = 200) -> tuple[httpx.Client, list[str]]:
-    """A client whose transport records every request URL — zero-HTTP and
+    """A client whose transport records every request URL: zero-HTTP and
     request-layout assertions read the list."""
     urls: list[str] = []
 
@@ -138,7 +138,7 @@ def test_chunk_keys_exactly_one_over_the_boundary():
 def test_cassette_happy_path_prices_eth_leaves_dai_unpriced(cassette):
     # The cassette records exactly GET /prices/current/
     # coingecko:ethereum,ethereum:0x6b175474e89094c44da98b954eedeac495271d0f
-    # — any other URL (wrong sort, wrong case, wrong join) raises
+    #: any other URL (wrong sort, wrong case, wrong join) raises
     # CassetteMissError. DAI is in the recorded request but absent from the
     # response body, so it is unpriced: absent from the result.
     oracle = DefiLlamaOracle(cassette("defillama_prices").client())
@@ -243,7 +243,7 @@ def test_custom_base_url_is_honoured():
     [
         ("this is not json", 200),  # non-JSON 200 body
         ({"unexpected": "shape"}, 200),  # JSON but no 'coins' object
-        ("Too Many Requests", 429),  # non-2xx (no retry — straight to error)
+        ("Too Many Requests", 429),  # non-2xx (no retry: straight to error)
         ("Bad Gateway", 502),
     ],
 )
@@ -289,7 +289,7 @@ def test_constructor_signature_client_required_base_url_defaulted():
 
 
 def test_usd_prices_matches_the_price_oracle_shape_structurally():
-    # Structural conformance to prices.inquirer.PriceOracle — asserted on
+    # Structural conformance to prices.inquirer.PriceOracle: asserted on
     # the signature alone, deliberately WITHOUT importing the inquirer.
     parameters = list(inspect.signature(DefiLlamaOracle.usd_prices).parameters)
     assert parameters == ["self", "caip19s"]

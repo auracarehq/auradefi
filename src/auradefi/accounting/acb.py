@@ -1,4 +1,4 @@
-"""ACB — Canadian adjusted cost base, a pooled average (SPEC §9).
+"""ACB. Canadian adjusted cost base, a pooled average (SPEC §9).
 
 Under ACB there is no per-lot basis at all: every acquisition of an asset
 melts into one running pool and a disposal consumes a pro-rata slice of
@@ -8,14 +8,14 @@ it. docs/internal/DECISIONS.md "ACB pooling" pins the mechanics:
     quantity)`` per asset;
   * an acquisition adds raw units and adds its cost;
   * a disposal consumes ``total_cost * take_raw / pool_raw`` EXACTLY, as a
-    rational — no rounding lives in the pool. Rounding exists only at the
+    rational, no rounding lives in the pool. Rounding exists only at the
     ``Fraction``→``Money`` boundary, and it is always flagged;
   * an UNPRICED acquisition sets the pool cost to ``None`` PERMANENTLY.
     A poisoned pool is an honest "unknown basis" forever after; averaging
     an unknown into a known would manufacture a number nobody can defend,
     and later priced acquisitions cannot un-poison it.
 
-Lots remain ground truth for open-lot reporting — the pool is a costing
+Lots remain ground truth for open-lot reporting. The pool is a costing
 overlay laid over them, never a replacement. That is why :func:`select`
 still walks lots oldest-first: the engine needs the QUANTITY bookkeeping
 (which lots are drawn down, and by how much) even though it ignores the
@@ -24,12 +24,12 @@ per-lot basis portions that walk would imply under FIFO.
 That oldest-first walk is a deliberate restatement of ``fifo``'s, on the
 identical terms (no mutation, no cost math in the selector, only
 ``opened_at_ms`` and ``quantity_remaining`` read, ``Lot`` imported under
-``TYPE_CHECKING`` alone) — docs/internal/DECISIONS.md "Duplication waiver
+``TYPE_CHECKING`` alone): docs/internal/DECISIONS.md "Duplication waiver
 extension": same-wave disjoint ownership forbids the runtime import, and
 golden vectors pin both copies.
 
 Pure: ``auradefi.money`` semantics plus the standard library.
-:class:`AcbPool` is the one mutable thing here, by design — it is a
+:class:`AcbPool` is the one mutable thing here, by design. It is a
 running accumulator, like ``Lot`` inside ``LotLedger``.
 """
 
@@ -61,10 +61,10 @@ class AcbPool:
     accumulator that acquisitions and disposals move in place.
 
     ``cost`` starts at ``Fraction(0)`` and stays an exact rational for the
-    pool's whole life — unless an unpriced acquisition sets it to
+    pool's whole life, unless an unpriced acquisition sets it to
     ``None``, which is permanent. ``quantity_raw`` is the pooled base-unit
     count. ``decimals`` is learned from the first quantity the pool sees
-    and every later quantity must match it — a pool that silently mixed
+    and every later quantity must match it: a pool that silently mixed
     scales would be wrong by powers of ten.
     """
 
@@ -79,7 +79,7 @@ class AcbPool:
         ``currency`` must be a ``str``; ``quantity_raw`` a non-negative
         ``int``; ``decimals`` ``None`` or an ``int >= 0``. ``bool`` is
         rejected before the ``int`` check for ``quantity_raw`` and
-        ``decimals`` — ``bool`` is an ``int`` subclass and is never an
+        ``decimals``. ``Bool`` is an ``int`` subclass and is never an
         amount or a scale.
         """
         if not isinstance(self.currency, str):
@@ -141,7 +141,7 @@ class AcbPool:
 
         The first acquisition of a fresh pool sets ``decimals``.
 
-        Raises ``ValidationError`` if ``quantity.raw < 0`` — an
+        Raises ``ValidationError`` if ``quantity.raw < 0``: an
         acquisition of negative units is a caller bug, and a disposal is
         :meth:`dispose`. Raises ``CurrencyMismatchError`` if
         ``cost.currency`` differs from ``self.currency``, and
@@ -173,10 +173,10 @@ class AcbPool:
         the consumed basis is the EXACT rational
         ``cost * take_raw / pool_raw``, and the pool becomes
         ``(cost - consumed, pool_raw - take_raw)``. Repeated disposals
-        therefore sum back to the original pooled cost with zero drift —
+        therefore sum back to the original pooled cost with zero drift:
         the property a ``Decimal`` pool cannot offer.
 
-        Returns ``None`` — consuming no basis — when the pool is poisoned,
+        Returns ``None``, consuming no basis, when the pool is poisoned,
         at any ``take_raw``. The quantity bookkeeping still happens: a
         poisoned pool tracks units exactly.
 
@@ -185,7 +185,7 @@ class AcbPool:
         pool, where the pro-rata division would otherwise be undefined.
 
         Raises ``ValidationError`` if ``take_raw < 0``, or if
-        ``take_raw > quantity_raw`` — an overdraw, leaving the pool
+        ``take_raw > quantity_raw``: an overdraw, leaving the pool
         unchanged. Shortfall is the ENGINE's business: it clamps to what
         the pool holds and books the uncovered remainder (DECISIONS
         "Shortfall semantics"), so a pool asked to overdraw has already
@@ -201,7 +201,7 @@ class AcbPool:
         if take_raw > self.quantity_raw:
             raise ValidationError(
                 f"disposal of {take_raw} base units overdraws a pool holding "
-                f"{self.quantity_raw} — the engine clamps and books the "
+                f"{self.quantity_raw}: the engine clamps and books the "
                 f"shortfall before it reaches the pool"
             )
         pooled = self.cost
@@ -224,8 +224,8 @@ def select(lots: Sequence[Lot], needed: Quantity) -> list[tuple[Lot, Quantity]]:
     from :class:`AcbPool`, and the engine ignores whatever per-lot basis
     this ordering would have implied.
 
-    Order: ascending ``(opened_at_ms, input position)`` — oldest first,
-    ties broken by the earlier position in ``lots`` — identical to FIFO's,
+    Order: ascending ``(opened_at_ms, input position)``, oldest first,
+    ties broken by the earlier position in ``lots``, identical to FIFO's,
     restated per the duplication waiver. The walk takes
     ``min(unmet need, lot.quantity_remaining)`` from every lot whose
     ``quantity_remaining.raw > 0`` and stops the moment the plan sums to
@@ -255,7 +255,7 @@ def _oldest_first(lots: Sequence[Lot]) -> list[Lot]:
     """``lots`` ordered by ascending ``opened_at_ms``, ties by position.
 
     ``sorted`` is stable, so equal timestamps keep their input order, and
-    the result is a new list — ``lots`` is never reordered in place.
+    the result is a new list. ``Lots`` is never reordered in place.
     """
     return sorted(lots, key=lambda candidate: candidate.opened_at_ms)
 

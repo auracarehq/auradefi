@@ -4,13 +4,13 @@ Both are derived rather than written, for the same reason: a hand-maintained
 list of error types or endpoints is wrong the first time either changes, and
 nothing would notice.
 
-* **Errors** — the `auradefi.errors` class tree joined to `api/errors.py`'s
+* **Errors**: the `auradefi.errors` class tree joined to `api/errors.py`'s
   `STATUS_TABLE`. That table already encodes the deliberate exceptions to
   inheritance (`ScopeError` is 403 under a 401 parent; `CursorError` is 422
   under a 500 parent), so the page documents intent instead of restating an
   MRO a reader could have guessed.
 
-* **HTTP** — from `create_app(...).openapi()`, which needs no server. Plaid's
+* **HTTP**: from `create_app(...).openapi()`, which needs no server. Plaid's
   anatomy per endpoint: what it needs, what it returns, and a `curl` you can
   paste. The schema is published beside it so a client generator can have it.
 """
@@ -51,8 +51,8 @@ def errors_html() -> str:
         rows.append(
             f'<tr id="{cls.__name__.lower()}">'
             f"<td><code>{escape(cls.__name__)}</code></td>"
-            f'<td><code>{escape(", ".join(parents) or "—")}</code></td>'
-            f"<td>{status if status else '—'}</td>"
+            f'<td><code>{escape(", ".join(parents) or "none")}</code></td>'
+            f"<td>{status if status else 'none'}</td>"
             f"<td>{escape(first)}</td></tr>"
         )
     return f"""<h1>Errors</h1>
@@ -62,15 +62,15 @@ catches all of them and nothing else. Catching a narrower type is how you
 distinguish a caller mistake from an upstream failure.</p>
 
 <p>The <strong>HTTP status</strong> column is what the API shell returns for
-that type. Three of them deliberately disagree with their parent —
+that type. Three of them deliberately disagree with their parent:
 <code>ScopeError</code> is 403 though it subclasses a 401,
-<code>CursorError</code> is 422 though it subclasses a 500 — because the
+<code>CursorError</code> is 422 though it subclasses a 500: because the
 status describes whose fault it is, not where the class sits.</p>
 
 <p>Two error types are about the offline guarantee rather than your data:
 <code>CassetteError</code> and <code>CassetteMissError</code> mean a replayed
 recording did not contain a request. In Sandbox that means you asked for
-something the recording does not hold — not that a credential is missing. See
+something the recording does not hold: not that a credential is missing. See
 <a href="authentication.html">Authentication &amp; keys</a>.</p>
 
 <table><thead><tr><th>Error</th><th>Subclass of</th><th>HTTP</th>
@@ -136,12 +136,12 @@ def _fields(schema: dict, components: dict, depth: int = 0) -> str:
         bits = ["required" if name in required else "optional", str(kind)]
         rendered = ", ".join(bits)
         if "default" in spec:
-            rendered += f" — Default: <code>{escape(json.dumps(spec['default']))}</code>"
+            rendered += f", default <code>{escape(json.dumps(spec['default']))}</code>"
         description = spec.get("description") or spec.get("title") or ""
         items.append(
             f'<div class="param"><code class="pname">{escape(name)}</code>'
             f'<span class="ptype">{rendered}</span>'
-            f'<p class="pdoc">{escape(str(description)) or "—"}</p></div>'
+            f'<p class="pdoc">{escape(str(description)) or "none"}</p></div>'
         )
     return '<div class="params">' + "".join(items) + "</div>"
 
@@ -153,13 +153,13 @@ def http_html() -> tuple[str, str]:
     chunks = ["<h1>HTTP API</h1>", markdown().render(
         "The library is the product; this is one adapter over it. Responses "
         "use **Plaid's wire format**, so a client that already consumes Plaid "
-        "consumes this — `/crypto/sync` returns `added`/`modified`/`removed` "
+        "consumes this: `/crypto/sync` returns `added`/`modified`/`removed` "
         "with a cursor, and every amount is a tagged decimal **string**.\n\n"
         "Two credentials, both yours to issue: a **server key** "
         "(`adk_live_…`) your backend holds, and a **short-lived user token** "
         "minted from it for one end user. See "
         "[Authentication & keys](authentication.html).\n\n"
-        "A route appears here only if its capability is bound — "
+        "A route appears here only if its capability is bound: "
         "`POST /batch/holdings` exists only when a holdings provider is "
         "injected. [Download openapi.json](openapi.json).")]
 
@@ -190,7 +190,7 @@ def http_html() -> tuple[str, str]:
                         f'<span class="ptype">{rendered}, {escape(str(kind))} '
                         f'(in {escape(parameter.get("in", "query"))})</span>'
                         f'<p class="pdoc">'
-                        f'{escape(str(parameter.get("description") or "—"))}</p></div>')
+                        f'{escape(str(parameter.get("description") or "none"))}</p></div>')
                 chunks.append("<h3>Request fields</h3><div class=\"params\">"
                               + "".join(items) + "</div>")
             if body:

@@ -1,11 +1,11 @@
 """Block-20450000 golden vectors for the Uniswap adapters (SPEC rule #5).
 
-RAW integers only — USD goldens live in drill (SPEC §5.3: raw persists,
+RAW integers only. USD goldens live in drill (SPEC §5.3: raw persists,
 re-drills against fresh prices without an RPC). Every literal below was
-derived INDEPENDENTLY with python3 — sha256 preimages for the pinned id
+derived INDEPENDENTLY with python3: sha256 preimages for the pinned id
 algorithms, exact integer arithmetic for the pinned pro-rata, and a
-from-scratch reimplementation of canonical TickMath for the V3 amounts
-— never by running the adapters:
+from-scratch reimplementation of canonical TickMath for the V3 amounts,
+never by running the adapters:
 
     pos_e463a531f5d6a400 = "pos_" + sha256(
         "uniswap-v2|eip155:1|0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc|"
@@ -67,7 +67,7 @@ V3_POOL = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
 
 
 class DictReader:
-    """Dict-backed fake keyed (address_lower, fn, args) — no I/O."""
+    """Dict-backed fake keyed (address_lower, fn, args), no I/O."""
 
     def __init__(
         self, responses: dict[tuple[str, str, tuple], object]
@@ -81,7 +81,7 @@ class DictReader:
 
 
 class TestUniswapV2Block20450000:
-    """USDC/WETH pair state at block 20_450_000 — RAW integers only."""
+    """USDC/WETH pair state at block 20_450_000. RAW integers only."""
 
     def _position(self):
         reader = DictReader(
@@ -155,7 +155,7 @@ class TestUniswapV2Block20450000:
 
 
 class TestUniswapV3Block20450000:
-    """NFT 912345 (USDC/WETH 0.3%) at block 20_450_000 — RAW only."""
+    """NFT 912345 (USDC/WETH 0.3%) at block 20_450_000. RAW only."""
 
     def _position(self):
         reader = DictReader(

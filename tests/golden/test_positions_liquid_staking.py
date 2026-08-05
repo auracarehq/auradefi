@@ -1,10 +1,10 @@
 """Golden fixtures for the liquid staking adapters, pinned to Ethereum
 block 20_450_000 (SPEC rule #5: golden fixture tests pinned to a block
-height, per adapter — the clearest cause of both predecessors' deaths
+height, per adapter: the clearest cause of both predecessors' deaths
 was shipping none).
 
 Every literal below is hardcoded, derived independently from the pinned
-algorithms in docs/internal/DECISIONS.md — never from the code under test:
+algorithms in docs/internal/DECISIONS.md, never from the code under test:
 
     pos_e61f7629709553ef == "pos_" + sha256(
         "lido|eip155:1|0xae7ab96520de3a18e5e111b5eaab095312d7fe84|"
@@ -24,7 +24,7 @@ algorithms in docs/internal/DECISIONS.md — never from the code under test:
         == 2_800_000_000_000_000_000 exactly
 
 stETH rebases 1:1 (identity rate), so the fake reader log must show NO
-exchange-rate call for Lido — the balance already IS the ETH claim.
+exchange-rate call for Lido. The balance already IS the ETH claim.
 All outputs are RAW (price/value None): they persist and re-drill
 against fresh prices without an RPC (SPEC §5.3).
 """
@@ -150,7 +150,7 @@ class TestRocketPoolBlock20450000:
         assert position.contract_address == RETH
 
     def test_supplied_eth_is_the_pinned_redemption_amount(self):
-        # 2.5 rETH * 1.12 == exactly 2.8 ETH — floor division, quote what
+        # 2.5 rETH * 1.12 == exactly 2.8 ETH: floor division, quote what
         # the user would actually get out (SPEC §4.3).
         (position,), _ = self._positions_and_reader()
         (underlying,) = position.underlyings

@@ -1,7 +1,7 @@
 """EVM helpers: CAIP-2 <-> chain id, address hygiene (SPEC §4.2).
 
 EIP-55 checksum validation is deliberately absent (needs keccak-256, which
-the stdlib lacks — Phase 0 is stdlib only), so normalize_address must accept
+the stdlib lacks, Phase 0 is stdlib only), so normalize_address must accept
 ANY casing of valid hex, including casings that are invalid under EIP-55.
 """
 
@@ -17,7 +17,7 @@ from auradefi.chains.evm import (
 )
 from auradefi.errors import CaipParseError, ValidationError
 
-# EIP-55 checksummed form of vitalik.eth's address — golden vector for
+# EIP-55 checksummed form of vitalik.eth's address: golden vector for
 # "checksum casing survives lowercasing, is never validated".
 VITALIK_CHECKSUM = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 VITALIK_LOWER = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"

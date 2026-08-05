@@ -1,12 +1,12 @@
 """Holding and HoldingsReport (SPEC §3.1: Account → Holding[] ≡ Plaid Holding).
 
-PURE models for the portfolio domain — no I/O, no HTTP client. This module
+PURE models for the portfolio domain, no I/O, no HTTP client. This module
 imports only ``auradefi.money``, ``auradefi.errors`` and the stdlib;
 tests/portfolio/test_models.py enforces that mechanically.
 
 Phase 1, single-tenant, library-only: an address's balances plus prices
 assemble into one ``HoldingsReport`` whose ``total_value`` is an EXACT
-Decimal sum (SPEC rule #1 — no rounding, no floats, ever).
+Decimal sum (SPEC rule #1, no rounding, no floats, ever).
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ class HoldingsReport:
         """Assemble a report from holdings; pinned algorithm.
 
         * ``total_value`` = ``Money`` of the EXACT ``Decimal`` sum of
-          ``h.value.amount`` over priced holdings, currency ``"USD"`` —
+          ``h.value.amount`` over priced holdings, currency ``"USD"``,
           NO rounding, NO floats (SPEC rule #1), exact past any Decimal
           context precision. ``Decimal("0")`` when nothing is priced.
         * Raises ``CurrencyMismatchError`` if any holding's

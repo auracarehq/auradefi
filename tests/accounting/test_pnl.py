@@ -1,15 +1,15 @@
-"""Incremental PnL engine — SPEC §9, the arbitrary-date replay.
+"""Incremental PnL engine. SPEC §9, the arbitrary-date replay.
 
 Every expected number is hand-computed from the pinned rules in
 docs/internal/DECISIONS.md ("Shortfall semantics", "ACB pooling", "None-propagation
 (PnL)", "Fraction->Money boundary", "Plaid TaxLot mapping") and asserted as
-an exact ``Decimal`` — never a float.
+an exact ``Decimal``, never a float.
 
 The classic four-event scenario (buy 1@$10, 1@$20, 1@$15, sell 1@$18) is
 the discriminator: a method that is not really plugged in cannot produce
 8 / 3 / -2 / 3 realised from the same input.
 
-This module covers the ADVANCING half — ``METHODS``, ``PnLState``,
+This module covers the ADVANCING half. ``METHODS``, ``PnLState``,
 ``DisposalRecord``, ``process`` and ``pnl_at``, including the replay
 ledger that keeps a 50,000-event stream inside the phase 9 budget. The
 projection those states are read through lives in
@@ -446,7 +446,7 @@ def _scripted_stream():
 
 
 def _reference_replay(events, selector):
-    """The same replay through a plain ``LotLedger`` — the slow, obvious way."""
+    """The same replay through a plain ``LotLedger``: the slow, obvious way."""
     ledgers: dict[str, LotLedger] = {}
     bases = []
     for event in events:

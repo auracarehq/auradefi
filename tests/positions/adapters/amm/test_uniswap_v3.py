@@ -77,7 +77,7 @@ SRC = (
 
 
 class DictReader:
-    """Dict-backed fake keyed (address_lower, fn, args) — no I/O."""
+    """Dict-backed fake keyed (address_lower, fn, args), no I/O."""
 
     def __init__(
         self, responses: dict[tuple[str, str, tuple], object]

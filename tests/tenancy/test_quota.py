@@ -2,7 +2,7 @@
 
 Golden ``reset_at_ms`` values below were derived independently from the
 pinned window algorithms (docs/internal/DECISIONS.md "Quota windows") with
-python3/datetime — never with the code under test:
+python3/datetime, never with the code under test:
 
   T0            = 1767225600000  # 2026-01-01T00:00:00Z
   second reset  = 1767225601000
@@ -13,8 +13,8 @@ python3/datetime — never with the code under test:
 Year-rollover vectors (December's month window resets into the NEXT year):
 
   Dec 31 last ms = 1798761599999  # 2026-12-31T23:59:59.999Z
-  Jan 1 2027     = 1798761600000  # 2027-01-01T00:00:00Z — (2026, 12) reset
-  Feb 1 2027     = 1801440000000  # 2027-02-01T00:00:00Z — (2027, 1) reset
+  Jan 1 2027     = 1798761600000  # 2027-01-01T00:00:00Z, (2026, 12) reset
+  Feb 1 2027     = 1801440000000  # 2027-02-01T00:00:00Z, (2027, 1) reset
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ def make_counter(per_second=2, per_day=5, per_month=10, now_ms=T0):
 
 
 class RecordingClock:
-    """Counts now_ms() reads — hit() must read the clock exactly once."""
+    """Counts now_ms() reads. Hit() must read the clock exactly once."""
 
     def __init__(self, now_ms: int) -> None:
         self._inner = FrozenClock(now_ms)
@@ -147,7 +147,7 @@ def test_walkthrough_day_then_month_windows_across_january_2026():
     assert str(DAY_RESET) in message
     assert counter.snapshot(A)["month"].remaining == 5  # day rejection consumed nothing
 
-    # Jan 30: day rolled, same month — consume month totals 6-10
+    # Jan 30: day rolled, same month: consume month totals 6-10
     clock.advance(JAN_30 - (T0 + 2000))
     counter.hit(A)
     counter.hit(A)
@@ -168,7 +168,7 @@ def test_walkthrough_day_then_month_windows_across_january_2026():
     assert snap["month"].remaining == 0
     assert snap["day"].remaining == 5  # rejection consumed nothing in the fresh day
 
-    clock.advance(1)  # 2026-02-01T00:00:00Z — month rolls
+    clock.advance(1)  # 2026-02-01T00:00:00Z: month rolls
     counter.hit(A)
     snap = counter.snapshot(A)
     assert snap["month"] == WindowSnapshot(limit=10, remaining=9, reset_at_ms=MARCH_1)
@@ -178,7 +178,7 @@ def test_walkthrough_day_then_month_windows_across_january_2026():
 
 def test_golden_december_month_window_resets_into_the_next_year():
     # 2026-12-31T23:59:59.999Z: month key (2026, 12) must reset at
-    # 2027-01-01T00:00:00Z — the year-rollover branch of the pinned
+    # 2027-01-01T00:00:00Z: the year-rollover branch of the pinned
     # month algorithm. A `year + 1 -> year` mutation would yield
     # 1767225600000 (2026-01-01) and fail the golden literal here.
     counter, clock = make_counter(now_ms=DEC_31_2026_LAST_MS)
@@ -188,7 +188,7 @@ def test_golden_december_month_window_resets_into_the_next_year():
     counter.hit(A)
     assert counter.snapshot(A)["month"].remaining == 9
 
-    clock.advance(1)  # 2027-01-01T00:00:00Z — December's month window rolls
+    clock.advance(1)  # 2027-01-01T00:00:00Z. December's month window rolls
     snap = counter.snapshot(A)
     assert snap["month"] == WindowSnapshot(limit=10, remaining=10, reset_at_ms=FEB_1_2027)
     assert snap["second"] == WindowSnapshot(

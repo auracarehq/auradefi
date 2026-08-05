@@ -1,25 +1,25 @@
-"""SEAM AUDIT — wave 0.1.1-wave2: the ports as a THIRD PARTY sees them.
+"""SEAM AUDIT: wave 0.1.1-wave2: the ports as a THIRD PARTY sees them.
 
 Every in-repo test drives ``MemorySyncState`` and ``MemoryLedger``, which
 work partly by accident of behaviour their ``Protocol`` never promised.
 This file binds implementations written from the DECLARED docstrings
-alone — no method the interface does not state, no return shape it does
-not state — and wraps each one in :class:`DeclaredOnly`, a proxy that
+alone, no method the interface does not state, no return shape it does
+not state, and wraps each one in :class:`DeclaredOnly`, a proxy that
 raises ``AttributeError`` the moment a consumer reaches for something the
 ``Protocol`` never declared. A host that satisfies the published contract
 and nothing more must still work; if it does not, the seam is a lie.
 
 Two seams are under audit:
 
-* ``SyncStatePort`` (``src/auradefi/embed/state.py``) — order
+* ``SyncStatePort`` (``src/auradefi/embed/state.py``). Order
   ``embed-ids-loop`` #21 makes ``sync()`` enumerate connections from this
   port instead of an in-process list, which means the host's store
   becomes the ONLY durable record. ``Auradefi.__init__`` isinstance-checks
   ``source`` against both of its Protocols ("the failure belongs at bind
   time, not at the first background tick") but does NOT check
-  ``sync_state`` — so a store that is a valid 0.1.0 port silently
+  ``sync_state``, so a store that is a valid 0.1.0 port silently
   contributes nothing.
-* ``LedgerPort`` (``src/auradefi/ledger/port.py``) — order
+* ``LedgerPort`` (``src/auradefi/ledger/port.py``): order
   ``ledger-reorg``'s declared seam says ``plan_reorg``'s output is
   consumed by a write path it does not own. The only surface a host is
   promised is ``upsert`` + ``mark_removed``; ``apply_reorg`` exists on
@@ -98,7 +98,7 @@ class DeclaredOnly:
             raise AttributeError(
                 f"a consumer reached for {name!r}, which "
                 f"{object.__getattribute__(self, '_protocol')} does not "
-                f"declare — declared surface is {sorted(allowed)}"
+                f"declare: declared surface is {sorted(allowed)}"
             )
         object.__getattribute__(self, "reached").append(name)
         return getattr(object.__getattribute__(self, "_target"), name)
@@ -159,7 +159,7 @@ class HostSyncState:
 class HostLedger:
     """A ``LedgerPort`` written from its docstrings, nothing else.
 
-    Four methods, exactly as declared. Its cursor encoding is its OWN —
+    Four methods, exactly as declared. Its cursor encoding is its OWN:
     the port promises only that a malformed cursor raises
     ``CursorError``, so a host is free to choose the format, and this one
     deliberately differs from the in-repo codec.
@@ -175,10 +175,10 @@ class HostLedger:
         return self.seq[tenant_id]
 
     def upsert(self, tenant_id: str, txns) -> list[SyncEvent]:
-        """Insert, update, or RESURRECT — the declared upsert contract.
+        """Insert, update, or RESURRECT: the declared upsert contract.
 
         "A re-delivered transaction whose payload is unchanged emits no
-        event — UNLESS the stored row is removed, in which case the
+        event, UNLESS the stored row is removed, in which case the
         transaction is re-added: stored with ``removed=False``, a bumped
         seq, and an ADDED event."
         """
@@ -447,9 +447,9 @@ def test_the_facade_validates_both_the_source_and_the_state_seam():
     """Bind-time validation covers BOTH ports, not just ``source``.
 
     This seam originally recorded the asymmetry as a finding:
-    ``Auradefi.__init__`` raised for a ``source`` missing either seam —
+    ``Auradefi.__init__`` raised for a ``source`` missing either seam,
     "the failure belongs at bind time, not at the first background
-    tick" — while accepting any object at all as ``sync_state``. Once #21
+    tick", while accepting any object at all as ``sync_state``. Once #21
     made ``sync()`` enumerate connections from that port, a store missing
     the new method failed exactly the way that docstring says it must
     not: hours later, on a background tick.

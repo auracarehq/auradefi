@@ -10,7 +10,7 @@ after it reproduced three PUBLISHED BIP32 test-vector facts:
     hash160(parse(V1_MASTER).pubkey)[:4]    == 3442193e    (BIP32 vector 1)
 
 The derived p2wpkh/p2pkh strings were then cross-checked against the
-already-green ``sources.bitcoin.encoding`` codecs — two independent
+already-green ``sources.bitcoin.encoding`` codecs: two independent
 paths to the same address.
 
 The module under test is PURE: the import allowlist is asserted here,
@@ -58,19 +58,19 @@ V2_MASTER = (
     "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMS"
     "gv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB"
 )
-# depth 2, child_number 4294967295 — a HARDENED ANCESTOR, which parses fine.
+# depth 2, child_number 4294967295: a HARDENED ANCESTOR, which parses fine.
 V_HARDENED_ANCESTOR = (
     "xpub6ASAVgeehLbnwdqV6UKMHVzgqAG8Gr6riv3Fxxpj8ksbH9ebxaEyBLZ85ySDhKiLDBr"
     "QSARLq1uNRts8RuJiHjaDMBU4Zn9h8LZNnBC5y4a"
 )
 ALL_VALID = (V1_MASTER, V1_M0H, V2_MASTER, V_HARDENED_ANCESTOR)
 
-# serialize(ckd_pub(parse(V1_M0H), 1)) — BIP32 vector 1, chain m/0H/1.
+# serialize(ckd_pub(parse(V1_M0H), 1)). BIP32 vector 1, chain m/0H/1.
 V1_M0H_1 = (
     "xpub6ASuArnXKPbfEwhqN6e3mwBcDTgzisQN1wXN9BJcM47sSikHjJf3UFHKkNAWbWMiGj7"
     "Wf5uMash7SyYq527Hqck2AxYysAA7xmALppuCkwQ"
 )
-# serialize(ckd_pub(parse(V2_MASTER), 0)) — BIP32 vector 2, chain m/0.
+# serialize(ckd_pub(parse(V2_MASTER), 0)). BIP32 vector 2, chain m/0.
 V2_M0 = (
     "xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfv"
     "rnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH"
@@ -109,7 +109,7 @@ V1_M0H_PUBKEY = bytes.fromhex(
     "035a784662a4a20a65bf6aab9ae98a6c068a81c52e4b032c0fb5400c706cfccc56"
 )
 
-# V1_MASTER m/0/i p2wpkh, i = 0..22 — the external addresses the phase-6
+# V1_MASTER m/0/i p2wpkh, i = 0..22: the external addresses the phase-6
 # gate cassette records, pinned here so a derivation change is red twice.
 EXTERNAL_P2WPKH = (
     "bc1qp5wfcq48h6d63wyy9qz0awtpfqwwv4sma86mhz",
@@ -168,7 +168,7 @@ EXTERNAL_P2PKH = (
 CHANGE_0_P2PKH = "1NwEtFZ6Td7cpKaJtYoeryS6avP2TUkSMh"
 
 # --- rejection literals, each built from V1_MASTER's own 78-byte payload ---
-# version 0x0488ADE4 (an xprv with a VALID checksum — only the version is wrong)
+# version 0x0488ADE4 (an xprv with a VALID checksum, only the version is wrong)
 XPRV = (
     "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJ"
     "xWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi"
@@ -187,12 +187,12 @@ SHORT_PAYLOAD = (
     "Deb7pNXSbX7qSvc2eMjkNYTrggh4pBgYa2QMFjEjj6hUy1i6QK7Zm1qdZkHEwqHpT7WeE6V"
     "55dTU8PuuzPAiP8JDwAcsuN3v858r83c7mPeYLX"
 )
-# 78 bytes, xpub version, key 0x02 || 5 — x=5 has no square root mod p
+# 78 bytes, xpub version, key 0x02 || 5. X=5 has no square root mod p
 OFF_CURVE = (
     "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gYym6yCVZtiQ"
     "KSpLUqpuy2xafsZZR8vydJmD1kZ1yXu2LotCeeYJ"
 )
-# 78 bytes, xpub version, key 33 zero bytes (lead 0x00 — the xprv key marker)
+# 78 bytes, xpub version, key 33 zero bytes (lead 0x00: the xprv key marker)
 ZERO_LEAD_KEY = (
     "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gYusccjbWBs3"
     "sBBB52ffy8KP83LKyqXHsjV4oGFeBYb1Zp72k5Ee"

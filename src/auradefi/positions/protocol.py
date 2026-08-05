@@ -1,7 +1,7 @@
 """The adapter contract (SPEC §5.4) and its chain-read seam (Phase 4).
 
-``ContractReader`` is the ONLY chain-read abstraction in ``positions/``
-— this domain is not in the layering gate's IO_DOMAINS, so no HTTP
+``ContractReader`` is the ONLY chain-read abstraction in ``positions/``.
+This domain is not in the layering gate's IO_DOMAINS, so no HTTP
 client may ever appear here; a dict-backed fake satisfies the protocol
 and the whole domain stays fixture-driven and offline.
 
@@ -9,7 +9,7 @@ The two-phase split (SPEC §5.1, LlamaFolio): ``discover()`` runs
 address-blind on a background cron and emits static
 ``ContractDescriptor`` rows; ``resolve()`` runs per user refresh and
 attaches amounts. ``ContractSet`` arrives at ``resolve()`` **partially
-populated or empty** — that is the whole point of pre-filtering
+populated or empty**. That is the whole point of pre-filtering
 (SPEC §5.2): ``restrict_to`` keeps only descriptors whose address the
 user actually touched.
 
@@ -44,7 +44,7 @@ class ContractReader(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class DiscoveryContext:
-    """What ``discover()`` gets — it does NOT know the address (SPEC §5.1)."""
+    """What ``discover()`` gets. It does NOT know the address (SPEC §5.1)."""
 
     chain_id: str
     reader: ContractReader
@@ -73,7 +73,7 @@ class ResolveContext:
 class ContractDescriptor:
     """One static contract a user could hold a position at (SPEC §5.1).
 
-    Hashable and frozen — descriptor sets are deduplicated and
+    Hashable and frozen. Descriptor sets are deduplicated and
     persisted between discovery runs. A 0x ``address`` is lowercased at
     construction; ``meta`` is a tuple of (key, value) pairs so the
     descriptor stays hashable.
@@ -97,7 +97,7 @@ class ContractSet:
     """A deduplicated, deterministically ordered set of descriptors.
 
     Holds a tuple sorted by ``(adapter_id, chain_id, address,
-    category)``. Build via :meth:`empty` or :meth:`of` — never by hand.
+    category)``. Build via :meth:`empty` or :meth:`of`, never by hand.
     Arrives at ``resolve()`` partially populated or empty (SPEC §5.4).
     """
 
@@ -131,7 +131,7 @@ class ContractSet:
 
     def restrict_to(self, touched: frozenset[str]) -> ContractSet:
         """Keep descriptors whose ``address`` is in
-        ``{t.lower() for t in touched}`` — the SPEC §5.2 interaction
+        ``{t.lower() for t in touched}``: the SPEC §5.2 interaction
         pre-filter (only contracts the user actually touched run)."""
         lowered = {address.lower() for address in touched}
         kept = tuple(d for d in self.descriptors if d.address in lowered)
@@ -142,7 +142,7 @@ class ContractSet:
 class PositionAdapter(Protocol):
     """One protocol integration (SPEC §5.4, verbatim).
 
-    ``id`` is the DefiLlama protocol slug — the join key. A resolver
+    ``id`` is the DefiLlama protocol slug: the join key. A resolver
     that raises is caught, logged, and drops only its own slice.
     """
 

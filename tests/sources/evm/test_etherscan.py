@@ -95,7 +95,7 @@ def _recording_client(cas) -> tuple[httpx.Client, list[httpx.Request]]:
 
 
 def _tripwire_client() -> tuple[httpx.Client, list[httpx.Request]]:
-    """A client that records and refuses every request — proves ZERO HTTP."""
+    """A client that records and refuses every request: proves ZERO HTTP."""
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -264,7 +264,7 @@ class TestVitalikCassette:
             if r.url.params["action"] == "tokenbalance"
         ]
         # Mixed-case USDC discovery row deduplicates against the lowercase
-        # one; the spam row (tokenDecimal "") is skipped additively — its
+        # one; the spam row (tokenDecimal "") is skipped additively: its
         # contract is never queried; DAI sorts (and is requested) before
         # USDC. The cassette records nothing for the spam contract, so a
         # query for it would also raise CassetteMissError.

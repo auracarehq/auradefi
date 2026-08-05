@@ -6,7 +6,7 @@ turns ``sources.evm.txlist`` records for ONE account on ONE chain into
 ``acts[]``.
 
 Layering (tests/style/test_layering.py): imports ``decode.models``,
-``sources.evm.txlist``, ``chains.registry`` and ``money`` only — NEVER
+``sources.evm.txlist``, ``chains.registry`` and ``money`` only, NEVER
 ``ledger`` (DECISIONS.md "Duplication waiver"), never httpx (no I/O here;
 fetching is the sources layer's job).
 
@@ -69,7 +69,7 @@ def decode_account(
     ``(block_number, tx_hash)``; ``id`` is
     ``decode.models.transaction_id(chain_id, tx_hash, account_id)``.
 
-    Validation — ``auradefi.errors.DecodeError`` BEFORE any output when:
+    Validation: ``auradefi.errors.DecodeError`` BEFORE any output when:
     rows of one hash disagree on ``block_number`` or ``time_stamp``, or
     any record has neither ``from`` nor ``to`` equal to the account
     address.
@@ -89,12 +89,12 @@ def decode_account(
     CONFIRMED. PENDING/REVERTED/REPLACED/DROPPED are never emitted in
     Phase 3.
 
-    Fee (sibling, never a movement — DECISIONS.md "Gas fee"): the gas
+    Fee (sibling, never a movement, DECISIONS.md "Gas fee"): the gas
     row is the hash's ``NormalTxRecord`` if present, else its FIRST
     ``TokenTxRecord``; exactly one ``Fee(asset_id=native caip19,
     quantity=Quantity(gas_used * gas_price_wei, native_decimals),
     value=None, act_id="act_0", borne_by=SELF iff the gas row's ``from``
-    == address else COUNTERPARTY)`` — always emitted, failed
+    == address else COUNTERPARTY)``, always emitted, failed
     transactions included.
 
     Acts: exactly one ``Act`` per transaction with ``act_id="act_0"``
@@ -187,7 +187,7 @@ def _decode_parts(
 ) -> tuple[Part, ...]:
     """Movements per rule #4: native (iff value > 0) then tokens in order.
 
-    A failed hash decodes to ZERO parts — its tokentx rows are dropped
+    A failed hash decodes to ZERO parts. Its tokentx rows are dropped
     too; the caller keeps the fee alive.
     """
     if normal_rows and normal_rows[0].is_error:

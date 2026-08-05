@@ -1,8 +1,8 @@
-"""ACB: Canadian pooled average cost — SPEC §9 pluggable methods.
+"""ACB: Canadian pooled average cost. SPEC §9 pluggable methods.
 
 Two halves, both pinned in docs/internal/DECISIONS.md ("ACB pooling"):
 
-  * :class:`AcbPool`, the costing overlay — exact rational pool, pro-rata
+  * :class:`AcbPool`, the costing overlay: exact rational pool, pro-rata
     disposal, permanent poisoning on an unpriced acquisition;
   * :func:`acb.select`, FIFO's oldest-first walk restated for QUANTITY
     bookkeeping only, on the plan terms ``fifo``/``lifo`` state.
@@ -82,8 +82,8 @@ class NoTouchLot:
 
 class TripwireLot:
     """Only ``opened_at_ms`` and ``quantity_remaining`` exist; touching any
-    other pinned field raises, which is how wave independence — and ACB's
-    indifference to per-lot cost — is proven."""
+    other pinned field raises, which is how wave independence, and ACB's
+    indifference to per-lot cost, is proven."""
 
     def __init__(self, opened_at_ms: int, quantity_remaining: Quantity) -> None:
         self.opened_at_ms = opened_at_ms

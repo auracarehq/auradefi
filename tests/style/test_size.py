@@ -1,4 +1,4 @@
-"""SPEC §3.2: files target 300 lines, 400 hard — no allowlist, ever.
+"""SPEC §3.2: files target 300 lines, 400 hard, no allowlist, ever.
 
 The 400 gate has no escape hatch by design: LlamaFolio and Zapper Studio
 both died of unreviewable growth. Split the module instead.
@@ -25,7 +25,7 @@ def test_no_source_file_exceeds_the_400_line_hard_cap():
         if (count := _line_count(path)) > HARD_CAP
     )
     assert not offenders, (
-        f"files exceed the {HARD_CAP}-line hard cap (no allowlist — split them):\n"
+        f"files exceed the {HARD_CAP}-line hard cap (no allowlist: split them):\n"
         + "\n".join(offenders)
     )
 

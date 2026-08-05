@@ -1,7 +1,7 @@
 """Exception taxonomy for auradefi.
 
 Single base class so an embedding host can catch one type at the boundary.
-Exception classes are defined here and nowhere else — tests/test_errors.py
+Exception classes are defined here and nowhere else: tests/test_errors.py
 enforces that mechanically, so a new error type is a deliberate, reviewed
 addition to the public contract rather than a local convenience.
 """
@@ -82,7 +82,7 @@ class ConflictError(AuradefiError):
     """Create or update conflicts with existing state.
 
     Carries the existing entity's id so a UI can navigate to the conflict
-    (SPEC §7.1 — Vezgo's 409-with-existing_connection_id, kept).
+    (SPEC §7.1, Vezgo's 409-with-existing_connection_id, kept).
     """
 
     def __init__(self, message: str, existing_id: str | None = None) -> None:
@@ -94,7 +94,7 @@ class AuthError(AuradefiError):
     """Credential or token failed authentication.
 
     Deliberately one class for bad secret, bad signature, malformed token,
-    and revoked key — probing callers must not be able to distinguish
+    and revoked key. Probing callers must not be able to distinguish
     failure modes (SPEC §7.2).
     """
 
@@ -118,6 +118,6 @@ class CassetteError(AuradefiError):
 class CassetteMissError(CassetteError):
     """An HTTP request had no matching interaction in the loaded cassette.
 
-    Raised instead of letting a live call escape — the offline guarantee
+    Raised instead of letting a live call escape. The offline guarantee
     (SPEC §13) fails loudly, never silently.
     """

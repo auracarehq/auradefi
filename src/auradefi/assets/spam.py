@@ -1,11 +1,11 @@
-"""Additive spam scoring (SPEC §4.2, rule #9 — rotki's layered model).
+"""Additive spam scoring (SPEC §4.2, rule #9, rotki's layered model).
 
-Rule #9: return the liquidity number, not just a spam boolean — the
+Rule #9: return the liquidity number, not just a spam boolean. The
 threshold is a PRODUCT decision, so ``is_spam`` takes it from the
 caller. ``liquidity_usd`` is a ``Decimal`` end-to-end, never a float.
 
-rotki's scar: a transient source failure once wiped previously-detected
-tokens. Detection here is therefore ADDITIVE, NEVER DESTRUCTIVE —
+Rotki's scar: a transient source failure once wiped previously-detected
+tokens. Detection here is therefore ADDITIVE, NEVER DESTRUCTIVE.
 ``merge`` can only ever add reasons and raise the score, and an empty
 new assessment changes nothing. Assessments are values; Asset objects
 are never mutated. stdlib only; may import money/ and chains/ only.
@@ -25,7 +25,7 @@ class SpamSignal:
     """One heuristic mark: a name and a non-negative weight.
 
     Raises:
-        ValidationError: unless ``weight >= 0`` — rejects negatives AND
+        ValidationError: unless ``weight >= 0``: rejects negatives AND
             NaN (NaN fails every comparison, so it would silently poison
             ``sum``/``max`` scoring downstream).
     """
@@ -73,7 +73,7 @@ def assess(
 def is_spam(assessment: SpamAssessment, threshold: float) -> bool:
     """True iff ``assessment.score >= threshold`` (inclusive).
 
-    The threshold is the CALLER's decision (rule #9) — this function
+    The threshold is the CALLER's decision (rule #9). This function
     holds no opinion of its own.
     """
     return assessment.score >= threshold
@@ -86,7 +86,7 @@ def merge(old: SpamAssessment, new: SpamAssessment) -> SpamAssessment:
     (order preserved). ``score`` = ``max(old.score, new.score)``.
     ``liquidity_usd``/``holder_count`` = the new value when it is not
     ``None``, else the old. Merging an empty ``new`` therefore returns
-    an assessment equal to ``old`` — a transient source failure can
+    an assessment equal to ``old``. A transient source failure can
     never erase detections (rotki's scar).
     """
     reasons = list(old.reasons)

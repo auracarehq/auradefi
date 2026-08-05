@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Execute every PyBook headlessly — an unexecuted notebook is undelivered
+# Execute every PyBook headlessly: an unexecuted notebook is undelivered
 # work. Each book must run OFFLINE (cassettes or in-memory fixtures) and
 # assert its own outputs, so this doubles as a documentation test.
 #
@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 JUPYTER="jupyter"
 if [ -x ".venv/bin/jupyter" ]; then JUPYTER=".venv/bin/jupyter"; fi
 if ! command -v "$JUPYTER" >/dev/null 2>&1 && [ ! -x "$JUPYTER" ]; then
-  echo "jupyter not found — install the dev extra: pip install '.[dev]'" >&2
+  echo "jupyter not found: install the dev extra: pip install '.[dev]'" >&2
   exit 2
 fi
 

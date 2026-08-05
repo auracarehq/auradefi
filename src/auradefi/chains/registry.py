@@ -1,4 +1,4 @@
-"""Chain registry — CAIP-2 is the only key (SPEC §4.2).
+"""Chain registry. CAIP-2 is the only key (SPEC §4.2).
 
 No vendor name lookup anywhere: ``get('ethereum')`` is UnknownChainError by
 design, killing the ``eth-mainnet`` / ``ethereum`` / ``1`` translation-table
@@ -31,7 +31,7 @@ class Chain:
     native_decimals: int
 
 
-# The five Phase 0 seed chains (SPEC §4.2) — wire-format contracts.
+# The five Phase 0 seed chains (SPEC §4.2): wire-format contracts.
 _SEEDS: tuple[Chain, ...] = (
     Chain(
         caip2="eip155:1",
@@ -82,7 +82,7 @@ class ChainRegistry:
     Every instance is pre-seeded with exactly five chains: Ethereum
     (eip155:1), Polygon (eip155:137), Base (eip155:8453), Bitcoin mainnet
     (bip122:000000000019d6689c085ae165831e93) and Solana mainnet
-    (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp). Instances are independent —
+    (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp). Instances are independent:
     registering into one never affects another.
     """
 
@@ -93,14 +93,14 @@ class ChainRegistry:
         """Return the Chain registered under ``caip2``.
 
         Raises:
-            UnknownChainError: if ``caip2`` is not registered — including
+            UnknownChainError: if ``caip2`` is not registered, including
                 any vendor-name key like ``'ethereum'``.
         """
         try:
             return self._by_caip2[caip2]
         except KeyError:
             raise UnknownChainError(
-                f"unknown chain {caip2!r} — CAIP-2 is the only key"
+                f"unknown chain {caip2!r}: CAIP-2 is the only key"
             ) from None
 
     def register(self, chain: Chain) -> None:

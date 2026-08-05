@@ -1,12 +1,12 @@
-"""Phase 9 gate — arbitrary-date PnL on a 50,000-event wallet (SPEC §11).
+"""Phase 9 gate: arbitrary-date PnL on a 50,000-event wallet (SPEC §11).
 
 The thing Zerion cannot do: *"PnL is pre-computed at standard marks ...
-other values are supported only if fewer than 3,000 transactions sit
-between your timestamp and the nearest mark — otherwise the request errors
+Other values are supported only if fewer than 3,000 transactions sit
+between your timestamp and the nearest mark: otherwise the request errors
 out"* (SPEC §9). This gate asks for PnL at three arbitrary instants inside
 a 50,000-event stream and pins the answers.
 
-The stream is fully generated — no wall clock, no ``random``, one LCG — so
+The stream is fully generated, no wall clock, no ``random``, one LCG, so
 the totals below are closed-form facts, not recordings. Two of the three
 cutoffs are chosen where FIFO and LIFO DISAGREE, which is what proves the
 method is really plugged in at an arbitrary date rather than being one
@@ -52,7 +52,7 @@ LATE = 1_601_200_599_999
 END = 1_601_500_000_000
 CUTOFFS = (MID, LATE, END)
 
-#: Events at or before each cutoff — MID and LATE both land 59,999 ms into
+#: Events at or before each cutoff. MID and LATE both land 59,999 ms into
 #: a 60,000 ms slot, past that pair's sell window, so the split never
 #: depends on the draw.
 EVENTS_AT_CUTOFF = {MID: 25_020, LATE: 40_020, END: 50_000}
@@ -116,7 +116,7 @@ def _events() -> tuple[AcquisitionEvent | DisposalEvent, ...]:
 
 @lru_cache(maxsize=2)
 def _reports(method: str):
-    """One incremental pass, reported at each cutoff — the snapshot path."""
+    """One incremental pass, reported at each cutoff: the snapshot path."""
     events = _events()
     state = None
     reports = {}

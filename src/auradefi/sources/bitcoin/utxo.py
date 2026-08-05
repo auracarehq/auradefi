@@ -1,13 +1,13 @@
 """Pure UTXO models for the Bitcoin source (SPEC §3.2, §10 Bitcoin row).
 
 PURE by contract: dataclasses, typing, ``auradefi.errors``,
-``auradefi.money.quantity`` and ``auradefi.chains.bitcoin`` only — no
+``auradefi.money.quantity`` and ``auradefi.chains.bitcoin`` only, no
 httpx, no I/O. All amounts are integer satoshis; the only Quantity
 minted here is 8-decimal BTC (DECISIONS "Gap-limit scan": BTC decimals
 = 8, caip19 = ``bip122:000000000019d6689c085ae165831e93/slip44:0``).
 
 Validation follows house style: ``bool`` is rejected BEFORE the int
-check on every integer field — ``True`` is never a sat count, a chain
+check on every integer field. ``True`` is never a sat count, a chain
 number, or an index. All failures raise ``ValidationError``
 (auradefi.errors).
 """
@@ -97,7 +97,7 @@ class AddressStats:
 
     @property
     def confirmed_sats(self) -> int:
-        """``funded_txo_sum - spent_txo_sum`` — never negative (validated)."""
+        """``funded_txo_sum - spent_txo_sum``, never negative (validated)."""
         return self.funded_txo_sum - self.spent_txo_sum
 
 
@@ -107,7 +107,7 @@ class AddressBalance:
 
     ``ValidationError`` unless: ``address`` is a non-empty str, ``chain``
     is 0 (external) or 1 (change), ``index >= 0``, ``balance_sats >= 0``,
-    ``tx_count >= 0`` — bool rejected before int on every int field.
+    ``tx_count >= 0``: bool rejected before int on every int field.
     """
 
     address: str
@@ -133,7 +133,7 @@ class AddressBalance:
 class BitcoinScanResult:
     """The full derived-address balance set from one gap-limit scan.
 
-    ``addresses`` is ordered chain 0 then 1, index ascending — used
+    ``addresses`` is ordered chain 0 then 1, index ascending: used
     addresses only, balance-0 swept ones included (DECISIONS).
     """
 
@@ -146,12 +146,12 @@ class BitcoinScanResult:
 
     @property
     def total(self) -> Quantity:
-        """``Quantity(total_sats, SATS_DECIMALS)`` — exact 8-decimal BTC."""
+        """``Quantity(total_sats, SATS_DECIMALS)``: exact 8-decimal BTC."""
         return Quantity(self.total_sats, SATS_DECIMALS)
 
     @property
     def caip19(self) -> str:
-        """``BTC_CAIP19`` — the mainnet native-asset CAIP-19."""
+        """``BTC_CAIP19``: the mainnet native-asset CAIP-19."""
         return BTC_CAIP19
 
 

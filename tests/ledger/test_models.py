@@ -51,7 +51,7 @@ def make_entry(**overrides) -> Entry:
 
 def make_txn(**overrides) -> LedgerTransaction:
     """Local factory (duplicated per test module: tests/ledger/conftest.py
-    is outside this order's ownership — see the work-order report)."""
+    is outside this order's ownership, see the work-order report)."""
     fields = {
         "id": GOLDEN_ID_ACCT_1,
         "chain_id": "eip155:1",

@@ -7,8 +7,8 @@ via ``python3 -c`` over the algorithms pinned in docs/internal/DECISIONS.md:
     connection_id = "conn_" + sha256(f"embed|{tenant_id}|address|{chain_id}|{normalized}".encode()).hexdigest()[:16]
     normalized    = address.strip(), lowercased iff it startswith "0x"
 
-``project_id`` defaults to ``"embed"`` — the 0.1.0 value, so library data
-written before 0.1.1 stays addressable (RELEASE_0.1.1 §5 #19) — and a
+``project_id`` defaults to ``"embed"``, the 0.1.0 value, so library data
+written before 0.1.1 stays addressable (RELEASE_0.1.1 §5 #19), and a
 host that also runs the HTTP API sets ``Settings.project_id`` to its real
 project so both surfaces hash the same tenant.
 
@@ -70,7 +70,7 @@ CONN_UNDER_USR_2 = "conn_728f32d3a4f2e4f4"  # USR_2 | eip155:1 | ADDR
 CONN_SOL = "conn_a683a123e9b8a8dd"  # USR_1 | solana:… | SOLANA verbatim
 CONN_SOL_LOWERED = "conn_a656fc7b897f7b8d"  # USR_1 | solana:… | solana lowered
 
-# The 0.1.0 chainless id for (USR_1, ADDR) — kept ONLY to prove the
+# The 0.1.0 chainless id for (USR_1, ADDR): kept ONLY to prove the
 # chain segment actually moved the hash (RELEASE_0.1.1 §5 #26).
 CONN_ADDR_0_1_0 = "conn_b116094c537a85e6"
 
@@ -183,7 +183,7 @@ class TestDeriveTenantId:
 
 
 class TestDeriveTenantIdProject:
-    """RELEASE_0.1.1 §5 #19 — the project id is the host's, not a constant."""
+    """RELEASE_0.1.1 §5 #19. The project id is the host's, not a constant."""
 
     # pins: derive_tenant_id's project id defaults to "embed", so a tenant
     #       derived by 0.1.0 resolves to the same string in 0.1.1.
@@ -199,13 +199,13 @@ class TestDeriveTenantIdProject:
         assert got == USR_1_UNDER_X
         assert got != USR_1
 
-    # pins: the project id is identity-bearing on BOTH axes — two projects
+    # pins: the project id is identity-bearing on BOTH axes: two projects
     #       never share a tenant and two users never share one either.
     def test_project_and_user_are_both_identity_bearing(self):
         assert derive_tenant_id("host-user-2", project_id=PROJECT_X) == USR_2_UNDER_X
         assert len({USR_1, USR_2, USR_1_UNDER_X, USR_2_UNDER_X}) == 4
 
-    # pins: the opaque-id charset is enforced whatever the project id is — a
+    # pins: the opaque-id charset is enforced whatever the project id is: a
     #       configurable project must not open a hole in the §7.2 invariant.
     def test_the_charset_invariant_survives_a_custom_project(self):
         with pytest.raises(ValidationError):
@@ -217,14 +217,14 @@ class TestDeriveConnectionId:
     def test_pinned_golden_vector(self):
         assert derive_connection_id(USR_1, ADDR, CHAIN) == CONN_ADDR
 
-    # pins: the chain travels in the hash — the SAME tenant and address on a
+    # pins: the chain travels in the hash: the SAME tenant and address on a
     #       second chain is a DIFFERENT connection (RELEASE_0.1.1 §5 #26).
     def test_the_same_address_on_another_chain_is_another_id(self):
         polygon = derive_connection_id(USR_1, ADDR, CHAIN_POLYGON)
         assert polygon == CONN_ADDR_POLYGON
         assert polygon != CONN_ADDR
 
-    # pins: the chain segment actually moved the hash off the 0.1.0 value —
+    # pins: the chain segment actually moved the hash off the 0.1.0 value, 
     #       0.1.0 connection ids are NOT portable to 0.1.1.
     def test_the_id_is_no_longer_the_0_1_0_chainless_hash(self):
         assert CONN_ADDR != CONN_ADDR_0_1_0
@@ -442,7 +442,7 @@ class TestConnectionSyncReport:
 
 
 class TestConnectionSyncReportFailure:
-    """RELEASE_0.1.1 §5 #24 — a row that failed says so, in the report."""
+    """RELEASE_0.1.1 §5 #24: a row that failed says so, in the report."""
 
     # pins: a row is not failed unless it says so, so every report written
     #       before this field existed keeps meaning "this went fine".
@@ -450,7 +450,7 @@ class TestConnectionSyncReportFailure:
         assert make_conn_report().failed is False
 
     # pins: a connection whose sync raised is reported with failed=True and
-    #       zero work — the counts alone would read as a clean quiet tick.
+    #       zero work. The counts alone would read as a clean quiet tick.
     def test_a_failed_row_carries_the_flag_and_no_work(self):
         report = make_conn_report(
             failed=True,
@@ -464,7 +464,7 @@ class TestConnectionSyncReportFailure:
         assert report.no_op is False
         assert report.transactions_ingested == 0
 
-    # pins: failed and no_op are mutually exclusive — "nothing needed doing"
+    # pins: failed and no_op are mutually exclusive: "nothing needed doing"
     #       and "I could not do it" are different answers and a report that
     #       claims both is refused rather than believed.
     def test_a_failed_row_can_never_also_be_a_no_op(self):
@@ -478,7 +478,7 @@ class TestConnectionSyncReportFailure:
                 transactions_ingested=0,
             )
 
-    # pins: a failed row still obeys every count invariant — failure is not a
+    # pins: a failed row still obeys every count invariant. Failure is not a
     #       licence to emit an incoherent partition.
     def test_a_failed_row_still_obeys_the_partition(self):
         with pytest.raises(ValidationError):
@@ -560,9 +560,9 @@ class TestSyncReport:
 
 
 class TestSyncReportFailedConnections:
-    """RELEASE_0.1.1 §5 #24 — the tick names the connections that failed."""
+    """RELEASE_0.1.1 §5 #24: the tick names the connections that failed."""
 
-    # pins: a tick with no breakdown names no failure — the field is derived
+    # pins: a tick with no breakdown names no failure. The field is derived
     #       from the rows, so it can never contradict them.
     def test_no_rows_means_no_failures(self):
         assert make_report().failed_connections == ()
@@ -573,7 +573,7 @@ class TestSyncReportFailedConnections:
         report = SyncReport.assemble([make_conn_report()])
         assert report.failed_connections == ()
 
-    # pins: the ids of exactly the failed rows, in breakdown order — a
+    # pins: the ids of exactly the failed rows, in breakdown order: a
     #       partial failure is nameable, not merely countable.
     def test_only_the_failed_rows_are_named_in_order(self):
         healthy = make_conn_report(connection_id=CONN_ADDR)
@@ -591,7 +591,7 @@ class TestSyncReportFailedConnections:
         assert report.no_op is False
 
     # pins: a tick in which EVERY connection failed ingested nothing and is
-    #       not a no-op — the shape a restarted worker must never mistake for
+    #       not a no-op: the shape a restarted worker must never mistake for
     #       "there was nothing to do".
     def test_a_tick_where_every_row_failed_is_not_a_no_op(self):
         rows = [

@@ -40,7 +40,7 @@ CURVE_POOL = "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"
 
 
 class DictReader:
-    """Dict-backed fake — SPEC §5.4: satisfies ContractReader, no I/O."""
+    """Dict-backed fake. SPEC §5.4: satisfies ContractReader, no I/O."""
 
     def __init__(self, responses=None):
         self._responses = dict(responses or {})
@@ -274,7 +274,7 @@ class TestRunDiscoveryForeignDescriptor:
         )
         outcome = run_discovery(registry, eth_ctx())
         # The offending adapter's slice is dropped in full; its neighbour
-        # is untouched (drops only its own slice — SPEC §5.4).
+        # is untouched (drops only its own slice, SPEC §5.4).
         assert outcome.contracts["uniswap-v2"] == ContractSet.empty()
         assert outcome.contracts["curve"] == ContractSet.of(
             descriptor("curve", CURVE_POOL)
@@ -308,7 +308,7 @@ class TestFilterByInteraction:
 
     def test_mixed_case_touched_addresses_match(self):
         # Touched set comes straight from explorer history (SPEC §5.2
-        # option 1) — checksummed casing must still match.
+        # option 1). Checksummed casing must still match.
         kept = filter_by_interaction(
             self._contracts(),
             frozenset({"0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"}),
@@ -337,7 +337,7 @@ class TestRestrictDiscovery:
         restricted = restrict_discovery(
             self._by_adapter(), frozenset({UNIV2_PAIR})
         )
-        # aave-v3's slice was emptied but the key MUST survive — §5.4:
+        # aave-v3's slice was emptied but the key MUST survive, §5.4:
         # resolve() receives 'partially populated or empty'.
         assert set(restricted) == {"aave-v3", "uniswap-v2"}
         assert restricted["aave-v3"] == ContractSet.empty()

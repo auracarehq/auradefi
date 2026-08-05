@@ -3,7 +3,7 @@
 Zapper's ontology, kept: an ``APP_TOKEN`` position IS a fungible token
 (aToken, LP share, ERC-4626 share) and composes; a ``CONTRACT_POSITION``
 is a non-tokenised leaf, valued only by summing its underlying balances.
-``MetaType`` on each underlying yields debt sign for free — a
+``MetaType`` on each underlying yields debt sign for free. A
 ``BORROWED`` underlying carries a negative ``value`` (unit price stays
 positive) and ``Position.value`` is the exact signed ``Money`` sum.
 
@@ -14,13 +14,13 @@ signed, and group totals are COMPUTED by :func:`make_group`, never
 caller-supplied (SPEC §4.3 defect #2).
 
 Layering: stdlib + ``auradefi.money`` + ``auradefi.errors`` only. This
-module must NEVER import ``auradefi.decode`` — ``MetaType`` below is a
+module must NEVER import ``auradefi.decode``. ``MetaType`` below is a
 deliberate value-identical duplicate of ``decode.models.MetaType``
 (DECISIONS.md "Duplication waiver"; the layer contract forbids
 positions→decode). Both test trees pin the same seven (name, value)
 literals as hardcoded golden vectors, so drift is a red test.
 
-Pinned wire contracts (DECISIONS.md — breaking to change):
+Pinned wire contracts (DECISIONS.md: breaking to change):
 
     position_id = "pos_" + sha256(
         f"{adapter_id}|{chain_id}|{contract_lower}|{discriminator}"
@@ -58,7 +58,7 @@ class PositionKind(StrEnum):
 
 
 class PositionType(StrEnum):
-    """Zerion axis 1 — what state the asset is in (SPEC §4.3)."""
+    """Zerion axis 1. What state the asset is in (SPEC §4.3)."""
 
     WALLET = "wallet"
     DEPOSIT = "deposit"
@@ -70,7 +70,7 @@ class PositionType(StrEnum):
 
 
 class ProtocolModule(StrEnum):
-    """Zerion axis 2 — where in the protocol (SPEC §4.3)."""
+    """Zerion axis 2: where in the protocol (SPEC §4.3)."""
 
     LENDING = "lending"
     LIQUIDITY_POOL = "liquidity_pool"
@@ -89,7 +89,7 @@ class ProtocolModule(StrEnum):
 class MetaType(StrEnum):
     """Meta-type on an underlying token (SPEC §4.3, verbatim).
 
-    Deliberate value-identical duplicate of ``decode.models.MetaType`` —
+    Deliberate value-identical duplicate of ``decode.models.MetaType``:
     the layer contract forbids positions→decode imports (DECISIONS.md
     "Duplication waiver"). ``BORROWED`` flips value negative.
     """
@@ -105,8 +105,8 @@ class MetaType(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class Apy:
-    """Explicitly typed yield — APR vs APY, gross vs net, source,
-    staleness — not Zapper's untyped ``apy: number`` (SPEC §4.3).
+    """Explicitly typed yield, APR vs APY, gross vs net, source,
+    staleness, not Zapper's untyped ``apy: number`` (SPEC §4.3).
 
     ``period`` must be ``'apr'`` or ``'apy'``; anything else raises
     ``ValidationError``. ``as_of_ms`` is a ms-epoch int.
@@ -132,7 +132,7 @@ class Underlying:
 
     ``asset_id`` is a canonical CAIP-19 string, never an ``ast_``
     registry id. An underlying is *raw* iff ``price`` and ``value`` are
-    BOTH ``None`` (persisted raw, re-drilled against fresh prices —
+    BOTH ``None`` (persisted raw, re-drilled against fresh prices,
     SPEC §5.3); exactly one of them ``None`` raises ``ValidationError``.
     A ``BORROWED`` underlying's ``value`` is negative; its unit ``price``
     stays positive (DECISIONS.md sign convention).
@@ -254,7 +254,7 @@ def group_id_for(adapter_id: str, chain_id: str, group_key: str) -> str:
 class PositionGroup:
     """A risk unit, not a display unit (SPEC §4.3, LlamaFolio).
 
-    Built ONLY via :func:`make_group`, which COMPUTES ``total_value`` —
+    Built ONLY via :func:`make_group`, which COMPUTES ``total_value``.
     Zerion's defect #2 (no per-group total) fixed by construction.
     """
 
@@ -272,8 +272,8 @@ def make_group(
     group_info: GroupInfo | None = None,
 ) -> PositionGroup:
     """Build a :class:`PositionGroup`, COMPUTING ``total_value`` as the
-    exact ``Money`` sum of the positions' values (never caller-supplied
-    — SPEC §4.3 defect #2).
+    exact ``Money`` sum of the positions' values (never caller-supplied,
+    SPEC §4.3 defect #2).
 
     Raises ``ValidationError`` if ``positions`` is empty, any position
     is unvalued, or the positions' ``group_id`` values differ.

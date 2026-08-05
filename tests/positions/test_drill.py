@@ -1,7 +1,7 @@
 """Contract tests for auradefi.positions.drill (SPEC §5.3, §6.3).
 
 DECISIONS.md "Drill rounding = NONE": valuation is context-free
-coefficient multiplication, never rounded. Drill is PURE — raw balances
+coefficient multiplication, never rounded. Drill is PURE: raw balances
 persist and re-drill against fresh prices with zero chain reads; a
 price tick must not cost a re-scan. Golden vectors below were derived
 by hand from the pinned algorithm and hardcoded (rule #5); pricing is
@@ -146,7 +146,7 @@ class TestExactMul:
         assert str(exact_mul(Decimal("1.5"), Decimal("0.20"))) == "0.300"
 
     def test_never_context_rounded(self):
-        # 30 significant digits — the default 28-digit context would
+        # 30 significant digits. The default 28-digit context would
         # destroy the tail; the coefficient product must not.
         ones = Decimal("1" * 30)
         assert str(exact_mul(ones, Decimal("3"))) == "3" * 30
@@ -198,7 +198,7 @@ class TestDrillGoldenUniV2:
 
     def test_redrill_with_fresh_prices_and_no_chain_seam(self):
         # SPEC §5.3: a price tick must not cost a re-scan. drill cannot
-        # even RECEIVE a ContractReader — its signature is data-only.
+        # even RECEIVE a ContractReader. Its signature is data-only.
         assert list(inspect.signature(drill).parameters) == ["raw", "prices"]
         raw = univ2_raw()
         first = drill([raw], PRICES)

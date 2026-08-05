@@ -110,7 +110,7 @@ class TestAddressStats:
     @pytest.mark.parametrize(
         "args",
         [
-            (1, 2, 1),  # spent > funded — acceptance-pinned
+            (1, 2, 1),  # spent > funded: acceptance-pinned
             (-1, 0, 0),
             (0, -1, 0),
             (0, 0, -1),
@@ -148,7 +148,7 @@ class TestAddressBalance:
         "args",
         [
             ("", 0, 0, 4000, 2),  # empty address
-            ("tb0x0", 2, 0, 4000, 2),  # chain must be 0 or 1 — acceptance
+            ("tb0x0", 2, 0, 4000, 2),  # chain must be 0 or 1: acceptance
             ("tb0x0", -1, 0, 4000, 2),
             ("tb0x0", True, 0, 4000, 2),  # bool rejected BEFORE the {0,1} check
             ("tb0x0", 0, -1, 4000, 2),

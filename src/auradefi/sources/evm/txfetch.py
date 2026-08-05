@@ -2,12 +2,12 @@
 
 The fetching half of "raw chain bytes -> typed records" for EVM account
 history. This module owns HTTP against the single Etherscan V2 endpoint
-and NOTHING about parsing — every row goes through
+and NOTHING about parsing. Every row goes through
 ``auradefi.sources.evm.txlist.parse_normal_row`` /
 ``parse_tokentx_row`` (txlist.py is the only parsing authority; no
 duplicate parsing here) and their ``SourceError`` propagates untouched.
 
-Both fetchers take an INJECTED ``httpx.Client`` — this module never
+Both fetchers take an INJECTED ``httpx.Client``: this module never
 constructs a client and never reads the environment; cassette transports
 plug straight in. Each request is a GET on
 ``https://api.etherscan.io/v2/api`` with query params in EXACTLY this
@@ -21,13 +21,13 @@ fetchers page over it, and ``sources.evm.source.EtherscanSource`` answers
 the embedding engine's chosen window with it, so the envelope quirks below
 are known in exactly one place.
 
-Pagination (July 2026 cut: max 1,000 records per request — paginate
+Pagination (July 2026 cut: max 1,000 records per request: paginate
 correctly from day one): request ``page=1,2,...`` while a page returns
 exactly ``page_size`` rows; stop on the first shorter page; concatenate
 records in delivery order.
 
 Envelope ``{status, message, result}``: HTTP 200 with status ``"0"`` and
-message ``"No transactions found"`` is an EMPTY history — return ``()``,
+message ``"No transactions found"`` is an EMPTY history. Return ``()``,
 not an error. A non-2xx response, a non-JSON body, and status ``"0"``
 with any other message raise ``auradefi.errors.SourceError`` carrying
 the Etherscan message. NO retries, NO throttling, no network at import
@@ -71,7 +71,7 @@ def fetch_txlist(
     the parsed records concatenated in delivery order as a tuple.
 
     Status ``"0"`` + message ``"No transactions found"`` -> ``()``.
-    Raises ``ValidationError`` if ``page_size < 1`` (before any request —
+    Raises ``ValidationError`` if ``page_size < 1`` (before any request:
     the short-page termination test cannot hold otherwise). Raises
     ``SourceError`` on non-2xx HTTP, a non-JSON body, any other
     status-``"0"`` message (carrying that message), or a malformed row
@@ -175,8 +175,8 @@ def fetch_page(
     :func:`fetch_tokentx` walk whole histories with it, and
     ``sources.evm.source.EtherscanSource`` answers the embedding engine's
     chosen window with it. Rows come back RAW and unparsed because the two
-    callers want different things — typed records there, dicts for the
-    decoder seam here — and because parsing authority lives in
+    callers want different things, typed records there, dicts for the
+    decoder seam here, and because parsing authority lives in
     ``txlist.py`` (SPEC §3.2), never in a fetcher.
 
     Every window parameter is the CALLER's: the engine picks
@@ -185,18 +185,18 @@ def fetch_page(
     retried or paginated here.
 
     ``api_key=None`` omits the ``apikey`` param entirely rather than
-    sending it empty — matching :class:`~auradefi.sources.evm.etherscan
+    sending it empty: matching :class:`~auradefi.sources.evm.etherscan
     .EtherscanV2`. This is not cosmetic: ``apikey=`` is a DIFFERENT URL,
     so a keyless request would miss a keyless recording and Etherscan
     would answer it differently.
 
     Returns ``[]`` for a status-``"0"`` ``"No transactions found"``
-    envelope — an empty history is not an error. Raises ``SourceError``
+    envelope. An empty history is not an error. Raises ``SourceError``
     on transport failure, non-2xx HTTP, a non-JSON body, a malformed
     envelope, any other status-``"0"`` message (carrying that message),
     or a ``result`` that is not a list of objects.
     """
-    # Insertion order IS the wire order — the param sequence is contractual.
+    # Insertion order IS the wire order. The param sequence is contractual.
     params = {
         "chainid": str(chain_id),
         "module": "account",

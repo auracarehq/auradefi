@@ -1,4 +1,4 @@
-"""Replay — the primitive Zerion and Vezgo both lack (SPEC §7.3).
+"""Replay: the primitive Zerion and Vezgo both lack (SPEC §7.3).
 
 Zerion drops an event permanently after 3 retries in ~60 seconds. Here a
 dead-lettered delivery is a durable row an operator re-arms once the
@@ -8,7 +8,7 @@ six-attempt schedule restarted, the original row untouched.
 
 Golden literals derived INDEPENDENTLY via ``python3 -c`` from the pinned
 algorithms (see tests/webhooks/test_models.py). The replayed body is the
-original with ONE substring changed — the delivery id — because the body
+original with ONE substring changed, the delivery id, because the body
 carries the EVENT's created_at_ms and no attempt counter.
 """
 
@@ -47,7 +47,7 @@ GOLDEN_BODY = (
     '"type":"connection.created"}'
 )
 GOLDEN_REPLAY_BODY = GOLDEN_BODY.replace(GOLDEN_DELIVERY_ID, GOLDEN_REPLAY_1_ID)
-# sign("ab"*32, 1754090000000, GOLDEN_REPLAY_BODY) — derived independently.
+# sign("ab"*32, 1754090000000, GOLDEN_REPLAY_BODY): derived independently.
 GOLDEN_REPLAY_SIGNATURE = (
     "v1=e4940cdc864058638c1edcd82f83e1a8a79df67a2db9f51109af9782384017de"
 )
@@ -278,7 +278,7 @@ def test_replay_dead_letter_returns_the_new_rows_in_creation_order():
     assert rearmed.id == GOLDEN_REPLAY_1_ID
     again = replay_dead_letter(store, PROJECT, FrozenClock(REPLAY_T + 1))
     # The originals are still dead-lettered, so a second call re-arms them
-    # again at the next ordinal — draining is the deliverer's job.
+    # again at the next ordinal. Draining is the deliverer's job.
     assert [delivery.id for delivery in again] == [GOLDEN_REPLAY_2_ID]
 
 

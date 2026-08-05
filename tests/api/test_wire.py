@@ -1,8 +1,8 @@
-"""api/wire.py — the pure HTTP body projections.
+"""api/wire.py: the pure HTTP body projections.
 
 Every assertion here is a wire-format contract: exact key sets, exact
 strings, exact ordering. Nothing is mocked and nothing touches the
-network — the whole point of keeping this module pure is that its output
+network: the whole point of keeping this module pure is that its output
 contract is testable from fixtures alone (SPEC rule #11).
 
 Golden values are derived from the pinned algorithms in docs/internal/DECISIONS.md
@@ -60,7 +60,7 @@ TXN_B = "txn_998d1bcc8d81b34f"  # sha256("eip155:1|0xcdcd…|acct_eth")
 ETH = "eip155:1/slip44:60"
 USDC = "eip155:1/erc20:0x1111111111111111111111111111111111111111"
 
-# A 78-digit raw — past 2**256 in digit count, far past Number.MAX_SAFE_INTEGER.
+# A 78-digit raw. Past 2**256 in digit count, far past Number.MAX_SAFE_INTEGER.
 HUGE_RAW = int("9" * 78)
 HUGE_NUMERIC = (
     "999999999999999999999999999999999999999999999999999999999999"
@@ -475,7 +475,7 @@ def test_a_binding_outside_the_vocabulary_never_reaches_the_wire():
 
 
 def test_a_string_binding_never_grants_a_capability_by_substring():
-    """A ``str`` binding is NO binding — the invented-``True`` guard.
+    """A ``str`` binding is NO binding: the invented-``True`` guard.
 
     ``"xpub" in "no xpub support here"`` is SUBSTRING membership, so a
     naive ``name in binding`` would report ``xpub: True`` for prose
@@ -506,7 +506,7 @@ def test_a_string_binding_never_grants_a_capability_by_substring():
 def test_a_malformed_binding_under_claims_all_five_instead_of_raising(binding):
     """A host typing mistake must under-claim, never 500 and never invent.
 
-    Even ``"xpub"`` — the exact capability name as a bare string — grants
+    Even ``"xpub"``, the exact capability name as a bare string, grants
     nothing: only a *collection of names* can raise a flag.
     """
     body = coverage_payload(
@@ -534,7 +534,7 @@ def test_a_non_string_member_is_dropped_and_the_rest_still_count():
 
 
 def test_a_list_binding_is_honoured_like_a_frozenset():
-    """Any collection of names works — the guard rejects shape, not type."""
+    """Any collection of names works: the guard rejects shape, not type."""
     body = coverage_payload(
         ChainRegistry().chains(),
         {"eip155:1": ["prices", "xpub"]},
@@ -704,7 +704,7 @@ def test_batch_items_carry_mutually_exclusive_result_and_error_keys():
 
 @dataclass(frozen=True)
 class _FakeHolding:
-    """Duck-typed stand-in — api/ may not import auradefi.portfolio."""
+    """Duck-typed stand-in. Api/ may not import auradefi.portfolio."""
 
     caip19: str
     symbol: str | None
@@ -891,13 +891,13 @@ def test_wire_imports_no_web_framework_no_http_client_no_portfolio():
         }
     )
     assert not offenders, (
-        "api/wire.py is PURE — it takes already-fetched domain objects and "
+        "api/wire.py is PURE: it takes already-fetched domain objects and "
         f"returns plain dicts; banned imports found: {offenders}"
     )
 
 
 def test_wire_imports_only_permitted_auradefi_domains():
-    """money, ledger and chains only — the api row's pure subset."""
+    """money, ledger and chains only: the api row's pure subset."""
     domains = {
         name.split(".")[1]
         for name in _imported_names(WIRE_SOURCE)
@@ -914,7 +914,7 @@ def test_wire_imports_only_permitted_auradefi_domains():
 
 
 def test_mapping_binding_honours_its_values_never_just_its_keys():
-    """A Mapping's VALUES carry the verdict — keys alone invert a deny.
+    """A Mapping's VALUES carry the verdict: keys alone invert a deny.
 
     Feeding this endpoint's own output shape back into Deps.capabilities
     is the most plausible host mistake there is, and reading it as a bare
@@ -942,7 +942,7 @@ def test_a_foreign_backends_string_kind_is_refused_not_projected_as_added(
     third-party LedgerPort backend rebuilding kind from a text column
     yields a string that is equal-but-not-identical. Projecting that
     deletion as an add would leave the client holding a transaction the
-    ledger dropped — silently wrong numbers.
+    ledger dropped: silently wrong numbers.
     """
     txn = txn_confirmed
     page = SyncPage(

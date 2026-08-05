@@ -36,20 +36,20 @@ from auradefi.tenancy.models import ApiKey, Environment, Scope
 T0 = 1_767_225_600_000
 HOUR_MS = 3_600_000
 # Shaped like a real key id (models.new_key_id: "key_" + 16 hex) but issued to
-# nobody — the control for #25c's "no tenant-existence probe".
+# nobody: the control for #25c's "no tenant-existence probe".
 ABSENT_KEY_ID = "key_0000000000000000"
 
 # entropy = lambda n: "ab" * n  →  body = "ab" * 24, id body = "ab" * 8.
 AB_BODY = "ab" * 24
 GOLDEN_PLAINTEXT = "adk_live_" + AB_BODY  # len 57
 GOLDEN_PREFIX = "adk_live_abababab"
-# sha256("adk_live_" + "ab"*24) — derived independently, see docstring.
+# sha256("adk_live_" + "ab"*24). Derived independently, see docstring.
 GOLDEN_HASH = "e999e9581210f205589589b9dafd81107a717c70d9d704940f2f02e037566dd1"
 GOLDEN_KEY_ID = "key_" + "ab" * 8
 
 GOLDEN_TEST_PLAINTEXT = "adk_test_" + AB_BODY
 GOLDEN_TEST_PREFIX = "adk_test_abababab"
-# sha256("adk_test_" + "ab"*24) — derived independently.
+# sha256("adk_test_" + "ab"*24): derived independently.
 GOLDEN_TEST_HASH = "1db06c2d577187f1bb5ec54cf95cfe2353280e5053de4f635dac043debfd87db"
 
 
@@ -86,7 +86,7 @@ def _rotate(
     overlap_ms: int = HOUR_MS,
     now_ms: int = T0,
 ) -> tuple[ApiKey, str]:
-    """``rotate``, tenant-gated (#25c), bound BY KEYWORD — never by position.
+    """``rotate``, tenant-gated (#25c), bound BY KEYWORD, never by position.
 
     Every argument is passed by name so this file pins the parameter
     *names* and leaves their order to the implementer.
@@ -321,20 +321,20 @@ def test_has_scope_false_for_an_ungranted_scope():
 
 
 # ==============================================================================
-# RELEASE_0.1.1 §4 #25a — rotate() must never revive a dead key
+# RELEASE_0.1.1 §4 #25a. Rotate() must never revive a dead key
 #
 # The shipped rotate() looks the id up and mints unconditionally, so rotating a
 # key an operator DELIBERATELY REVOKED hands back a live key carrying the dead
 # key's project, environment and FULL SCOPE SET. A bulk rotation job silently
 # re-privileges it. Refusal is ``errors.ConflictError``: the key id is real and
 # owned by the caller (so not NotFoundError) and the caller's own credential
-# authenticated fine (so not AuthError) — what fails is a PRECONDITION on
+# authenticated fine (so not AuthError). What fails is a PRECONDITION on
 # existing state, which is what ConflictError names, and which api/errors.py
 # already renders as 409.
 # ==============================================================================
 
 
-# pins: rotating a revoked key mints NO replacement — the revoked key's scopes
+# pins: rotating a revoked key mints NO replacement: the revoked key's scopes
 #       are never carried onto a fresh live key.
 def test_rotating_a_revoked_key_mints_no_replacement():
     store, record, _ = _issue(scopes=(Scope.ACCOUNTS_READ, Scope.USERS_ADMIN))
@@ -360,7 +360,7 @@ def test_rotating_a_revoked_key_raises_conflict_error():
     assert type(excinfo.value) is ConflictError
 
 
-# pins: an EXPIRED key cannot be rotated either — this fixture reaches the
+# pins: an EXPIRED key cannot be rotated either: this fixture reaches the
 #       expiry branch, NOT the revoked one (revoked_at is asserted None).
 def test_rotating_an_expired_key_raises_conflict_error():
     store, record, _ = _issue()
@@ -373,12 +373,12 @@ def test_rotating_an_expired_key_raises_conflict_error():
 
 
 # ==============================================================================
-# RELEASE_0.1.1 §4 #25b — an expiry is only ever SHORTENED, never extended
+# RELEASE_0.1.1 §4 #25b. An expiry is only ever SHORTENED, never extended
 # ==============================================================================
 
 
 # pins: rotating a key that already expires sooner than now+overlap leaves the
-#       earlier expiry standing — rotation never buys a dying key more time.
+#       earlier expiry standing: rotation never buys a dying key more time.
 def test_rotate_does_not_extend_the_rotated_out_keys_expiry():
     store, record, _ = _issue()
     _rotate(store, record.id, overlap_ms=60_000)  # expires at T0 + 60_000
@@ -390,7 +390,7 @@ def test_rotate_does_not_extend_the_rotated_out_keys_expiry():
     )
 
 
-# pins: the fresh key inherits the window it was rotated out of — asking for
+# pins: the fresh key inherits the window it was rotated out of: asking for
 #       thirty days of overlap cannot outlive the parent key's expiry.
 def test_rotate_hands_the_fresh_key_the_expiry_it_inherited():
     store, record, _ = _issue()
@@ -408,7 +408,7 @@ def test_rotate_hands_the_fresh_key_the_expiry_it_inherited():
 
 
 # ==============================================================================
-# RELEASE_0.1.1 §4 #25c — revoke/rotate are tenant-gated, and the gate is not
+# RELEASE_0.1.1 §4 #25c. Revoke/rotate are tenant-gated, and the gate is not
 # a tenant-existence probe: another project's key id answers EXACTLY as an
 # id that exists nowhere (errors.NotFoundError, byte-identical message), the
 # idiom tenancy/store.py already states for every tenant-scoped lookup.
@@ -454,7 +454,7 @@ def test_rotate_ignores_another_projects_key():
 
 
 # pins: revoke answers a cross-tenant key id with the SAME class and the SAME
-#       message as an id that exists nowhere — no tenant-existence probe.
+#       message as an id that exists nowhere, no tenant-existence probe.
 def test_revoke_cross_tenant_is_indistinguishable_from_an_unknown_id():
     store, _, key_b, _ = _two_project_store()
     with pytest.raises(NotFoundError) as smuggled:
@@ -466,12 +466,12 @@ def test_revoke_cross_tenant_is_indistinguishable_from_an_unknown_id():
     assert type(smuggled.value) is type(absent.value)
     assert str(smuggled.value) == str(absent.value), (
         f"cross-tenant says {str(smuggled.value)!r} but an unknown id says "
-        f"{str(absent.value)!r} — that difference IS the probe"
+        f"{str(absent.value)!r}: that difference IS the probe"
     )
 
 
 # pins: rotate answers a cross-tenant key id with the SAME class and the SAME
-#       message as an id that exists nowhere — no tenant-existence probe.
+#       message as an id that exists nowhere, no tenant-existence probe.
 def test_rotate_cross_tenant_is_indistinguishable_from_an_unknown_id():
     store, _, key_b, _ = _two_project_store()
     with pytest.raises(NotFoundError) as smuggled:
@@ -481,12 +481,12 @@ def test_rotate_cross_tenant_is_indistinguishable_from_an_unknown_id():
     assert type(smuggled.value) is type(absent.value)
     assert str(smuggled.value) == str(absent.value), (
         f"cross-tenant says {str(smuggled.value)!r} but an unknown id says "
-        f"{str(absent.value)!r} — that difference IS the probe"
+        f"{str(absent.value)!r}: that difference IS the probe"
     )
 
 
 # ==============================================================================
-# RELEASE_0.1.1 §4 #35 (store half) — issue() coerces scopes at the boundary
+# RELEASE_0.1.1 §4 #35 (store half): issue() coerces scopes at the boundary
 #
 # ``frozenset(scopes)`` keeps whatever it was handed. Because Scope is a
 # StrEnum, a plain "accounts:read" satisfies ``scope in key.scopes``, so such a
@@ -494,7 +494,7 @@ def test_rotate_cross_tenant_is_indistinguishable_from_an_unknown_id():
 # AttributeError → unformatted 500. NOTE for anyone editing these tests:
 # ``record.scopes == frozenset({Scope.ACCOUNTS_READ})`` PASSES uncoerced (a
 # StrEnum member hashes and compares as its value), so the pin MUST be
-# isinstance — an equality assertion here would be vacuous.
+# isinstance. An equality assertion here would be vacuous.
 # ==============================================================================
 
 
@@ -526,7 +526,7 @@ def test_wire_string_issued_key_answers_has_scope():
     assert has_scope(record, Scope.USERS_ADMIN) is False
 
 
-# pins: an unrecognised scope string is REFUSED with errors.ValidationError —
+# pins: an unrecognised scope string is REFUSED with errors.ValidationError, 
 #       the store never invents a privilege it cannot name.
 @pytest.mark.parametrize(
     "unknown",
@@ -544,7 +544,7 @@ def test_issue_refuses_an_unknown_scope_string(unknown):
     assert type(excinfo.value) is ValidationError
 
 
-# pins: a refused scope leaves NO key behind — the store is not written before
+# pins: a refused scope leaves NO key behind. The store is not written before
 #       the scopes are validated.
 def test_issue_stores_nothing_when_a_scope_is_unknown():
     store = ApiKeyStore()
@@ -565,7 +565,7 @@ def test_issue_stores_nothing_when_a_scope_is_unknown():
 # ==============================================================================
 
 
-# pins: issue honours an explicit ms-epoch expires_at — the key authenticates
+# pins: issue honours an explicit ms-epoch expires_at: the key authenticates
 #       up to the last live millisecond and not at it.
 def test_issue_honours_an_explicit_expires_at():
     store = ApiKeyStore()
@@ -584,14 +584,14 @@ def test_issue_honours_an_explicit_expires_at():
 
 
 # ==============================================================================
-# The millisecond-integer boundary on issue/rotate — project rule "All
+# The millisecond-integer boundary on issue/rotate: project rule "All
 # timestamps are millisecond-epoch integers", enforced at the store boundary.
 #
 # The two ms arguments this store accepts (``issue(expires_at=...)`` and
 # ``rotate(overlap_ms=...)``) are the only untyped-at-runtime numbers it stores.
 # A ``float`` or ``str`` that gets past the boundary is stored happily and fails
 # LATER, on the authentication hot path, where ``clock.now_ms() >= expires_at``
-# raises ``builtins.TypeError`` — an undeclared exception class and exactly the
+# raises ``builtins.TypeError``: an undeclared exception class and exactly the
 # unformatted 500 RELEASE_0.1.1 exists to remove. An ``expires_at`` at or before
 # ``now_ms`` is refused for the mirror-image reason: ``authenticate`` treats
 # ``now_ms >= expires_at`` as dead, so storing one issues a credential born
@@ -610,7 +610,7 @@ def _issue_with(
     project_id: str = "proj_a",
     now_ms: int = T0,
 ) -> tuple[ApiKey, str]:
-    """``issue`` with an explicit — deliberately ill-typed — ``expires_at``."""
+    """``issue`` with an explicit, deliberately ill-typed, ``expires_at``."""
     return store.issue(
         project_id,
         Environment.LIVE,
@@ -642,7 +642,7 @@ def test_issue_refuses_a_non_int_expires_at(bad):
     )
 
 
-# pins: a bool expires_at is refused as a TYPE error, not as an ordering one —
+# pins: a bool expires_at is refused as a TYPE error, not as an ordering one, 
 #       bool satisfies isinstance(_, int), and True/False are 1/0, so an
 #       int-only check hands the caller "must be after now" and hides the fact
 #       that a bool is never an instant. The message is asserted because the
@@ -665,7 +665,7 @@ def test_issue_refuses_a_bool_expires_at(bad):
     )
 
 
-# pins: an expires_at EXACTLY equal to now_ms is refused — authenticate reads
+# pins: an expires_at EXACTLY equal to now_ms is refused. Authenticate reads
 #       ``now_ms >= expires_at`` as dead, so that instant is not one live
 #       millisecond, it is zero.
 def test_issue_refuses_an_expires_at_equal_to_now():
@@ -700,7 +700,7 @@ def test_issue_refuses_an_expires_at_before_now(bad):
     )
 
 
-# pins: the FIRST millisecond after now_ms is accepted — the guard refuses only
+# pins: the FIRST millisecond after now_ms is accepted. The guard refuses only
 #       instants at or before now, and never widens into the live range.
 def test_issue_accepts_an_expires_at_one_ms_after_now():
     store = ApiKeyStore()
@@ -711,7 +711,7 @@ def test_issue_accepts_an_expires_at_one_ms_after_now():
         store.authenticate(plaintext, FrozenClock(T0 + 1))
 
 
-# pins: a non-int overlap_ms is REFUSED at rotate with ValidationError — no
+# pins: a non-int overlap_ms is REFUSED at rotate with ValidationError, no
 #       float or str is ever written into the ms-int expires_at field.
 @pytest.mark.parametrize(
     "bad",
@@ -736,7 +736,7 @@ def test_rotate_refuses_a_non_int_overlap_ms(bad):
     assert {key.id for key in store.keys_for("proj_a")} == {record.id}
 
 
-# pins: a bool overlap_ms is refused — True satisfies isinstance(_, int) and is
+# pins: a bool overlap_ms is refused. True satisfies isinstance(_, int) and is
 #       never a duration, so an int-only check would rotate with a 1 ms window.
 @pytest.mark.parametrize(
     "bad", [pytest.param(True, id="true"), pytest.param(False, id="false")]
@@ -753,7 +753,7 @@ def test_rotate_refuses_a_bool_overlap_ms(bad):
     assert {key.id for key in store.keys_for("proj_a")} == {record.id}
 
 
-# pins: a NEGATIVE overlap_ms is refused — it would back-date the rotated-out
+# pins: a NEGATIVE overlap_ms is refused. It would back-date the rotated-out
 #       key's expiry to before its own created_at, and mint a replacement while
 #       doing it.
 @pytest.mark.parametrize(
@@ -770,7 +770,7 @@ def test_rotate_refuses_a_negative_overlap_ms(bad):
     assert type(excinfo.value) is ValidationError
     survivor = _record_by_id(store, "proj_a", record.id)
     assert survivor.expires_at is None, (
-        f"rotate back-dated the expiry to {survivor.expires_at} — "
+        f"rotate back-dated the expiry to {survivor.expires_at}: "
         f"{T0 - survivor.expires_at if survivor.expires_at else 0} ms before now"
     )
     assert {key.id for key in store.keys_for("proj_a")} == {record.id}, (
@@ -779,7 +779,7 @@ def test_rotate_refuses_a_negative_overlap_ms(bad):
 
 
 # pins: an invalid overlap_ms answers IDENTICALLY for an owned, a cross-tenant
-#       and an absent key id — the argument check runs BEFORE the tenant gate,
+#       and an absent key id. The argument check runs BEFORE the tenant gate,
 #       so refusing it cannot be used to probe for another project's key id.
 @pytest.mark.parametrize(
     "bad", [pytest.param(-1, id="negative"), pytest.param(1.5, id="float")]
@@ -796,6 +796,6 @@ def test_rotate_refuses_overlap_ms_before_consulting_the_tenant_gate(bad):
             _rotate(store, key_id, project_id="proj_a", overlap_ms=bad)
         answers[label] = (type(excinfo.value), str(excinfo.value))
     assert len(set(answers.values())) == 1, (
-        f"the overlap_ms refusal differs by key id: {answers} — that difference "
+        f"the overlap_ms refusal differs by key id: {answers}: that difference "
         f"IS the probe"
     )

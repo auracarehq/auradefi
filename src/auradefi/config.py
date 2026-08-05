@@ -1,7 +1,7 @@
 """Library configuration.
 
 A frozen dataclass the host constructs directly, plus an environment loader
-for convenience. No dotenv magic and no framework settings object — an
+for convenience. No dotenv magic and no framework settings object. An
 embedding host owns its own configuration story (SPEC §8).
 
 Environment variables use the AURADEFI_ prefix. No test and no default
@@ -19,8 +19,8 @@ empty account (RELEASE_0.1.1 §5 #19).
 
 ``trusted_proxy_hops`` is how many rightmost ``X-Forwarded-For`` hops the
 deployment's own proxies contribute, and therefore how far back a
-trustworthy client IP can be read from. It defaults to **0** — no proxy is
-trusted, the socket peer is the only verified source — because an audit
+trustworthy client IP can be read from. It defaults to **0**, no proxy is
+trusted, the socket peer is the only verified source, because an audit
 row that records a caller-supplied IP is permanently wrong and cannot be
 told from a real one (RELEASE_0.1.1 §4 #30).
 """

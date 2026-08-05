@@ -2,24 +2,24 @@
 
 "Separate chain I/O from pricing. ``raw_balances()`` → chain reads only;
 ``drill(raw, prices)`` → pure, no I/O. Persist raw balances and re-drill
-against fresh prices without touching an RPC." — SPEC §5.3, verbatim.
+against fresh prices without touching an RPC.". SPEC §5.3, verbatim.
 A price tick must not cost a re-scan: :func:`drill` takes only data and
 returns only data. This module imports nothing that does I/O.
 
 DECISIONS.md "Drill rounding = NONE": every valuation is
-:func:`exact_mul` — context-free coefficient multiplication (sign XOR,
+:func:`exact_mul`: context-free coefficient multiplication (sign XOR,
 integer coefficient product, exponents added), never rounded to context
 precision. The sign convention is pinned there too: an underlying's
 value is negative iff ``meta_type == BORROWED`` (unit price stays
 positive); ``net_worth = gross_assets - total_debt`` equals the naive
 signed sum ALWAYS.
 
-§6.3 projection: :class:`SyntheticHolding` is a LOCAL shape — positions
+§6.3 projection: :class:`SyntheticHolding` is a LOCAL shape. Positions
 may not import portfolio (layering); Phase 5 wiring maps it 1:1 onto the
 Plaid ``Holding``. A ``BORROWED`` underlying becomes a NEGATIVE-quantity
 holding (consistent with ``tax_lots[].position_type: SHORT``) so a
 Plaid-only client summing ``institution_value`` gets the right net
-worth — the projection invariant, guarded by its own contract test.
+worth: the projection invariant, guarded by its own contract test.
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ class DrillResult:
     ``dataclasses.replace`` with every underlying valued; ``groups`` are
     built with ``make_group`` (total computed, never passed) and sorted
     by ``group_id``. ``gross_assets``/``total_debt`` are both >= 0;
-    ``net_worth = gross_assets - total_debt`` — the explicit triple
+    ``net_worth = gross_assets - total_debt``: the explicit triple
     SPEC §4.3 demands (Zerion defect #1 fixed). All Money USD.
     """
 
@@ -67,7 +67,7 @@ class DrillResult:
 class SyntheticHolding:
     """One Plaid-shaped holding projected from a valued underlying.
 
-    LOCAL shape (SPEC §6.3) — positions/ may not import portfolio/;
+    LOCAL shape (SPEC §6.3). Positions/ may not import portfolio/;
     Phase 5 maps this 1:1 onto the Plaid ``Holding``. ``quantity`` is a
     SIGNED ``Decimal``: negative iff the underlying was ``BORROWED``.
     ``institution_price`` stays positive; ``institution_value`` is
@@ -85,7 +85,7 @@ def exact_mul(a: Decimal, b: Decimal) -> Decimal:
 
     Sign = XOR of the operand signs; coefficient = integer product of
     the operand coefficients; exponent = sum of the operand exponents.
-    NEVER context-rounded — a 78-digit coefficient survives intact, and
+    NEVER context-rounded. A 78-digit coefficient survives intact, and
     ``exact_mul(Decimal('10'), Decimal('3584.17'))`` is exactly
     ``Decimal('35841.70')``, trailing zero preserved.
     """
@@ -111,7 +111,7 @@ def _priced(asset_id: str, prices: Mapping[str, Money]) -> Money:
 
 
 def _valued(underlying: Underlying, prices: Mapping[str, Money]) -> Underlying:
-    """The underlying rebuilt with ``price`` and ``value`` attached —
+    """The underlying rebuilt with ``price`` and ``value`` attached:
     value negated iff ``BORROWED``; the unit price stays positive."""
     price = _priced(underlying.asset_id, prices)
     amount = exact_mul(underlying.quantity.as_decimal(), price.amount)
@@ -138,18 +138,18 @@ def _merged_group_info(members: Sequence[Position]) -> GroupInfo | None:
 
 
 def drill(raw: Sequence[Position], prices: Mapping[str, Money]) -> DrillResult:
-    """Value raw positions against a price map. Pure — no I/O ever.
+    """Value raw positions against a price map. Pure, no I/O ever.
 
     Contract (SPEC §5.3; DECISIONS.md sign convention, rounding=NONE):
 
     * ``prices`` is keyed by canonical CAIP-19; every price must be
-      ``'USD'`` — anything else raises ``CurrencyMismatchError``;
+      ``'USD'``, anything else raises ``CurrencyMismatchError``;
     * a missing price for any underlying's ``asset_id`` raises
       ``UnknownAssetError`` naming the CAIP-19;
     * each underlying is valued ``exact_mul(quantity.as_decimal(),
       price.amount)``, negated iff ``meta_type`` is ``BORROWED`` (the
       unit ``price`` stays positive), attached via
-      ``dataclasses.replace`` — inputs are never mutated;
+      ``dataclasses.replace``, inputs are never mutated;
     * ``groups`` are built with ``make_group`` after merging the member
       positions' ``GroupInfo``s (two conflicting non-``None`` infos in
       one group raise ``ValidationError``), sorted by ``group_id``;

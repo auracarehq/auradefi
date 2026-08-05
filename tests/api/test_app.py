@@ -1,9 +1,9 @@
-"""api/app.py — the factory, the route table, and what it refuses to be.
+"""api/app.py: the factory, the route table, and what it refuses to be.
 
 Everything runs offline: ``TestClient`` drives the ASGI app in-process,
 so the autouse socket guard never sees a connect.
 
-The contract under test is as much about ABSENCE as presence — no
+The contract under test is as much about ABSENCE as presence, no
 module-level app, no environment read, no ``Depends``, no route defined
 by the factory itself, and no capability advertised that the injected
 ``Deps`` cannot perform.
@@ -109,7 +109,7 @@ def _issue(deps, project, *scopes):
 
 
 def _advertised(app: FastAPI) -> list[tuple[str, str]]:
-    """The OpenAPI surface — what the deployment tells the world it does."""
+    """The OpenAPI surface: what the deployment tells the world it does."""
     return sorted(
         (method.upper(), path)
         for path, operations in app.openapi()["paths"].items()
@@ -229,7 +229,7 @@ def test_bound_capabilities_are_advertised():
 
 
 def test_the_only_unadvertised_route_is_the_delete_404_stub():
-    """An unbound DELETE must 404, not 405 — and 405 is what Starlette
+    """An unbound DELETE must 404, not 405, and 405 is what Starlette
 
     answers when a path exists for another method, which would confirm
     the capability exists. The stub is the only route in the app that is
@@ -292,8 +292,8 @@ def test_fastapi_depends_is_used_nowhere_in_the_shell():
         if "Depends" in _names_used(path)
     ]
     assert not offenders, (
-        "auth is called explicitly at the top of each handler, never injected "
-        f"— Depends found in: {offenders}"
+        "auth is called explicitly at the top of each handler, never injected: "
+        f"Depends found in: {offenders}"
     )
 
 
@@ -307,7 +307,7 @@ def test_the_factory_defines_no_route_and_reads_no_environment():
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         for _ in node.decorator_list
     ]
-    assert not decorators, "app.py declares a decorated handler — it defines routes"
+    assert not decorators, "app.py declares a decorated handler: it defines routes"
 
 
 def test_the_factory_holds_no_module_level_app():
@@ -322,7 +322,7 @@ def test_the_factory_holds_no_module_level_app():
 
 
 def test_the_shell_starts_no_scheduler():
-    """Delivery is host-scheduled (SPEC §8) — no thread, no sleep, no task."""
+    """Delivery is host-scheduled (SPEC §8), no thread, no sleep, no task."""
     banned = {"Thread", "sleep", "create_task", "run_in_executor", "on_event"}
     offenders = sorted(
         f"{path.name}: {sorted(banned & _names_used(path))}"

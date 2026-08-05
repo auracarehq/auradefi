@@ -3,7 +3,7 @@
     pip install auradefi && python 08_report_cost_basis_and_pnl.py
 
 Cost basis is where crypto tools quietly disagree with each other. This
-package's position is that there is no single right answer — there are four
+package's position is that there is no single right answer. There are four
 legal ones, and the caller picks:
 
     fifo   oldest lot first        (default nearly everywhere)
@@ -17,7 +17,7 @@ night's batch". Ask about a millisecond before a sale and the sale has not
 happened yet.
 
 Also here: `tax_lots[]` in Plaid's shape, straight out of the report, and
-the flag that fires when a `Fraction` had to be rounded into `Money` — the
+the flag that fires when a `Fraction` had to be rounded into `Money`. The
 one place exactness cannot survive contact with a currency.
 """
 
@@ -111,7 +111,7 @@ assert "rounded_basis" in rounded.flags, "a rounded boundary must be visible"
 # ---------------------------------------- 5. straight from your ledger rows
 # `derive_events` turns stored transactions into the event stream: IN is an
 # acquisition, OUT a disposal, SELF nothing (moving your own coins is not
-# income), and a reorged-away row nothing at all. Costs come out as None —
+# income), and a reorged-away row nothing at all. Costs come out as None, 
 # pricing is deliberately NOT the accounting layer's job, so you attach your
 # own marks and keep one source of truth for prices.
 def ledger_row(index: int, direction: Direction) -> LedgerTransaction:
@@ -134,4 +134,4 @@ print(f"\nderive_events over {len(rows)} ledger rows -> "
       f"{[type(event).__name__.removesuffix('Event') for event in events]} "
       "(the SELF transfer is not income)")
 
-print("\nOK — four methods, any instant, deterministic lot ids, honest rounding.")
+print("\nOK: four methods, any instant, deterministic lot ids, honest rounding.")

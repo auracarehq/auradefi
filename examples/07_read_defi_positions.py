@@ -1,4 +1,4 @@
-"""How do I get DeFi positions — an LP, a loan — and not lie about them?
+"""How do I get DeFi positions, an LP, a loan, and not lie about them?
 
     pip install auradefi && python 07_read_defi_positions.py
 
@@ -15,12 +15,12 @@ Two properties this file proves rather than asserts in prose:
 
 * **the projection invariant.** A client that knows nothing about DeFi, sums
   `institution_value` over the flat holdings and trusts the number, gets
-  EXACTLY the net worth — because debt projects as a negative *quantity* at
+  EXACTLY the net worth, because debt projects as a negative *quantity* at
   a positive price, never a negative price;
 * **re-pricing costs zero chain reads.** Positions carry raw quantities, so
   a new price is a pure recomputation. Nothing to invalidate, nothing stale.
 
-Chain reads go through ONE seam — `call(address, fn, args)`. This file binds
+Chain reads go through ONE seam: `call(address, fn, args)`. This file binds
 a dict of recorded answers, which is also how the shipped adapters are
 tested. **No concrete on-chain reader ships in the package**: there is no
 `eth_call` transport and no multicall batcher, so running these adapters
@@ -112,7 +112,7 @@ assert borrow.underlyings[0].meta_type is MetaType.BORROWED
 assert borrow.underlyings[0].quantity.raw > 0
 assert all(under.price is None for under in supply.underlyings + borrow.underlyings)
 
-# The two are ONE risk unit and say so with a shared group id — you cannot
+# The two are ONE risk unit and say so with a shared group id. You cannot
 # show the collateral without the debt by accident.
 assert supply.group_id == borrow.group_id
 print(f"resolved 2 positions in group {supply.group_id}:")
@@ -154,8 +154,8 @@ print("\nflat holdings a Plaid-only client sees:")
 for holding in holdings:
     print(f"  {str(holding.quantity):>7} @ {str(holding.institution_price):>13}"
           f" = {holding.institution_value}")
-print(f"  {'sum':>7}   {'':>13}   {naive_total} == net worth "
-      "— the invariant, by exact Decimal equality")
+print(f"  {'sum':>7}   {'':>13}   {naive_total} == net worth: "
+      "the invariant, by exact Decimal equality")
 
 # ------------------------------------------------- 4. re-price, zero reads
 reads_before = len(reader.calls)
@@ -196,4 +196,4 @@ print(f"\nresolve_all over {len(registry.adapters())} adapters: "
       f"{len(outcome.positions)} positions, failures="
       f"{[(f.adapter_id, f.error) for f in outcome.failures]}")
 
-print("\nOK — raw positions, one grouping, and a flat view that still adds up.")
+print("\nOK: raw positions, one grouping, and a flat view that still adds up.")

@@ -5,7 +5,7 @@ The Quantity wire shape is a public stability guarantee (SPEC rules #1/#2):
     {"raw": "<decimal int string>", "decimals": <int>,
      "numeric": "<exact decimal string>", "float": <lossy float>}
 
-``raw`` is a JSON **string** — a JSON integer in a raw-amount field is a
+``raw`` is a JSON **string**: a JSON integer in a raw-amount field is a
 rule #2 violation and is rejected on read. ``numeric`` never uses
 scientific notation. ``float`` is display-only and documented lossy;
 reads reconstruct from ``raw`` + ``decimals`` ONLY.
@@ -16,7 +16,7 @@ Money's wire form is a tagged decimal string (rule #1):
 
 A float ``amount`` on read is rejected with ``ValidationError``, as are
 the non-finite specials (``"NaN"``, ``"sNaN"``, ``"Infinity"``,
-``"-Infinity"``) — they are not exact decimal amounts.
+``"-Infinity"``). They are not exact decimal amounts.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from auradefi.money.quantity import Quantity
 
 # Strict wire grammar: ASCII digits only, optional leading '-'. int() and
 # Decimal() are far laxer (underscores, whitespace, '+', non-ASCII digits
-# like '٥٥', specials like 'NaN') — none of that is a wire amount.
+# like '٥٥', specials like 'NaN'). None of that is a wire amount.
 _WIRE_INT = re.compile(r"-?[0-9]+")
 _WIRE_DECIMAL = re.compile(r"-?[0-9]+(\.[0-9]+)?")
 
@@ -41,7 +41,7 @@ def quantity_to_wire(quantity: Quantity) -> dict[str, Any]:
     """Project a ``Quantity`` to its pinned four-field wire dict.
 
     ``{'raw': str(q.raw), 'decimals': q.decimals, 'numeric': str(q),
-    'float': float(q.as_decimal())}`` — ``raw`` is a string, ``numeric``
+    'float': float(q.as_decimal())}``. ``Raw`` is a string, ``numeric``
     is exact with no scientific notation, ``float`` is lossy display-only.
     """
     return {
@@ -57,8 +57,8 @@ def quantity_from_wire(wire: Mapping[str, Any]) -> Quantity:
 
     ``numeric`` and ``float`` are ignored (and may be absent). Raises
     ``ValidationError`` if ``raw`` is not a ``str`` (a JSON-integer raw is
-    rejected — rule #2) or ``decimals`` is not an ``int``. ``raw`` must
-    match ``-?[0-9]+`` exactly — ASCII digits only, so ``int()``'s laxer
+    rejected, rule #2) or ``decimals`` is not an ``int``. ``raw`` must
+    match ``-?[0-9]+`` exactly. ASCII digits only, so ``int()``'s laxer
     grammar (``'1_000'``, ``' 5 '``, ``'+5'``, ``'5\\n'``, Arabic-Indic
     digits) never leaks onto the wire.
     """
@@ -92,9 +92,9 @@ def money_from_wire(wire: Mapping[str, Any]) -> Money:
     """Inverse of ``money_to_wire``.
 
     Raises ``ValidationError`` if ``amount`` is a float (rule #1), does
-    not match ``-?[0-9]+(\\.[0-9]+)?`` exactly — ASCII digits only, which
+    not match ``-?[0-9]+(\\.[0-9]+)?`` exactly, ASCII digits only, which
     also excludes the non-finite specials (NaN/sNaN/+/-Infinity) and
-    scientific notation before ``Decimal`` ever sees the string — or the
+    scientific notation before ``Decimal`` ever sees the string, or the
     currency tag is invalid.
     """
     amount = wire.get("amount")

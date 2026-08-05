@@ -9,7 +9,7 @@ via ``python3 -c`` over the algorithms pinned in docs/internal/DECISIONS.md:
                     .encode()).hexdigest()[:16]
 
 A stability contract is a hardcoded string, not a call to the function
-under test. The MetaType pairs are the SPEC §4.3 literals, hardcoded —
+under test. The MetaType pairs are the SPEC §4.3 literals, hardcoded,
 NEVER imported from decode: the layer contract forbids positions→decode,
 and both test trees pin the same seven (name, value) pairs so drift is a
 red test, not a debate (DECISIONS.md "Duplication waiver").
@@ -56,7 +56,7 @@ AWETH = "eip155:1/erc20:0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8"
 USDC = "eip155:1/erc20:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 WETH = "eip155:1/erc20:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
-# SPEC §4.3 MetaType literals, verbatim — the duplication-waiver golden.
+# SPEC §4.3 MetaType literals, verbatim: the duplication-waiver golden.
 META_TYPE_GOLDEN = [
     ("WALLET", "wallet"),
     ("SUPPLIED", "supplied"),
@@ -82,7 +82,7 @@ def supplied_underlying(**overrides) -> Underlying:
 
 
 def borrowed_underlying(**overrides) -> Underlying:
-    """4999.195 USDC borrowed — value NEGATIVE, unit price positive."""
+    """4999.195 USDC borrowed: value NEGATIVE, unit price positive."""
     fields = {
         "asset_id": USDC,
         "quantity": Quantity(4_999_195_000, 6),
@@ -258,7 +258,7 @@ class TestRangeAndGroupInfo:
 
 
 class TestPinnedIds:
-    """DECISIONS.md pinned algorithms — hardcoded goldens, never derived
+    """DECISIONS.md pinned algorithms: hardcoded goldens, never derived
     from the functions under test."""
 
     def test_position_id_lowercases_checksummed_address(self):
@@ -372,7 +372,7 @@ class TestPositionValue:
         assert position.value is None
 
     def test_huge_magnitudes_survive_exactly(self):
-        # 10^77-scale — rule #1's named casualty. Decimal(int) is exact;
+        # 10^77-scale: rule #1's named casualty. Decimal(int) is exact;
         # Decimal + Decimal in a test would round at context precision.
         big = supplied_underlying(
             price=Money(Decimal(10**59), "USD"),

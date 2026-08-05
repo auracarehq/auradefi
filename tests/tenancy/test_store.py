@@ -36,7 +36,7 @@ STORE_PY = (
     Path(__file__).resolve().parents[2] / "src" / "auradefi" / "tenancy" / "store.py"
 )
 
-T0 = 1_767_225_600_000  # 2026-01-01T00:00:00Z — matches the quota golden era
+T0 = 1_767_225_600_000  # 2026-01-01T00:00:00Z: matches the quota golden era
 TTL_MS = 600_000
 DAY_MS = 86_400_000
 JTI = "0123456789abcdef0123456789abcdef"
@@ -44,7 +44,7 @@ JTI_2 = "fedcba9876543210fedcba9876543210"
 KEY_ID = "key_" + "ef" * 8
 IP = "203.0.113.7"
 
-SECRET_A = "aa" * 32  # entropy(32) → 64 hex chars — THE isolation root
+SECRET_A = "aa" * 32  # entropy(32) → 64 hex chars. THE isolation root
 SECRET_B = "bb" * 32
 HEX_DIGITS = set("0123456789abcdef")
 
@@ -74,7 +74,7 @@ GOLDEN_TOKEN = (
 
 def scripted_entropy(ids=(), secret_hexes=()):
     """Width-keyed entropy: n=8 draws pop ``ids``, n=32 draws pop
-    ``secret_hexes`` — independent queues, so tests never depend on the
+    ``secret_hexes``: independent queues, so tests never depend on the
     draw order inside one store call. Other widths get deterministic
     filler of the correct 2n-hex-chars shape."""
     id_queue = list(ids)
@@ -471,7 +471,7 @@ class TestMintUserTokenIpProvenance:
     """§4 #30: the audit row says where its ``ip`` came from.
 
     ``ip`` is a passed-in datum here, so the store cannot tell a verified
-    socket peer from a caller-supplied header — the provenance is threaded
+    socket peer from a caller-supplied header. The provenance is threaded
     through with it, and an unstated one is DECLARED, never guessed.
     """
 
@@ -494,7 +494,7 @@ class TestMintUserTokenIpProvenance:
         record = audit.entries("proj_a")[0]
         assert (record.ip, record.ip_source) == (IP, "forwarded")
 
-    # pins: an unstated provenance is audited as "unknown" — the store never
+    # pins: an unstated provenance is audited as "unknown": the store never
     #       claims an ip it was merely handed came from a verified socket.
     def test_an_unstated_provenance_is_audited_as_unknown(self):
         store, _org, _project, clock = make_store()

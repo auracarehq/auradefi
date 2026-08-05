@@ -1,4 +1,4 @@
-"""FIFO consumption-order selector — SPEC §9 pluggable methods.
+"""FIFO consumption-order selector. SPEC §9 pluggable methods.
 
 The plan is the whole contract: ordered ``(lot, take)`` pairs, no
 mutation, no cost math, no exception for shortage. Every expected plan

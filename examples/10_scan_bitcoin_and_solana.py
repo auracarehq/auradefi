@@ -6,8 +6,8 @@ Two chains that are not EVM, and each breaks an assumption:
 
 **Bitcoin has no account.** One wallet is an unbounded set of addresses
 derived from an extended public key, and the balance is the sum over the
-used ones. BIP32 derivation here is pure Python — no `secp256k1` C library,
-no `bitcoinlib` — and, crucially, the xpub **never leaves the process**:
+used ones. BIP32 derivation here is pure Python, no `secp256k1` C library,
+no `bitcoinlib`, and, crucially, the xpub **never leaves the process**:
 every HTTP request carries a derived `bc1…` address, which this file asserts
 against the recorded traffic rather than promising in prose. The scan stops
 after `gap` consecutive unused addresses (BIP44's gap limit, 20 by default),
@@ -16,7 +16,7 @@ and an address that was used and then swept still counts as used.
 **Solana can lie about `raw / 10**decimals`.** A Token-2022 mint carrying
 the ScaledUiAmount extension displays a multiple of the raw amount, so the
 identity every other chain relies on does not hold. Both numbers are
-carried, and the divergence is flagged — a wallet that only stores one of
+carried, and the divergence is flagged: a wallet that only stores one of
 them shows the wrong balance and cannot tell.
 
 Both sections replay synthesised HTTP, so the file runs offline.
@@ -42,7 +42,7 @@ from auradefi.sources.solana.rpc import (
 )
 from auradefi.testing.cassettes import load
 
-# BIP32 test vector 1's master public key — a published, keyless fixture.
+# BIP32 test vector 1's master public key: a published, keyless fixture.
 XPUB = ("xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoC"
         "u1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8")
 ESPLORA = "https://blockstream.info/api"
@@ -120,7 +120,7 @@ assert [(row.chain, row.index, row.balance_sats) for row in result.addresses] ==
 assert result.total == Quantity(1_099_025_000, 8) and str(result.total) == "10.99025"
 print(f"  {'TOTAL':>28} {result.total_sats:>17} sats = {result.total} BTC")
 print(f"  asset id: {result.caip19}")
-print("  m/0/1 was swept to zero and is still reported — it is part of the wallet")
+print("  m/0/1 was swept to zero and is still reported: it is part of the wallet")
 
 # ============================================================= solana
 OWNER = "9wFFyRfZBsuAha4YcuxcXLKwMxJR43S7fPfQLXMFxbAF"
@@ -206,7 +206,7 @@ print(f"  Token-2022: raw/10^9 = {scaled.quantity}, the mint displays "
       f"{scaled.ui_amount_string}, scaled_ui={scaled.scaled_ui}")
 print("  both numbers are carried, so a caller can never quietly show the wrong one")
 
-# Solana transaction DECODE is not implemented — balances and signature
+# Solana transaction DECODE is not implemented: balances and signature
 # history only (README, *What is not there*). `rpc.get_signatures(address)`
 # pages history if you want to build on it.
-print("\nOK — an xpub that never left the process, and a token that breaks the identity.")
+print("\nOK: an xpub that never left the process, and a token that breaks the identity.")

@@ -21,7 +21,7 @@ class UpsertPlan:
     """Result of :func:`classify`: what to insert, update, and skip.
 
     ``new`` and ``changed`` carry the incoming transactions to write;
-    ``unchanged`` carries ids only — there is nothing to write for them.
+    ``unchanged`` carries ids only. There is nothing to write for them.
     """
 
     new: tuple[LedgerTransaction, ...]

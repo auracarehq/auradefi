@@ -10,7 +10,7 @@ timing: a bad chain, a bad address and a duplicate must each cost ZERO
 requests, and a valid connect must cost EXACTLY one.
 
 Ids are golden literals derived independently with ``python3 -c`` from
-the pinned formulas in docs/internal/DECISIONS.md — never regenerated from the
+the pinned formulas in docs/internal/DECISIONS.md, never regenerated from the
 code under test. The facade is constructed INSIDE test bodies so a stub
 fails with NotImplementedError instead of erroring during collection.
 
@@ -84,7 +84,7 @@ TXN_100 = "txn_43583a69cf45329e"  # eip155:1 | 0x…064 | CONN_1A
 TXN_101 = "txn_e56da9318ad266f4"
 TXN_102 = "txn_39ab81bd12b3ad9e"
 
-# RELEASE_0.1.1 §5 #19 — the same library under a host's REAL project id.
+# RELEASE_0.1.1 §5 #19: the same library under a host's REAL project id.
 PROJECT_X = "proj_9f8e7d6c5b4a3928"
 TENANT_1_UNDER_X = "usr_f13ef24edb915127"  # PROJECT_X | unit-user-1
 CONN_1A_UNDER_X = "conn_8aae188d384474d4"  # that tenant x eip155:1 x 0x1111…
@@ -92,7 +92,7 @@ TXN_100_UNDER_X = "txn_933467c7ed77e8cf"  # eip155:1 | 0x…064 | CONN_1A_UNDER_
 
 
 def _row(block: int, to_address: str = ADDR_A) -> dict:
-    """One Etherscan-shaped txlist row — every field a string (rule #2)."""
+    """One Etherscan-shaped txlist row: every field a string (rule #2)."""
     return {
         "blockNumber": str(block),
         "timeStamp": str(1_700_000_000 + (block % 100) * 3600),
@@ -129,7 +129,7 @@ class FakeSource:
             for address, records in (holdings or {}).items()
         }
         self._probe_error = probe_error
-        # Addresses whose upstream is down once ``armed`` — connect first,
+        # Addresses whose upstream is down once ``armed``: connect first,
         # break the source after, exactly as a live outage arrives.
         self._failing = {address.lower() for address in fails_for}
         self.armed = False
@@ -216,7 +216,7 @@ class PerChainSource:
 
 
 class BalancesOnly:
-    """A source missing the history seam — a very likely host mistake."""
+    """A source missing the history seam: a very likely host mistake."""
 
     def balances(self, chain_id: str, address: str) -> list[BalanceRecord]:
         return []
@@ -259,7 +259,7 @@ def _facade(
     """Build the facade; call this INSIDE a test body.
 
     ``ledger`` and ``state`` are injectable so a test can rebind a FRESH
-    facade over the SAME host-owned storage — the restart the library
+    facade over the SAME host-owned storage. The restart the library
     must survive.
     """
     return Auradefi(
@@ -621,10 +621,10 @@ def test_the_default_decoder_is_the_real_txlist_decode_bridge_composition():
 
 
 # pins: a malformed row is contained in ITS OWN connection's row and
-#       declared there — it never escapes sync() to abort the tick
+#       declared there: it never escapes sync() to abort the tick
 #       (RELEASE_0.1.1 §5 #24; supersedes the 0.1.0 propagation contract).
 def test_a_malformed_row_is_reported_against_its_connection_not_raised():
-    # A JSON number in a raw-amount field — never trusted (rule #2).
+    # A JSON number in a raw-amount field, never trusted (rule #2).
     source = FakeSource({ADDR_A: (100,)}, corrupt={"value": 1})
     ledger = MemoryLedger()
     facade = Auradefi(
@@ -646,7 +646,7 @@ def test_a_malformed_row_is_reported_against_its_connection_not_raised():
     assert ledger.sync(TENANT_1, None, 100).events == ()
 
 
-# pins: a bug is not an API contract — an exception that is NOT an
+# pins: a bug is not an API contract. An exception that is NOT an
 #       auradefi error escapes sync() instead of being filed as a
 #       per-connection failure.
 def test_a_non_auradefi_exception_still_escapes_the_sync_loop():
@@ -662,7 +662,7 @@ def test_a_non_auradefi_exception_still_escapes_the_sync_loop():
 
 
 # --------------------------------------------------------------------
-# #19 — the library and the API must address ONE ledger tenant
+# #19: the library and the API must address ONE ledger tenant
 # --------------------------------------------------------------------
 
 
@@ -716,7 +716,7 @@ def test_the_default_project_id_still_derives_the_0_1_0_tenant():
 
 
 # pins: rows the facade ingests for project X come back out of
-#       GET /crypto/sync for a token of project X — one derivation across
+#       GET /crypto/sync for a token of project X: one derivation across
 #       both surfaces, so a library write IS an HTTP read.
 def test_rows_ingested_by_the_library_are_readable_over_that_projects_api():
     clock = FrozenClock(T0)
@@ -775,7 +775,7 @@ def test_rows_ingested_by_the_library_are_readable_over_that_projects_api():
 
 
 # --------------------------------------------------------------------
-# #26 — a connection is scoped to its chain
+# #26. A connection is scoped to its chain
 # --------------------------------------------------------------------
 
 
@@ -823,7 +823,7 @@ def test_two_chains_on_one_address_keep_independent_cursors():
 
 
 # --------------------------------------------------------------------
-# #21 — a restarted worker syncs from the state port, not from memory
+# #21: a restarted worker syncs from the state port, not from memory
 # --------------------------------------------------------------------
 
 
@@ -847,7 +847,7 @@ def test_a_fresh_facade_over_stored_state_syncs_instead_of_no_opping():
 
 
 # pins: enumeration comes from the port even for a tenant this process
-#       has never seen — no user() call revives the connection.
+#       has never seen, no user() call revives the connection.
 def test_a_tenant_never_named_in_this_process_is_still_synced():
     source = FakeSource({ADDR_B: (200,)})
     state = MemorySyncState()
@@ -868,7 +868,7 @@ def test_a_tenant_never_named_in_this_process_is_still_synced():
 
 
 # --------------------------------------------------------------------
-# #24 — an unseeded chain, and one failure that must cost only itself
+# #24: an unseeded chain, and one failure that must cost only itself
 # --------------------------------------------------------------------
 
 
@@ -887,7 +887,7 @@ def test_an_unseeded_chain_is_refused_at_connect_time():
     assert user.connections() == ()
 
 
-# pins: a seeded chain still connects — the membership check refuses the
+# pins: a seeded chain still connects. The membership check refuses the
 #       unknown, it does not refuse everything.
 def test_every_seeded_evm_chain_still_connects():
     source = FakeSource({ADDR_A: ()})
@@ -897,7 +897,7 @@ def test_every_seeded_evm_chain_still_connects():
         assert user.connect_address(chain, ADDR_A).chain_id == chain
 
 
-# pins: a connection whose source fails mid-tick costs only itself — its
+# pins: a connection whose source fails mid-tick costs only itself: its
 #       siblings still ingest, and the tick names it as failed rather
 #       than reporting clean success.
 def test_one_failing_connection_does_not_starve_its_siblings():
@@ -928,7 +928,7 @@ def test_one_failing_connection_does_not_starve_its_siblings():
 
 
 # pins: a 0.1.0 connection stored on a chain the registry never held
-#       fails alone — the connect-time refusal cannot reach rows already
+#       fails alone. The connect-time refusal cannot reach rows already
 #       in a host's durable state, so isolation has to.
 def test_a_stored_connection_on_an_unseeded_chain_fails_alone():
     source = FakeSource({ADDR_A: (100,), ADDR_B: (200,)})

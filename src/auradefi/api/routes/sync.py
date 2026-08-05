@@ -7,7 +7,7 @@ PINNED as the caller's ``usr_`` id: it already hashes
 arithmetically impossible and no route can widen the scope by passing
 something coarser.
 
-``POST /batch/holdings`` is Allium's union — ``items[]`` of
+``POST /batch/holdings`` is Allium's union: ``items[]`` of
 ``Result | Error``, same length and same order as the request, one quota
 unit per item ("billing by work done", SPEC §7.3). One bad address
 NEVER fails the batch. It is mounted only when the host bound
@@ -43,7 +43,7 @@ from auradefi.tenancy.models import Scope
 
 
 class BatchItem(BaseModel):
-    """One requested pair — exactly ``{chain, address}``, extras forbidden."""
+    """One requested pair: exactly ``{chain, address}``, extras forbidden."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -52,7 +52,7 @@ class BatchItem(BaseModel):
 
 
 class BatchRequest(BaseModel):
-    """``POST /batch/holdings`` body — exactly ``{items: [BatchItem]}``."""
+    """``POST /batch/holdings`` body: exactly ``{items: [BatchItem]}``."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -63,8 +63,8 @@ def _resolved_limit(deps: Deps, limit: int | None) -> int:
     """``limit`` or ``deps.sync_limit_default``, bounded by the pinned cap.
 
     Raises :class:`~auradefi.errors.ValidationError` NAMING
-    ``deps.sync_limit_max`` for anything outside ``1 <= limit <= max`` —
-    a caller must be told the cap, not silently clamped to it.
+    ``deps.sync_limit_max`` for anything outside ``1 <= limit <= max``.
+    A caller must be told the cap, not silently clamped to it.
     """
     value = deps.sync_limit_default if limit is None else limit
     if not 1 <= value <= deps.sync_limit_max:
@@ -94,7 +94,7 @@ def _priced_item(
     """One item's ``batch_result``, or its ``batch_error``.
 
     Every :class:`~auradefi.errors.AuradefiError` from the registry or
-    the provider becomes an error ITEM — one unknown chain or one dead
+    the provider becomes an error ITEM: one unknown chain or one dead
     source never fails the other 99. ``warnings`` is appended to in
     place so a report's ``unpriced`` lands in request order.
     """
@@ -163,12 +163,12 @@ def _run_batch(
 def router(deps: Deps) -> APIRouter:
     """Build the sync/batch router over ``deps``.
 
-    * ``GET /crypto/sync?cursor=&limit=`` — user token +
+    * ``GET /crypto/sync?cursor=&limit=``. User token +
       ``accounts:read``, quota, then
       ``deps.ledger.sync(end_user.id, cursor, limit)`` projected by
       :func:`~auradefi.api.wire.sync_envelope`. A malformed cursor
       surfaces :class:`~auradefi.errors.CursorError` → 422, never a 500.
-    * ``POST /batch/holdings`` — api key + ``accounts:read``, mounted IFF
+    * ``POST /batch/holdings``. Api key + ``accounts:read``, mounted IFF
       ``deps.holdings`` is bound. Empty or over ``deps.batch_max_items``
       is a 422 before any work. Then, per item IN ORDER:
       ``deps.quota.hit`` → ``deps.chains.get`` → ``deps.holdings
@@ -176,11 +176,11 @@ def router(deps: Deps) -> APIRouter:
       last two becomes a ``batch_error`` item and never fails the
       request. A ``QuotaExceededError`` at item ``k > 0`` turns item
       ``k`` and every later item into ``batch_error`` entries plus ONE
-      ``quota_exhausted`` warning, still 200 — but a refusal on the
+      ``quota_exhausted`` warning, still 200, but a refusal on the
       FIRST item (zero work done) propagates the 429 with
       ``Retry-After``. Warnings also carry ``duplicate_pair`` for a
-      repeated ``(chain, address)`` — items are never deduped or
-      reordered — and ``unpriced_assets`` when a report's ``unpriced``
+      repeated ``(chain, address)``, items are never deduped or
+      reordered, and ``unpriced_assets`` when a report's ``unpriced``
       is non-empty.
     """
     api = APIRouter()
@@ -196,7 +196,7 @@ def router(deps: Deps) -> APIRouter:
         # over-sized batch costs the caller nothing". Both of these are
         # caller-controlled and both can only ever 422, so charging first
         # meant a client with a hard-coded bad limit drained the PROJECT's
-        # per-day window on requests it could never succeed at — and then
+        # per-day window on requests it could never succeed at, and then
         # 429'd every other user of that project. The cursor is decoded
         # here rather than left to `ledger.sync` for the same reason: its
         # CursorError is also a 422 the caller pays for otherwise.

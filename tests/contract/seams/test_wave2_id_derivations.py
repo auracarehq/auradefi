@@ -1,4 +1,4 @@
-"""SEAM AUDIT — wave 0.1.1-wave2: one logical id, derived in two places.
+"""SEAM AUDIT: wave 0.1.1-wave2: one logical id, derived in two places.
 
 The library (``src/auradefi/embed/models.py``, order ``embed-ids-loop``)
 and the HTTP surface (``src/auradefi/tenancy/models.py`` reached through
@@ -12,7 +12,7 @@ value below is computed independently from the formula written in
 Both derivations are RUN, never read. Consequences that cross a module
 boundary are pinned too: an embed connection id is the ``account_id``
 that ``ledger.models.transaction_id`` hashes, so changing its shape
-changes every transaction id in the ledger — including the golden vectors
+changes every transaction id in the ledger, including the golden vectors
 in ``tests/contract/test_embedding.py``, which no order in this wave owns.
 """
 
@@ -85,7 +85,7 @@ def _embedding_gate_constants() -> tuple[str, tuple[str, ...]]:
 
 
 class TestTenantDerivation:
-    """#19 — the library and the API must key the same ledger tenant."""
+    """#19: the library and the API must key the same ledger tenant."""
 
     def test_the_default_still_derives_the_0_1_0_value(self):
         """The default must stay ``"embed"`` or 0.1.0 data is unreachable."""
@@ -145,7 +145,7 @@ class TestTenantDerivation:
 
 
 class TestConnectionDerivation:
-    """#26 — the connection id gains a chain segment, deliberately."""
+    """#26: the connection id gains a chain segment, deliberately."""
 
     def test_it_matches_the_formula_documented_in_decisions(self):
         """The DOCUMENTED segment order is the contract, not the code's.
@@ -164,7 +164,7 @@ class TestConnectionDerivation:
         )
 
     def test_two_chains_give_two_ids(self):
-        """One address, two chains, two cursors — the point of the change."""
+        """One address, two chains, two cursors: the point of the change."""
         mainnet = derive_connection_id(TENANT_UNDER_EMBED, ADDRESS, "eip155:1")
         polygon = derive_connection_id(TENANT_UNDER_EMBED, ADDRESS, "eip155:137")
         assert (mainnet, polygon) == (CONN_MAINNET, CONN_POLYGON)

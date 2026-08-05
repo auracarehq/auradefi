@@ -4,8 +4,8 @@ known-rich address returns a USD total within a few % of an incumbent).
 Wires the REAL EtherscanV2(cassette client, api_key='TESTKEY') +
 Inquirer([DefiLlamaOracle(cassette client)]) + HoldingsService with a
 FrozenClock over ONE shared httpx client replaying
-tests/cassettes/phase1_vitalik.json — Cassette.client() serves BOTH hosts
-(api.etherscan.io and coins.llama.fi) through one MockTransport — and
+tests/cassettes/phase1_vitalik.json, Cassette.client() serves BOTH hosts
+(api.etherscan.io and coins.llama.fi) through one MockTransport, and
 asserts hardcoded golden numbers. A number changes -> this file goes red.
 
 Golden vectors derived independently from the cassette bodies via exact
@@ -19,7 +19,7 @@ under test):
 
 The cassette's tokentx page also proves discovery hygiene: a mixed-case
 duplicate USDC contract dedupes after lowercasing, and a spam row with
-tokenDecimal "" is skipped additively — exactly three holdings survive.
+tokenDecimal "" is skipped additively. Exactly three holdings survive.
 
 Incumbent reference: 19,000,000 USD. Actual delta ~0.059%, far inside the
 5% band (SPEC §11 Phase 1).
@@ -107,7 +107,7 @@ def test_nothing_unpriced_and_identity_echoed(cassette):
 
 def test_total_is_within_five_percent_of_the_incumbent(cassette):
     # SPEC §11 Phase 1 "done when", stated as arithmetic. Actual delta is
-    # ~0.00059 (0.059%) — two orders of magnitude inside the band.
+    # ~0.00059 (0.059%): two orders of magnitude inside the band.
     total = _phase1_report(cassette).total_value.amount
     delta = abs(total - INCUMBENT_REFERENCE_USD) / INCUMBENT_REFERENCE_USD
     assert delta < Decimal("0.05")

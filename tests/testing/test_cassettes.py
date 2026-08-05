@@ -1,5 +1,5 @@
 """The cassette harness is itself under test: replay, ordering, misses,
-malformed files — all offline (the autouse socket guard is active here)."""
+malformed files: all offline (the autouse socket guard is active here)."""
 
 from __future__ import annotations
 

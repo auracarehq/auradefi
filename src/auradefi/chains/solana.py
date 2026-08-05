@@ -2,7 +2,7 @@
 
 The CAIP-2 reference is the first 32 chars of the genesis hash in base58.
 SLIP-44 coin type 501 keys the native-asset CAIP-19 (``solana:.../slip44:501``).
-Canonical CAIP-19 keeps base58 case (docs/internal/DECISIONS.md — asset-id pin).
+Canonical CAIP-19 keeps base58 case (docs/internal/DECISIONS.md: asset-id pin).
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ def validate_address(address: str) -> None:
     """Validate a Solana address (a base58-encoded 32-byte key).
 
     Accepts strings of 32..44 characters drawn from the Bitcoin base58
-    alphabet — which excludes ``0``, ``O``, ``I`` and ``l``. Phase 0 checks
+    alphabet, which excludes ``0``, ``O``, ``I`` and ``l``. Phase 0 checks
     charset and length only; it does not base58-decode to verify the
     payload is exactly 32 bytes.
 

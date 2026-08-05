@@ -2,15 +2,15 @@
 
 Single-tenant embedding: the tenant id derives deterministically from
 the host's opaque ``external_user_id`` under a CONFIGURABLE project id
-defaulting to ``"embed"`` — get-or-create, idempotent, the same string
+defaulting to ``"embed"``. Get-or-create, idempotent, the same string
 always resolves to the same tenant (SPEC §7.1). A host that also runs
 the HTTP API over one ledger sets ``Settings.project_id`` to its real
 project so both surfaces derive ONE tenant (RELEASE_0.1.1 §5 #19).
 
 Duplication waiver (docs/internal/DECISIONS.md): :func:`derive_tenant_id` is a
 value-identical local copy of the pinned ``tenancy.models.end_user_id``
-formula — the layer contract forbids embed→tenancy imports.
-tests/golden/test_embed_ids.py cross-pins both sides to the same bytes,
+formula: the layer contract forbids embed→tenancy imports.
+Tests/golden/test_embed_ids.py cross-pins both sides to the same bytes,
 so drift is a red test, not a debate. The CONNECTION-ID half of that
 waiver was retired in 0.1.1: :func:`derive_connection_id` hashes
 ``chain_id`` too and is deliberately no longer byte-equal to
@@ -37,14 +37,14 @@ def derive_tenant_id(
 ) -> str:
     """Deterministic single-tenant id (DECISIONS-pinned formula).
 
-    Validates the pinned opaque-id invariant VERBATIM —
-    ``re.fullmatch(r"[A-Za-z0-9._:-]{1,128}")`` — raising
+    Validates the pinned opaque-id invariant VERBATIM,
+    ``re.fullmatch(r"[A-Za-z0-9._:-]{1,128}")``, raising
     ``auradefi.errors.ValidationError`` otherwise (SPEC §7.2: the
     charset excludes ``@``, so email-shaped input is structurally
     impossible; it is a bearer-equivalent secret and an email is
     guessable). Then returns
     ``"usr_" + sha256(f"{project_id}|{external_user_id}".encode())
-    .hexdigest()[:16]`` — the pinned ``end_user_id`` formula.
+    .hexdigest()[:16]``: the pinned ``end_user_id`` formula.
 
     ``project_id`` defaults to :data:`EMBED_PROJECT_ID`, the 0.1.0
     value, so a tenant derived before 0.1.1 resolves to the same string
@@ -69,13 +69,13 @@ def derive_connection_id(tenant_id: str, address: str, chain_id: str) -> str:
     ``"conn_" + sha256(f"embed|{tenant_id}|address|{chain_id}|
     {normalized}".encode()).hexdigest()[:16]`` where ``normalized`` is
     the pinned descriptor normalization: ``address.strip()``, lowercased
-    iff the stripped value starts with ``"0x"`` — so a mixed-case and a
+    iff the stripped value starts with ``"0x"``, so a mixed-case and a
     lowercase EVM address yield the SAME id, while base58 descriptors
     keep their case.
 
     ``chain_id`` is IDENTITY-BEARING (RELEASE_0.1.1 §5 #26): without it
-    one address could be watched on exactly one chain — the second
-    connect got a ConflictError naming an id the caller already owned —
+    one address could be watched on exactly one chain, the second
+    connect got a ConflictError naming an id the caller already owned,
     and the two chains would share one sync cursor, since ``SyncEngine``
     keys state by ``(tenant_id, connection.id)``. The project segment
     stays the literal ``"embed"``: ``tenant_id`` already carries the
@@ -83,7 +83,7 @@ def derive_connection_id(tenant_id: str, address: str, chain_id: str) -> str:
 
     ``chain_id`` is SHAPE-CHECKED, which is not defensive padding. Both
     trailing parameters are opaque strings, so swapping them produces a
-    perfectly plausible ``conn_`` id and no error at all — a caller that
+    perfectly plausible ``conn_`` id and no error at all: a caller that
     passed ``(tenant, chain, address)`` would derive a stable id from the
     wrong preimage and split the namespace silently. The seam audit did
     exactly that. A CAIP-2 shape is the cheapest thing that makes the
@@ -91,7 +91,7 @@ def derive_connection_id(tenant_id: str, address: str, chain_id: str) -> str:
     """
     if not re.fullmatch(r"[-a-z0-9]{3,8}:[-_a-zA-Z0-9]{1,32}", chain_id):
         raise ValidationError(
-            f"chain_id must be CAIP-2, got {chain_id!r} — arguments are "
+            f"chain_id must be CAIP-2, got {chain_id!r}: arguments are "
             "(tenant_id, address, chain_id)"
         )
     normalized = address.strip()
@@ -113,10 +113,10 @@ def _validate_report_counts(
     """Shared report invariants (SPEC §8).
 
     Three rules, checked in order: every count is ``>= 0``; a no-op did
-    NOTHING, so ALL FOUR counts are ``0`` — a tick that ingested
+    NOTHING, so ALL FOUR counts are ``0``, a tick that ingested
     transactions is not "a cheap no-op" whichever count records the
     work; and ``pages_fetched`` is the ONE shared budget spent by the
-    call, partitioned exactly into its two phases —
+    call, partitioned exactly into its two phases,
     ``pages_fetched == live_pages + backfill_pages``. A page is spent
     on the live window or on the backfill; there is no third bucket, so
     a report whose halves do not sum to the whole is incoherent and
@@ -148,7 +148,7 @@ def _validate_report_counts(
 class ConnectionRecord:
     """One watched address bound to a tenant (SPEC §8, §3.1).
 
-    ``id`` is deterministic — see :func:`derive_connection_id`.
+    ``id`` is deterministic. See :func:`derive_connection_id`.
     ``chain_id`` is a CAIP-2 string; ``created_at_ms`` is ms-epoch.
     """
 
@@ -173,7 +173,7 @@ class SyncState:
     ``min(block)`` is coarser than the unit being paginated, so neither
     boundary choice works on its own: an exclusive one drops the rest of
     a block the page cut in half, and an inclusive one re-reads page 1 of
-    a moving window every tick — and can never advance at all once one
+    a moving window every tick, and can never advance at all once one
     block holds more rows than ``page_size``. Fixing the window END for
     the whole phase and remembering WHICH PAGE was drained makes the walk
     monotonic: pages slice a stable ordered list, so a block spanning a
@@ -203,8 +203,8 @@ class ConnectionSyncReport:
     Raises ``auradefi.errors.ValidationError`` when any count
     (``pages_fetched``, ``live_pages``, ``backfill_pages``,
     ``transactions_ingested``) is negative, when ``no_op`` is True and
-    ANY of those four is non-zero — a no-op that fetched pages or
-    ingested transactions is a lie — or when the two halves do not sum
+    ANY of those four is non-zero, a no-op that fetched pages or
+    ingested transactions is a lie, or when the two halves do not sum
     to ``pages_fetched``.
 
     ``failed`` defaults to False, so every row written before the field
@@ -214,7 +214,7 @@ class ConnectionSyncReport:
     EXCLUSIVE with ``no_op``: "nothing needed doing" and "I could not do
     it" are different answers, and a row claiming both raises
     ``ValidationError`` rather than being believed. A failed row still
-    obeys every count invariant — failure is not a licence to emit an
+    obeys every count invariant. Failure is not a licence to emit an
     incoherent partition.
     """
 
@@ -232,7 +232,7 @@ class ConnectionSyncReport:
     def __post_init__(self) -> None:
         if self.failed and self.no_op:
             raise ValidationError(
-                "a report cannot be both failed and a no_op — 'I could "
+                "a report cannot be both failed and a no_op: 'I could "
                 "not do it' is not 'nothing needed doing'"
             )
         _validate_report_counts(
@@ -249,8 +249,8 @@ class ConnectionSyncReport:
     ) -> ConnectionSyncReport:
         """The row for a connection whose sync RAISED; pinned shape.
 
-        Every count is 0 — work a tick could not observe is never claimed
-        as done — while the cursors are ECHOED from ``state``, the last
+        Every count is 0, work a tick could not observe is never claimed
+        as done, while the cursors are ECHOED from ``state``, the last
         thing the store persisted, so the row says WHERE the connection
         stands as well as that it is stuck. ``no_op`` is False, which the
         failed/no-op exclusion requires anyway: a caller must never read
@@ -276,8 +276,8 @@ def _validate_breakdown_agreement(report: SyncReport) -> None:
     One tick spends one shared budget across its connections, so each
     aggregate count is the sum over ``report.connections`` and the tick
     is a no-op only when every row is. Any disagreement raises
-    ``auradefi.errors.ValidationError`` naming the offending field —
-    an aggregate and its own rows must not report two different truths.
+    ``auradefi.errors.ValidationError`` naming the offending field.
+    An aggregate and its own rows must not report two different truths.
     Only called when the breakdown is non-empty; ``()`` means "not
     reported", not "zero connections".
     """
@@ -298,7 +298,7 @@ def _validate_breakdown_agreement(report: SyncReport) -> None:
     derived_no_op = all(row.no_op for row in rows)
     if report.no_op != derived_no_op:
         raise ValidationError(
-            f"no_op must be {derived_no_op} — it is True exactly when "
+            f"no_op must be {derived_no_op}: it is True exactly when "
             f"every connection is a no-op, got {report.no_op}"
         )
 
@@ -310,7 +310,7 @@ class SyncReport:
     Same invariants as :class:`ConnectionSyncReport`: negative counts
     raise ``auradefi.errors.ValidationError``, as does ``no_op=True``
     with any non-zero count and any split where
-    ``pages_fetched != live_pages + backfill_pages`` — the tick's whole
+    ``pages_fetched != live_pages + backfill_pages``. The tick's whole
     budget is the sum of the two phases it was spent on.
 
     ``connections`` carries the per-connection breakdown, defaulting to
@@ -349,7 +349,7 @@ class SyncReport:
         """Ids of exactly the rows that failed, in breakdown order.
 
         DERIVED, never stored, so it can never contradict the breakdown:
-        ``()`` when no row failed and — vacuously — when there is no
+        ``()`` when no row failed and, vacuously, when there is no
         breakdown at all. A host branches on this instead of scanning
         the rows itself (RELEASE_0.1.1 §5 #24).
         """
@@ -363,7 +363,7 @@ class SyncReport:
 
         * each of ``pages_fetched``, ``live_pages``, ``backfill_pages``
           and ``transactions_ingested`` is the exact ``int`` sum over
-          ``connections`` — the tick spent one shared budget, so the
+          ``connections``: the tick spent one shared budget, so the
           rows ARE the total.
         * ``no_op`` is True iff every row is a no-op; a tick that did
           work anywhere did work. Zero connections is a no-op tick.

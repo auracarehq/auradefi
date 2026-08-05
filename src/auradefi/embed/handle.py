@@ -1,10 +1,10 @@
-"""``UserHandle`` — one host user's tenant-scoped slice of the library.
+"""``UserHandle``: one host user's tenant-scoped slice of the library.
 
 Split out of ``facade.py`` when that module reached the 400-line hard cap
 (the house rule is to split rather than to compress the reasoning out).
 The two classes were always separable: ``Auradefi`` binds ports and answers
 across every connection a store holds, while this class narrows all of it
-to ONE derived tenant — the scope rule of rule #6, expressed as an object
+to ONE derived tenant: the scope rule of rule #6, expressed as an object
 so a caller cannot forget to pass a tenant id.
 
 It reaches into the facade's internals on purpose. ``UserHandle`` owns no
@@ -44,23 +44,23 @@ class UserHandle:
         self.tenant_id = tenant_id
 
     def connect_address(self, chain: str, address: str) -> ConnectionRecord:
-        """Watch one address on one chain — validated NOW, not later.
+        """Watch one address on one chain: validated NOW, not later.
 
         In order, and each step before any HTTP can happen:
 
-        1. ``chains.evm.chain_id_from_caip2(chain)`` — a vendor name like
+        1. ``chains.evm.chain_id_from_caip2(chain)``: a vendor name like
            ``"ethereum"`` raises ``auradefi.errors.CaipParseError``.
         2. ChainRegistry MEMBERSHIP: a well-formed CAIP-2 the registry
            does not hold raises ``auradefi.errors.UnknownChainError``
-           naming it — the decoder needs that entry, so accepting the
+           naming it. The decoder needs that entry, so accepting the
            chain stores a connection every ``sync()`` fails on (§5 #24).
-        3. ``chains.evm.normalize_address(address)`` — a non-address
+        3. ``chains.evm.normalize_address(address)``. A non-address
            raises ``auradefi.errors.ValidationError``. The normalized
            (lowercased) address is what gets stored.
         4. The connection id is DERIVED
            (``embed.models.derive_connection_id``) and CHAIN-SCOPED, so a
-           re-connect of the same (chain, address) — in any letter case in
-           the 40 hex DIGITS — raises ``auradefi.errors.ConflictError``
+           re-connect of the same (chain, address), in any letter case in
+           the 40 hex DIGITS, raises ``auradefi.errors.ConflictError``
            carrying ``existing_id`` with ZERO requests made, while the
            SAME address on ANOTHER chain is a second, independent
            connection (§5 #26). The ``0x`` prefix is NOT

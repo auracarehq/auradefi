@@ -1,10 +1,10 @@
-"""Phase 9 perf gate — 50,000 events must replay in seconds (SPEC §11).
+"""Phase 9 perf gate. 50,000 events must replay in seconds (SPEC §11).
 
 Correctness at 50,000 events is worthless if it takes a minute: the whole
 claim in SPEC §9 is that incremental lot-tracking makes arbitrary-date PnL
 *available* on an active wallet, where Zerion's pre-computed marks are
-not. A quadratic engine — one that rescans every lot ever opened on every
-disposal — passes the golden vectors and misses the point, so the budget
+not. A quadratic engine, one that rescans every lot ever opened on every
+disposal, passes the golden vectors and misses the point, so the budget
 is a test.
 
 This module duplicates the generator constants of
@@ -12,7 +12,7 @@ This module duplicates the generator constants of
 cross-test imports and no ``tests/__init__.py``, and a shared helper would
 be a hidden dependency between two gates that must fail independently.
 
-``time.monotonic`` is read HERE and nowhere else in the accounting tree —
+``time.monotonic`` is read HERE and nowhere else in the accounting tree.
 ``accounting/`` is pure and takes no clock.
 """
 
@@ -44,7 +44,7 @@ REALIZED_AT_END = Decimal("100000")
 REALIZED_AT_MID = Decimal("50050")
 
 #: Seconds for one 50,000-event replay plus one arbitrary-date query.
-#: Not a machine-speed measurement — a shape check. The naive engine is
+#: Not a machine-speed measurement: a shape check. The naive engine is
 #: quadratic and lands three times over; anything O(open lots) a disposal
 #: lands well under.
 BUDGET_SECONDS = 10.0
@@ -97,6 +97,6 @@ def test_a_fifty_thousand_event_replay_and_one_arbitrary_date_fit_the_budget():
     assert len(full.open_lots) == 12_500
     assert elapsed < BUDGET_SECONDS, (
         f"50,000-event FIFO replay plus one arbitrary-date query took "
-        f"{elapsed:.2f}s, over the {BUDGET_SECONDS}s budget — the engine is "
+        f"{elapsed:.2f}s, over the {BUDGET_SECONDS}s budget: the engine is "
         f"rescanning closed lots"
     )

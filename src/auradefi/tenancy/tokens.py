@@ -11,7 +11,7 @@ verbatim:
   f"{header_b64}.{payload_b64}".encode("ascii"), hashlib.sha256).digest()``;
 * claims are exactly ``{exp, external_user_id, iat, jti, project_id,
   scopes}`` with ``scopes`` a sorted de-duplicated JSON list;
-* ``iat``/``exp`` are MS-EPOCH ints — a deliberate, documented deviation
+* ``iat``/``exp`` are MS-EPOCH ints: a deliberate, documented deviation
   from RFC 7519 NumericDate seconds (SPEC §4.4: "ms epoch, everywhere,
   always"; these tokens are consumed only by our own verify path).
 
@@ -22,7 +22,7 @@ holding a forged token learns nothing from the error class. ``alg: none``
 is closed: any header that is not byte-for-byte the pinned one is
 malformed.
 
-stdlib only: hmac, hashlib, base64, json, secrets — never PyJWT, never
+Stdlib only: hmac, hashlib, base64, json, secrets, never PyJWT, never
 ``time.time()`` (time arrives through a :class:`~auradefi.clock.Clock`).
 """
 
@@ -48,7 +48,7 @@ from auradefi.errors import (
 # be indistinguishable to a probing caller (SPEC §7.2).
 _REJECTED = "token failed authentication"
 
-# Payload keys, pre-sorted — json.dumps(sort_keys=True) emits this order.
+# Payload keys, pre-sorted: json.dumps(sort_keys=True) emits this order.
 _CLAIM_KEYS = ("exp", "external_user_id", "iat", "jti", "project_id", "scopes")
 
 
@@ -78,7 +78,7 @@ def _decode_json_segment(segment: str) -> object:
     It is a ``RuntimeError``, so the obvious ``(ValueError,
     UnicodeDecodeError)`` pair misses it, and ~10,000 nested arrays reach
     ``json.loads`` from every caller that verifies a caller-supplied
-    bearer token — not only from the peek that selects a secret. Letting
+    bearer token, not only from the peek that selects a secret. Letting
     it escape turns a pinned 401 into an unformatted 500 and leaks a
     stack trace, so the malformed-input answer must be the same here as
     everywhere else on this surface (RELEASE_0.1.1 §4 #34).
@@ -114,7 +114,7 @@ def _validate_payload(payload: object) -> dict:
 
 @dataclass(frozen=True, slots=True)
 class TokenClaims:
-    """Verified claims of one token; frozen — a credential is not mutable.
+    """Verified claims of one token; frozen. A credential is not mutable.
 
     ``iat``/``exp`` are ms-epoch ints; ``scopes`` is the sorted
     de-duplicated tuple exactly as serialised on the wire.

@@ -4,17 +4,17 @@ README's *What is not there* understated the gap: it omitted the whole
 ``jobs/`` package, five ``api/routes/`` modules, ``project/plaid.py`` and
 ``native.py``, and ``prices/historian.py`` and ``store.py``. A README that
 understates its own gaps is a correctness problem, not a documentation
-nicety — rule #10 cuts both ways, and a reader budgeting work off that
+nicety: rule #10 cuts both ways, and a reader budgeting work off that
 section was being told the package was closer to the spec than it is.
 
 Prose cannot be asserted on, so this gate asserts the DIFF instead, in
 both directions, against two committed inventories:
 
-* ``DECLARED_BUT_ABSENT`` — in the spec's layout, not in the tree. Every
+* ``DECLARED_BUT_ABSENT``: in the spec's layout, not in the tree. Every
   entry is a documented limitation. Shipping one of these makes this test
   fail, which is the point: the module arriving is exactly when the README
   needs editing.
-* ``SHIPPED_BUT_UNDECLARED`` — in the tree, not in the spec's layout.
+* ``SHIPPED_BUT_UNDECLARED``: in the tree, not in the spec's layout.
   These are modules the build added after §3.2 was written. Two of them
   (``api/sinks.py``, ``embed/dispatch.py``) were added by 0.1.1 itself
   when stating a seam honestly and containing a failure outgrew their
@@ -37,7 +37,7 @@ README = REPO / "README.md"
 #: Declared in §3.2, absent from the tree. Each is a documented limitation.
 DECLARED_BUT_ABSENT = frozenset(
     {
-        # No background worker at all — the host owns the tick.
+        # No background worker at all. The host owns the tick.
         "jobs/scheduler.py",
         "jobs/discover.py",
         "jobs/refresh.py",
@@ -90,7 +90,7 @@ DECLARED_BUT_ABSENT = frozenset(
     }
 )
 
-#: In the tree, absent from §3.2 — added after the layout was written.
+#: In the tree, absent from §3.2. Added after the layout was written.
 SHIPPED_BUT_UNDECLARED = frozenset(
     {
         "accounting/report.py",
@@ -182,16 +182,27 @@ def _shipped_modules() -> set[str]:
 
 
 def _gap_section() -> str:
-    """README's *What is not there* section, verbatim."""
+    """README's *What is not there* section, verbatim.
+
+    The heading is located by its words with emphasis markers stripped, so
+    that restyling it (``What is **not** there`` to ``What is not there``)
+    moves no test. Anchoring on decorative markup made this gate fail for a
+    reason that had nothing to do with the gap prose it exists to guard.
+    """
     text = README.read_text(encoding="utf-8")
-    start = text.index("### What is **not** there")
+    heading = next(
+        line
+        for line in text.split("\n")
+        if line.replace("*", "").strip() == "### What is not there"
+    )
+    start = text.index(heading)
     end = text.index("\n## ", start)
     return text[start:end]
 
 
 def test_the_spec_declares_a_layout_this_test_can_read():
     # A parse that silently found nothing would make every assertion below
-    # vacuously true — the failure mode this whole gate exists to prevent.
+    # vacuously true: the failure mode this whole gate exists to prevent.
     declared = _declared_modules()
     assert len(declared) > 90, f"parsed only {len(declared)} declared modules"
     assert "jobs/scheduler.py" in declared
@@ -204,7 +215,7 @@ def test_every_declared_absence_is_inventoried():
         "the spec-vs-tree gap moved and the inventory did not.\n"
         f"newly absent: {sorted(missing - DECLARED_BUT_ABSENT)}\n"
         f"now shipped:  {sorted(DECLARED_BUT_ABSENT - missing)}\n"
-        "Update DECLARED_BUT_ABSENT *and* README's 'What is not there' — a "
+        "Update DECLARED_BUT_ABSENT *and* README's 'What is not there': a "
         "module arriving or leaving is exactly when that prose goes stale."
     )
 

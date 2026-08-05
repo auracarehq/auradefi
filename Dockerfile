@@ -1,4 +1,4 @@
-# auradefi — library image.
+# auradefi library image.
 #
 # Stage `test` proves the SPEC §13 acceptance criterion in a container:
 # a fresh tree, no API keys, no network, suite green. It installs the
@@ -6,8 +6,8 @@
 # exercises (fastapi for `api/`, sqlmodel for `ledger/backends/`) alongside
 # pytest and the notebook toolchain.
 #
-# Stage `runtime` is a minimal image with only the CORE install — httpx and
-# nothing else — plus the quickstart, which is written to degrade
+# Stage `runtime` is a minimal image with only the CORE install, httpx and
+# nothing else, plus the quickstart, which is written to degrade
 # gracefully when the [sql] and [api] extras are absent. It is the base for
 # an API service (add `pip install 'auradefi[api]'`) and for hosts wanting
 # a pinned import environment.
@@ -30,7 +30,7 @@ COPY docs ./docs
 # The suite reads the published surface, not just the source: `examples/` and
 # its runner are asserted by tests/style/test_examples_are_published.py and
 # tests/style/test_docs_pin_live_values.py, so a container missing them fails
-# five gates that are green on the host — the exact host/image divergence the
+# five gates that are green on the host: the exact host/image divergence the
 # CHANGELOG/STATUS copy below was added to close.
 COPY examples ./examples
 COPY scripts ./scripts

@@ -1,12 +1,12 @@
 """Contract tests for Etherscan V2 txlist/tokentx typed raw records.
 
-Parse only — the sources half of SPEC §3.3 ("raw chain bytes -> typed
+Parse only: the sources half of SPEC §3.3 ("raw chain bytes -> typed
 records"). Golden literals are hardcoded and derived by hand:
 ``int("1000000000000000000") == 10**18``, ``int("10000000000") ==
 10**10``, ``int("9"*78) == 10**78 - 1``. The 78-nines amount does NOT
 survive an ``int(float(...))`` roundtrip, so its exact equality
 mechanically fails any implementation that parses amounts through float
-(SPEC rules #1/#2). ``timeStamp`` stays in SECONDS as delivered — the
+(SPEC rules #1/#2). ``timeStamp`` stays in SECONDS as delivered. The
 decoder owns the ×1000 to ms (DECISIONS: decode timestamps).
 """
 
@@ -130,7 +130,7 @@ def test_parse_normal_row_golden():
 
 def test_parse_normal_row_keeps_timestamp_in_seconds():
     record = parse_normal_row(normal_row())
-    assert record.time_stamp == 1700000000  # NOT ms — decode owns ×1000
+    assert record.time_stamp == 1700000000  # NOT ms. Decode owns ×1000
     assert record.block_number == 100
 
 

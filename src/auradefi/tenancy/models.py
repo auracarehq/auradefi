@@ -1,14 +1,14 @@
 """Tenancy value objects, deterministic ids, opaque-id invariant.
 
-The tenant graph of SPEC §3.1 — ``Organisation → Project`` (with api
-keys) ``→ EndUser`` (via ``external_user_id``) ``→ Connection`` — plus
+The tenant graph of SPEC §3.1, ``Organisation → Project`` (with api
+keys) ``→ EndUser`` (via ``external_user_id``) ``→ Connection``, plus
 the deterministic-id algorithms pinned in docs/internal/DECISIONS.md and the
 SPEC §7.2 hardening: scoped keys, per-environment keys, and opaque ids
 enforced as an invariant (the ``external_user_id`` charset excludes
-``@``, so email-shaped input is structurally impossible — it is a
+``@``, so email-shaped input is structurally impossible, it is a
 bearer-equivalent secret, and an email is guessable).
 
-``Project.signing_secret`` is the per-project JWT HMAC secret — the
+``Project.signing_secret`` is the per-project JWT HMAC secret: the
 isolation root. All timestamps are ms-epoch ints. stdlib only.
 """
 
@@ -27,7 +27,7 @@ _EXTERNAL_USER_ID_RE = re.compile(r"[A-Za-z0-9._:-]{1,128}")
 
 
 class Scope(StrEnum):
-    """API-key scopes (SPEC §7.2 — exact wire strings).
+    """API-key scopes (SPEC §7.2, exact wire strings).
 
     A read-only analytics service must not be able to mint tokens or
     delete accounts.
@@ -42,7 +42,7 @@ class Scope(StrEnum):
 class Environment(StrEnum):
     """Per-environment keys, independent rotation (SPEC §7.2).
 
-    Both values are exactly 4 characters — the API-key wire format
+    Both values are exactly 4 characters: the API-key wire format
     (``adk_{env}_{body}``, total length 57) depends on that.
     """
 
@@ -72,7 +72,7 @@ class Organisation:
 class Project:
     """The tenant boundary; nothing crosses it (SPEC §3.1, §7).
 
-    ``signing_secret`` is the per-project JWT HMAC secret — the
+    ``signing_secret`` is the per-project JWT HMAC secret: the
     isolation root: a token minted under one project can never verify
     under another. ``environment`` separates live from test keys.
     """
@@ -89,7 +89,7 @@ class Project:
 class EndUser:
     """A host user inside one project, keyed by opaque ``external_user_id``.
 
-    ``id`` is deterministic — see :func:`end_user_id`. The
+    ``id`` is deterministic. See :func:`end_user_id`. The
     ``external_user_id`` has already passed
     :func:`validate_external_user_id` (SPEC §7.2: opaque, never PII).
     """
@@ -104,7 +104,7 @@ class EndUser:
 class Connection:
     """One credentialed-or-watched source (≡ Plaid Item, SPEC §3.1).
 
-    ``id`` is deterministic — see :func:`connection_id`. ``descriptor``
+    ``id`` is deterministic. See :func:`connection_id`. ``descriptor``
     is stored in normalized form (:func:`normalize_descriptor`).
     """
 
@@ -121,7 +121,7 @@ class ApiKey:
     """A scoped, per-environment project key (SPEC §7.2).
 
     Only ``prefix`` (plaintext[:17]) and ``secret_hash`` (sha256 hex of
-    the plaintext) are stored at rest — never the plaintext. ``scopes``
+    the plaintext) are stored at rest, never the plaintext. ``scopes``
     is a frozenset of :class:`Scope`. ``expires_at``/``revoked_at`` are
     ms-epoch ints, ``None`` while unset.
     """
@@ -143,7 +143,7 @@ def validate_external_user_id(value: str) -> str:
     Raises ``auradefi.errors.ValidationError`` otherwise. The charset
     excludes ``@``, so email-shaped input is structurally impossible
     (SPEC §7.2: an external_user_id is a bearer-equivalent secret and
-    an email is guessable — Vezgo's own OpenAPI example,
+    an email is guessable, Vezgo's own OpenAPI example,
     ``user@example.dev``, is rejected by name).
     """
     if not _EXTERNAL_USER_ID_RE.fullmatch(value):
@@ -157,7 +157,7 @@ def normalize_descriptor(kind: ConnectionKind, descriptor: str) -> str:
     """``descriptor.strip()``, then lowercased iff ``kind`` is ADDRESS
     and the stripped value starts with ``"0x"`` (DECISIONS pinned).
 
-    XPUB and EXCHANGE descriptors are never lowercased — xpubs are
+    XPUB and EXCHANGE descriptors are never lowercased. Xpubs are
     base58, where case is significant.
     """
     stripped = descriptor.strip()
@@ -187,7 +187,7 @@ def connection_id(
 
     ``"conn_" + sha256(f"{project_id}|{end_user_id}|{kind}|{normalized}"
     .encode()).hexdigest()[:16]`` where ``normalized`` is
-    :func:`normalize_descriptor` applied to ``descriptor`` — so a
+    :func:`normalize_descriptor` applied to ``descriptor``, so a
     mixed-case and a lowercase EVM address yield the SAME id.
     """
     normalized = normalize_descriptor(kind, descriptor)
@@ -198,15 +198,15 @@ def connection_id(
 
 
 def new_org_id(entropy: Callable[[int], str] = secrets.token_hex) -> str:
-    """``"org_" + entropy(8)`` — 16 hex chars from 8 random bytes."""
+    """``"org_" + entropy(8)``: 16 hex chars from 8 random bytes."""
     return "org_" + entropy(8)
 
 
 def new_project_id(entropy: Callable[[int], str] = secrets.token_hex) -> str:
-    """``"proj_" + entropy(8)`` — 16 hex chars from 8 random bytes."""
+    """``"proj_" + entropy(8)``: 16 hex chars from 8 random bytes."""
     return "proj_" + entropy(8)
 
 
 def new_key_id(entropy: Callable[[int], str] = secrets.token_hex) -> str:
-    """``"key_" + entropy(8)`` — 16 hex chars from 8 random bytes."""
+    """``"key_" + entropy(8)``: 16 hex chars from 8 random bytes."""
     return "key_" + entropy(8)

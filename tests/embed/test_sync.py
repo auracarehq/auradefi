@@ -5,7 +5,7 @@ recording ``PageFetcher`` over an in-memory block history, a recording
 decoder, ``MemoryLedger`` and ``MemorySyncState``, and a ``FrozenClock``
 at T0 = 1_754_000_000_000 with a 60_000 ms throttle window.
 
-Everything asserted here is a NUMBER or an exact call argument list —
+Everything asserted here is a NUMBER or an exact call argument list:
 the request windows, the page counts, the two cursors, the ingested
 count. "It synced" is not an assertion; "it fetched
 ``[0, 99999999] desc page 1 offset 2`` and moved the live cursor to 106"
@@ -46,7 +46,7 @@ CONNECTION = ConnectionRecord(
 
 
 def _row(block: int) -> dict:
-    """One Etherscan-shaped txlist row for ``block`` — every field a str."""
+    """One Etherscan-shaped txlist row for ``block``: every field a str."""
     return {
         "blockNumber": str(block),
         "timeStamp": str(1_700_000_000 + (block - 100) * 3600),
@@ -252,7 +252,7 @@ def _ledger_ids(ledger: LedgerPort) -> list[str]:
 
 
 def _expected_ids(rows: Sequence[dict]) -> list[str]:
-    """The ids ``rows`` MUST have become — the DECISIONS-pinned formula.
+    """The ids ``rows`` MUST have become: the DECISIONS-pinned formula.
 
     Derived from ``CONNECTION.id`` rather than hardcoded so this stays
     true when the connection id gains its chain component.
@@ -364,7 +364,7 @@ def test_a_zero_minimum_interval_never_throttles():
 
 # pins: a never-synced connection spends its first page on ONE desc window
 #       over [0, head_block] counted as a LIVE page, and the backfill that
-#       follows re-enters the anchor's lowest block INCLUSIVELY — the second
+#       follows re-enters the anchor's lowest block INCLUSIVELY: the second
 #       window is [0, 105], not [0, 104].
 def test_the_anchor_page_is_the_first_live_window():
     harness = _harness(blocks=range(100, 107))
@@ -419,7 +419,7 @@ def test_a_short_anchor_page_completes_the_backfill_immediately():
 #       backfill window [0, backfill_end] and RESUMES at the page the last
 #       tick stopped on, until a short page completes it. Every block of the
 #       history lands, exactly once. This previously expected the windows
-#       (0,104) p1..p3 — the exclusive `cursor - 1` arithmetic that dropped
+#       (0,104) p1..p3: the exclusive `cursor - 1` arithmetic that dropped
 #       the remainder of a block a page had cut in half (RELEASE_0.1.1 §5
 #       #18). The window end is now pinned by the anchor at 105 and the page
 #       carries the resume position, so tick 1 drains page 1 and tick 2
@@ -444,7 +444,7 @@ def test_resuming_drains_the_live_window_then_backfills_to_completion():
 
 
 # pins: once backfill_complete is stored True, a later sync walks ZERO backfill
-#       pages — it fetches the live window and nothing else.
+#       pages. It fetches the live window and nothing else.
 def test_a_completed_backfill_is_never_walked_again():
     harness = _harness(blocks=range(100, 107))
     harness.engine.sync_connection(TENANT, CONNECTION, 2)
@@ -624,7 +624,7 @@ def test_the_head_block_sentinel_is_pinned():
 # block 100, page 1 of every desc window over that history ends inside
 # block 100 and one transaction is left behind. A backfill window that
 # restarts strictly BELOW the lowest block it ingested never asks for
-# that remainder again — and the loss is silent, because the same run
+# that remainder again, and the loss is silent, because the same run
 # reports backfill_complete. Nothing here asserts a request sequence:
 # the pins are the ledger's CONTENTS and the report's HONESTY, so any
 # window arithmetic that fetches the whole block satisfies them.
@@ -658,7 +658,7 @@ def _sync_until_complete(
 
 
 # pins: when a page ends inside a block, the transactions in the rest of
-#       that block are still fetched — every transaction of a
+#       that block are still fetched: every transaction of a
 #       page-splitting block reaches the ledger.
 def test_a_page_ending_inside_a_block_still_ingests_that_blocks_remainder():
     harness = _harness(rows=BOUNDARY_ROWS)
@@ -670,7 +670,7 @@ def test_a_page_ending_inside_a_block_still_ingests_that_blocks_remainder():
 
 
 # pins: backfill_complete never reads True while a transaction is still
-#       missing from the ledger — a backfill that dropped a transaction
+#       missing from the ledger: a backfill that dropped a transaction
 #       does not report that it finished.
 def test_backfill_complete_never_reads_true_with_a_transaction_missing():
     harness = _harness(rows=BOUNDARY_ROWS)
@@ -694,7 +694,7 @@ def test_backfill_complete_never_reads_true_with_a_transaction_missing():
 
 
 # pins: the block a page cut in half is re-entered even when older
-#       blocks exist behind it — walking on to older history never
+#       blocks exist behind it: walking on to older history never
 #       skips the remainder of the split block.
 def test_the_split_block_is_not_skipped_when_older_history_follows_it():
     harness = _harness(rows=DEEP_ROWS)
@@ -707,7 +707,7 @@ def test_the_split_block_is_not_skipped_when_older_history_follows_it():
 
 
 # pins: transactions_ingested totals the DISTINCT transactions of the
-#       history, not the rows fetched — a window that refetches rows it
+#       history, not the rows fetched: a window that refetches rows it
 #       already ingested reports them as ingested once, not twice.
 def test_the_ingested_total_counts_each_transaction_exactly_once():
     harness = _harness(rows=DEEP_ROWS)
@@ -719,7 +719,7 @@ def test_the_ingested_total_counts_each_transaction_exactly_once():
 
 
 # pins: a backfill resumed with its cursor ON a split block ingests only
-#       the transaction of that block it has not stored yet — dedup is
+#       the transaction of that block it has not stored yet. Dedup is
 #       by transaction id, so refetched rows are not added again.
 def test_resuming_on_a_split_block_adds_only_the_unseen_transaction():
     harness = _harness(rows=BOUNDARY_ROWS)
@@ -735,7 +735,7 @@ def test_resuming_on_a_split_block_adds_only_the_unseen_transaction():
 
 
 # pins: a sync made after the backfill genuinely completed adds no
-#       transaction and walks no backfill page — the split block is
+#       transaction and walks no backfill page. The split block is
 #       never re-ingested as new rows.
 def test_a_sync_after_completion_adds_nothing_to_a_split_block():
     harness = _harness(rows=BOUNDARY_ROWS)

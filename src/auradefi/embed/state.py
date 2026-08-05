@@ -2,7 +2,7 @@
 
 ``SyncStatePort`` is the structural interface a host satisfies to own
 the storage of per-connection sync cursors (rule #12): a
-``runtime_checkable`` ``Protocol`` — no base class to import, no
+``runtime_checkable`` ``Protocol``, no base class to import, no
 registration. ``MemorySyncState`` backs the test suite with
 ``MemoryLedger``'s tenant hygiene: every scoped method validates
 ``tenant_id`` first and one tenant's records are invisible to every
@@ -11,7 +11,7 @@ other tenant.
 ``tenants()`` is the deliberate exception to "``tenant_id`` first": it
 IS the enumeration, so a caller that already knew the tenant would have
 no use for it. It exists because the store, not the process, has to know
-which tenants have work waiting — a restarted worker that reads its
+which tenants have work waiting. A restarted worker that reads its
 tenant list from process memory finds none and reports a success-shaped
 ``no_op`` forever (RELEASE_0.1.1 §5 #21). Knowing a tenant exists still
 reveals none of its records; isolation stays with the four scoped
@@ -35,13 +35,13 @@ class SyncStatePort(Protocol):
     Tenant-scoped throughout (rule #6): ``tenant_id`` is the first
     argument of every scoped method, and no call may read or write
     across tenants. :meth:`tenants` is the one enumeration, and it
-    yields ids only — never another tenant's records.
+    yields ids only, never another tenant's records.
     """
 
     def get_state(self, tenant_id: str, connection_id: str) -> SyncState:
         """Return the stored :class:`SyncState` for one connection.
 
-        A fresh default ``SyncState()`` when nothing was stored — a
+        A fresh default ``SyncState()`` when nothing was stored: a
         never-synced connection and an absent one are indistinguishable.
         """
         raise NotImplementedError
@@ -61,7 +61,7 @@ class SyncStatePort(Protocol):
 
         A duplicate ``record.id`` within the tenant raises
         ``auradefi.errors.ConflictError`` carrying
-        ``existing_id=record.id`` (SPEC §7.1 — Vezgo's 409 with
+        ``existing_id=record.id`` (SPEC §7.1, Vezgo's 409 with
         ``existing_connection_id``, kept); the stored record is never
         overwritten.
         """
@@ -76,8 +76,8 @@ class SyncStatePort(Protocol):
         list and calling that a no-op (RELEASE_0.1.1 §5 #21). A tenant
         appears once, whether it became known through
         :meth:`add_connection` or :meth:`put_state`, and the order is
-        the order ``sync()`` then spends its shared budget in. Ids only
-        — this is not a way to read another tenant's rows.
+        the order ``sync()`` then spends its shared budget in. Ids only.
+        This is not a way to read another tenant's rows.
         """
         raise NotImplementedError
 

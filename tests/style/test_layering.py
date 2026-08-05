@@ -1,4 +1,4 @@
-"""SPEC §3.2/§3.3 — the important gate. The layer contract, mechanically
+"""SPEC §3.2/§3.3: the important gate. The layer contract, mechanically
 enforced over the real import graph:
 
   * sources/ may not import positions/; assets/ may not import prices/
@@ -9,7 +9,7 @@ enforced over the real import graph:
   * foundation flat modules import no domain
 
 A domain absent from ALLOWED_IMPORTS fails loudly: declaring a new domain's
-layer is a deliberate act, made here, in review — never an accident.
+layer is a deliberate act, made here, in review, never an accident.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ ALLOWED_IMPORTS: dict[str, set[str]] = {
     # bundled recording through testing/cassettes.py's matcher rather than
     # forking it. That module is shipped, host-facing surface (its own
     # docstring invites hosts to test their integrations with it), not test
-    # scaffolding — and two replay matchers with drifting semantics would be
+    # scaffolding, and two replay matchers with drifting semantics would be
     # worse than this edge. `testing` imports no domain, so it cannot cycle.
     "sources": {"money", "chains", "assets", "testing"},
     "prices": {"money", "chains", "assets", "sources"},
@@ -66,7 +66,7 @@ ALLOWED_IMPORTS: dict[str, set[str]] = {
 IO_DOMAINS = {"sources", "prices", "testing", "api", "jobs", "webhooks"}
 
 # The root __init__ may lazily export these domains' public entry points
-# (SPEC §8 "import, don't call" — `from auradefi import Auradefi`). Every
+# (SPEC §8 "import, don't call": `from auradefi import Auradefi`). Every
 # other foundation→domain edge stays a violation.
 FOUNDATION_LAZY_EXPORTS = {"embed"}
 
@@ -158,7 +158,7 @@ def test_internal_imports_respect_the_layer_contract():
                 continue
             violations.append(
                 f"{path.relative_to(REPO)}: foundation module imports domain "
-                f"'{target_domain}' — foundation imports nothing"
+                f"'{target_domain}': foundation imports nothing"
             )
         elif target_domain not in ALLOWED_IMPORTS.get(source_domain, set()):
             violations.append(

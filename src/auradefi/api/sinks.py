@@ -9,14 +9,14 @@ that both come from RELEASE_0.1.1 §5 Wave C:
 * ``tests/api/test_deps.py`` pins that ``api/deps.py`` imports neither
   ``portfolio`` nor ``webhooks``, so the injection record stays bindable
   by a host that never installed the shipped stores. Nothing here
-  imports ``webhooks`` either — the row Protocols below say what the
+  imports ``webhooks`` either: the row Protocols below say what the
   routes READ without naming the classes that happen to ship.
 
 That distinction is the whole point. #27 and #28 were not "two missing
 members": they were a declared interface that promised less than its
 consumers required, so the shipped store satisfied the routes by
 accident while every host-written sink got an unhandled 500. A return
-type of bare ``object`` is unimplementable from the declaration alone —
+type of bare ``object`` is unimplementable from the declaration alone:
 it names no attribute, so a host cannot know what to return, and each
 one it omits is another 500. The row Protocols state the whole read
 surface; ``tests/contract/seams/test_wave1_webhook_sink.py`` binds a
@@ -80,7 +80,7 @@ class WebhookSink(Protocol):
 
     Never an import of ``auradefi.webhooks``: any object with EVERY
     member below is a sink. Every member the routes reach for is below,
-    RETURN SHAPES INCLUDED, and nothing else is — an unused promise would
+    RETURN SHAPES INCLUDED, and nothing else is. An unused promise would
     make every host-supplied sink implement dead code just to satisfy
     ``isinstance(sink, WebhookSink)``. That is why ``get_delivery`` is
     absent: the shipped store calls its own, internally, and no route
@@ -96,14 +96,14 @@ class WebhookSink(Protocol):
     ) -> tuple[EndpointRow, str]:
         """Register (or re-register) one endpoint for ``project_id``.
 
-        Answers the PAIR the registration route unpacks — ``(endpoint,
-        plaintext_secret)`` — never one object: the 64-hex secret is
+        Answers the PAIR the registration route unpacks, ``(endpoint,
+        plaintext_secret)``, never one object: the 64-hex secret is
         returned exactly once, by that route (SPEC §7.3, §5 #28).
         """
         raise NotImplementedError
 
     def endpoints(self, project_id: str) -> Sequence[EndpointRow]:
-        """This project's endpoints — never another project's."""
+        """This project's endpoints, never another project's."""
         raise NotImplementedError
 
     def emit(

@@ -1,8 +1,8 @@
 """Plaid-shaped API reference, generated from the code itself.
 
 Plaid documents an endpoint as: description, then **request fields**, then a
-code sample, then **response fields**, then a JSON example — with every field
-written `required, string` or `optional, integer — Default: 100`. The value is
+code sample, then **response fields**, then a JSON example, with every field
+written `required, string` or `optional, integer, Default: 100`. The value is
 not the styling; it is that a reader can answer "what do I pass and what do I
 get back" without reading prose.
 
@@ -13,8 +13,8 @@ emits.
 
 WHAT IS DERIVED AND WHAT IS WRITTEN. Signatures, types, defaults, dataclass
 fields and NamedTuple fields come from `inspect` and the annotations, so they
-cannot drift. Per-parameter prose cannot be derived — the docstrings here are
-narrative rather than `:param:`-annotated — so it lives in :data:`PARAM_DOCS`,
+cannot drift. Per-parameter prose cannot be derived, the docstrings here are
+narrative rather than `:param:`-annotated, so it lives in :data:`PARAM_DOCS`,
 and `tests/style/test_reference_is_generated.py` fails if a documented
 parameter is not in the real signature. Raised exceptions are scraped from
 the docstring, which by house rule states the error contract.
@@ -90,8 +90,8 @@ SECTIONS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 PARAM_DOCS: dict[str, dict[str, str]] = {
     "Auradefi.__init__": {
         "ledger": "Where transactions are stored. Four methods, tenant-scoped.",
-        "source": "Your chain data. Must satisfy BOTH seams — `balances` and "
-                  "`fetch_txlist` — or binding raises immediately.",
+        "source": "Your chain data. Must satisfy BOTH seams: `balances` and "
+                  "`fetch_txlist`: or binding raises immediately.",
         "prices": "Your price feed. Returning nothing for an asset is allowed "
                   "and means unpriced, never zero.",
         "clock": "`None` means `SystemClock()`. Time is a port so quota "
@@ -129,7 +129,7 @@ PARAM_DOCS: dict[str, dict[str, str]] = {
     },
     "EtherscanSource.__init__": {
         "client": "Injected `httpx.Client`. Nothing is opened here.",
-        "api_key": "`None` omits the `apikey` param entirely — the keyless "
+        "api_key": "`None` omits the `apikey` param entirely: the keyless "
                    "tier, not an empty key.",
         "base_url": "Override to point at a proxy or a compatible endpoint.",
         "page_size": "Token-discovery page size for `balances`.",
@@ -182,7 +182,7 @@ def _load(target: str) -> tuple[object, str]:
     return getattr(module, qualname), qualname
 
 
-#: RST inline literal — these docstrings predate the site and use ``x``.
+#: RST inline literal: these docstrings predate the site and use ``x``.
 _LITERAL = re.compile(r"``([^`]+)``")
 #: A Sphinx role: :func:`~pkg.mod.name` / :class:`Name`.
 _ROLE = re.compile(r":(?:func|class|meth|data|attr|mod|exc):`~?([^`]+)`")
@@ -193,7 +193,7 @@ def _clean(text: str | None) -> str:
     """A docstring as markdown: dedented, with RST markup translated.
 
     `inspect.cleandoc` rather than `textwrap.dedent`, because a docstring's
-    first line carries no indentation and every later line does — dedent
+    first line carries no indentation and every later line does: dedent
     finds no common prefix and leaves the body indented, which markdown
     then renders as a code block.
     """
@@ -268,7 +268,7 @@ def _params_block(func: object, key: str) -> str:
         bits = ["required" if required else "optional", _type_of(parameter)]
         rendered = ", ".join(bits)
         if not required and parameter.default is not inspect.Parameter.empty:
-            rendered += f" — Default: <code>{escape(repr(parameter.default))}</code>"
+            rendered += f", default <code>{escape(repr(parameter.default))}</code>"
         possible = POSSIBLE_VALUES.get(f"{key.split('.')[-1]}.{name}") or \
             POSSIBLE_VALUES.get(f"{key}.{name}")
         note = docs.get(name, "")
@@ -276,7 +276,7 @@ def _params_block(func: object, key: str) -> str:
         items.append(
             f'<div class="param"><code class="pname">{escape(name)}</code>'
             f'<span class="ptype">{rendered}</span>'
-            f'<p class="pdoc">{markdown().renderInline(note) if note else "—"}{extra}</p>'
+            f'<p class="pdoc">{markdown().renderInline(note) if note else "none"}{extra}</p>'
             "</div>"
         )
     if not items:

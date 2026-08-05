@@ -3,11 +3,11 @@
 A transaction is a bag of signed movements: every movement is a ``Part``,
 fees are ``Fee`` siblings that can never corrupt the trade legs, and
 ``acts[]`` gives sub-operation linkage via ``act_id`` back-references.
-``Transaction.type`` is DERIVED from the shape of ``parts[]`` — a computed
+``Transaction.type`` is DERIVED from the shape of ``parts[]``: a computed
 property, never a stored field.
 
 Layering: stdlib + ``auradefi.money`` only. This module must NEVER import
-``auradefi.ledger`` — ``Direction`` and ``transaction_id`` below are
+``auradefi.ledger``. ``Direction`` and ``transaction_id`` below are
 deliberate value-identical duplicates of ``auradefi.ledger.models``
 (DECISIONS.md "Duplication waiver"); ``ledger/bridge.py`` maps by value and
 golden vectors in ``tests/ledger/test_bridge.py`` pin both to the same
@@ -29,7 +29,7 @@ from auradefi.money.quantity import Quantity
 
 
 class TxStatus(StrEnum):
-    """Real, never permanently null (SPEC §4.4 — Vezgo's six null fields)."""
+    """Real, never permanently null (SPEC §4.4, Vezgo's six null fields)."""
 
     PENDING = "pending"
     CONFIRMED = "confirmed"
@@ -40,7 +40,7 @@ class TxStatus(StrEnum):
 
 
 class TxType(StrEnum):
-    """Derived label over the shape of ``parts[]`` — see :func:`derive_tx_type`."""
+    """Derived label over the shape of ``parts[]``. See :func:`derive_tx_type`."""
 
     SEND = "send"
     RECEIVE = "receive"
@@ -72,7 +72,7 @@ class MetaType(StrEnum):
 
 
 class BorneBy(StrEnum):
-    """Who pays a fee — ``counterparty`` keeps inbound-transfer gas visible
+    """Who pays a fee. ``Counterparty`` keeps inbound-transfer gas visible
     without letting naive summation over-count (Vezgo's inversion)."""
 
     SELF = "self"
@@ -83,7 +83,7 @@ class Direction(StrEnum):
     """Which way a movement goes relative to the owning account.
 
     Deliberate value-identical duplicate of
-    ``auradefi.ledger.models.Direction`` — the layer contract forbids
+    ``auradefi.ledger.models.Direction``: the layer contract forbids
     decode→ledger imports (DECISIONS.md "Duplication waiver"). The bridge
     maps by value; drift is a red golden-vector test, not a debate.
     """
@@ -117,7 +117,7 @@ class Part:
 
 @dataclass(frozen=True, slots=True)
 class Fee:
-    """A fee — a sibling of ``parts[]``, NEVER a movement (SPEC §4.4).
+    """A fee: a sibling of ``parts[]``, NEVER a movement (SPEC §4.4).
 
     Fees never appear in ``parts[]`` and never become ledger entries.
     ``borne_by`` is ``counterparty`` on inbound transfers so summation
@@ -145,7 +145,7 @@ class DataQuality:
     """First-class decode-quality metadata (SPEC §4.4).
 
     ``decoder_version`` must equal the owning transaction's
-    ``decoder_version`` — a mismatch is a ``ValidationError``.
+    ``decoder_version``. A mismatch is a ``ValidationError``.
     """
 
     incomplete: tuple[str, ...]
@@ -158,10 +158,10 @@ class DataQuality:
 class Transaction:
     """A rich decoded transaction (SPEC §4.4).
 
-    ``account_id`` is a deliberate addition to §4.4's sketch — the pinned
+    ``account_id`` is a deliberate addition to §4.4's sketch: the pinned
     :func:`transaction_id` hashes over it. ``initiated_at`` /
     ``confirmed_at`` are ms-epoch ints. ``type`` is a property computed by
-    :func:`derive_tx_type` over ``parts`` — never a stored field.
+    :func:`derive_tx_type` over ``parts``, never a stored field.
 
     ``__post_init__`` raises ``auradefi.errors.ValidationError`` when
     (a) any ``part.act_id`` or ``fee.act_id`` is non-``None`` and not among
@@ -215,7 +215,7 @@ class Transaction:
 def derive_tx_type(parts: tuple[Part, ...]) -> TxType:
     """Derive the top-level type from part directions (DECISIONS pinned).
 
-    Over ``parts[]`` only — fees are siblings, structurally excluded.
+    Over ``parts[]`` only. Fees are siblings, structurally excluded.
     Empty → ``INTERACTION``; all ``in`` → ``RECEIVE``; all ``out`` →
     ``SEND``; all ``self`` → ``SELF``; any mixture → ``TRADE``.
     """
@@ -235,7 +235,7 @@ def transaction_id(chain_id: str, tx_hash: str, account_id: str) -> str:
     """Deterministic transaction id (DECISIONS pinned; SPEC §4.4).
 
     ``"txn_" + sha256(f"{chain_id}|{tx_hash}|{account_id}".encode())
-    .hexdigest()[:16]`` — a deliberate byte-identical duplicate of
+    .hexdigest()[:16]``: a deliberate byte-identical duplicate of
     ``auradefi.ledger.models.transaction_id`` (DECISIONS.md "Duplication
     waiver"), drift-proofed by golden vectors in
     ``tests/ledger/test_bridge.py``.
@@ -247,5 +247,5 @@ def transaction_id(chain_id: str, tx_hash: str, account_id: str) -> str:
 
 
 def act_id_for(index: int) -> str:
-    """``f"act_{index}"`` — zero-based position in ``acts[]`` (DECISIONS pinned)."""
+    """``f"act_{index}"``: zero-based position in ``acts[]`` (DECISIONS pinned)."""
     return f"act_{index}"

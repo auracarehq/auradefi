@@ -153,8 +153,8 @@ def test_phase8_http_api_end_to_end(wired):
     assert entries[0].key_id == record.id
     # pins: the end-to-end mint audits the socket peer, not the
     #       X-Forwarded-For the request carries. Was `== "198.51.100.9"`
-    #       (the header value), which pinned RELEASE_0.1.1 §4 #30 — a
-    #       caller-chosen, permanent audit attribution — as contract.
+    #       (the header value), which pinned RELEASE_0.1.1 §4 #30: a
+    #       caller-chosen, permanent audit attribution: as contract.
     assert entries[0].ip == "testclient"
     assert entries[0].ip_source == "peer"
 

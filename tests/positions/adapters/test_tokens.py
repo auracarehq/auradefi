@@ -1,9 +1,9 @@
 """Contract tests for the ERC-20 fork helpers + ReceiptTokenAdapter base
-(SPEC §5.4: "What makes that true is not the interface — it is the fork
+(SPEC §5.4: "What makes that true is not the interface, it is the fork
 helpers"; SPEC §4.3: vault shares valued by redemption).
 
 Pinned redemption (DECISIONS.md "Receipt-token redemption", breaking to
-change): ``underlying_raw = share_raw * rate_raw // 10**18`` — integer
+change): ``underlying_raw = share_raw * rate_raw // 10**18``: integer
 floor, 18-decimal fixed-point rate, identity ``10**18`` when ``rate_fn``
 is ``None`` (rebasing 1:1 receipts like stETH). Golden id vectors below
 are hardcoded from the pinned algorithms, never computed by the code
@@ -15,7 +15,7 @@ under test:
     grp_e290c5c26d00e935 == "grp_" + sha256(
         "stake-fork|eip155:1|0x00000000000000000000000000000000000000aa"
     ).hexdigest()[:16]
-    pos_b0353dec5ca061fb / grp_866e08100f6259a7 — same over ...bb.
+    pos_b0353dec5ca061fb / grp_866e08100f6259a7: same over ...bb.
 """
 
 from __future__ import annotations
@@ -363,7 +363,7 @@ class TestResolveSkipsAndPrefilter:
         assert reader.calls == []
 
     def test_only_surviving_descriptors_are_read(self):
-        # SPEC §5.2 pre-filter: the untouched receipt is never queried —
+        # SPEC §5.2 pre-filter: the untouched receipt is never queried, 
         # the reader has no responses for it, so a stray read would raise.
         reader = RecordingReader({(RECEIPT_2, "balanceOf", (HOLDER,)): ONE})
         adapter = StakeForkAdapter()
@@ -376,12 +376,12 @@ class TestResolveSkipsAndPrefilter:
 
 
 class TestStaleDescriptorCostsOnePosition:
-    """RELEASE_0.1.1 §5 #31 — one unknown descriptor is not a wipe-out."""
+    """RELEASE_0.1.1 §5 #31. One unknown descriptor is not a wipe-out."""
 
     def test_a_descriptor_with_no_receipt_is_skipped_not_raised(self):
         # pins: descriptor sets are "persisted between discovery runs"
         #       (ContractDescriptor's own docstring), so a descriptor can
-        #       outlive the receipt table that produced it — a delisted
+        #       outlive the receipt table that produced it: a delisted
         #       receipt, a renamed adapter, a set written by an older
         #       release. The unguarded index raised KeyError on the FIRST
         #       such descriptor, and because resolve() builds its whole list

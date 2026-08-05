@@ -6,18 +6,18 @@ Grammar (the Phase 0 subset)::
     chain_id  = CAIP-2, e.g. "eip155:1", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
     namespace = "erc20" | "slip44" | "token"
 
-Reference rules per namespace — canonical form feeds the pinned asset-id
+Reference rules per namespace: canonical form feeds the pinned asset-id
 hash (docs/internal/DECISIONS.md), so this is a wire-format contract:
 
-* ``erc20``  — literal ``0x`` + exactly 40 hex digits, either case in;
+* ``erc20``: literal ``0x`` + exactly 40 hex digits, either case in;
   canonical form is fully LOWERCASED.
-* ``slip44`` — canonical base-10 integer: digits only, no sign, no
-  leading zeros (bare ``0`` itself is valid — Bitcoin).
-* ``token``  — base58, Bitcoin alphabet (no ``0``, ``O``, ``I``, ``l``);
-  case is PRESERVED — Solana mints are case-sensitive.
+* ``slip44``, canonical base-10 integer: digits only, no sign, no
+  leading zeros (bare ``0`` itself is valid, Bitcoin).
+* ``token``, base58, Bitcoin alphabet (no ``0``, ``O``, ``I``, ``l``);
+  case is PRESERVED, Solana mints are case-sensitive.
 
-Anything else — unknown namespace, missing or extra parts, a malformed
-reference, surrounding whitespace, non-string input — raises
+Anything else, unknown namespace, missing or extra parts, a malformed
+reference, surrounding whitespace, non-string input, raises
 CaipParseError. stdlib only; may import money/ and chains/ only.
 """
 

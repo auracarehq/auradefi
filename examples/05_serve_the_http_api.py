@@ -3,7 +3,7 @@
     pip install 'auradefi[api]' && python 05_serve_the_http_api.py
 
 `create_app(Deps(...))` returns a FastAPI app. It is a shell: it holds no
-state, opens no connections and invents no stores — you inject the same
+state, opens no connections and invents no stores: you inject the same
 ports the library uses (`04_persist_to_your_database.py`) and the routes
 project them onto Plaid's wire format.
 
@@ -52,8 +52,8 @@ NOW = 1_754_000_000_000
 
 class StubHoldings:
     """Whatever answers `holdings(chain_id, address)`. Bind yours, or
-    leave `Deps.holdings=None` and the batch route is not mounted at all —
-    an unbound capability has no endpoint rather than a broken one."""
+    leave `Deps.holdings=None` and the batch route is not mounted at all.
+    An unbound capability has no endpoint rather than a broken one."""
 
     def holdings(self, chain_id: str, address: str) -> HoldingsReport:
         return HoldingsReport.assemble(address, chain_id, [
@@ -87,7 +87,7 @@ deps = Deps(
     capabilities={CHAIN: frozenset({"balances", "transactions", "prices"})},
 )
 client = TestClient(create_app(deps))
-print(f"project {project.id} — routes:")
+print(f"project {project.id}: routes:")
 schema = client.get("/openapi.json").json()
 for path in sorted(schema["paths"]):
     for method in sorted(schema["paths"][path]):
@@ -125,7 +125,7 @@ assert created.status_code == 201
 connection_id = created.json()["id"]
 
 # The same wallet again, in different case, is a 409 that NAMES the
-# connection you already have — so a retrying client can carry on.
+# connection you already have, so a retrying client can carry on.
 conflict = client.post("/connections",
                        json={"kind": "address", "descriptor": ADDRESS.lower()},
                        headers=user_auth)
@@ -165,7 +165,7 @@ assert quantity == {"raw": "300000000000000000", "decimals": 18,
                     "numeric": "0.3", "float": 0.3}
 print(f"\nGET /crypto/sync: {pages} pages, {len(seen)} transactions, cursor {cursor}")
 print(f"  quantity on the wire: {quantity}")
-print("  `raw` is a STRING even here — a JS client cannot round it by accident")
+print("  `raw` is a STRING even here: a JS client cannot round it by accident")
 
 # A bad cursor is a 422 and costs the caller no quota: a client with a
 # hard-coded bad parameter cannot drain the project's daily window.
@@ -186,7 +186,7 @@ assert items[1]["error"]["type"] == "UnknownChainError"
 print(f"\nPOST /batch/holdings -> {batch.status_code}, items in request order: "
       f"{[item['status'] for item in items]}")
 print(f"  item 0: {items[0]['result']['total_value']}")
-print(f"  item 1: {items[1]['error']['type']} — one bad item never fails the request,"
+print(f"  item 1: {items[1]['error']['type']}: one bad item never fails the request,"
       "\n          and index i of the response always answers index i of the request")
 
 # ---------------------------------------------------------- 6. coverage
@@ -194,9 +194,9 @@ coverage = client.get("/coverage").json()               # public, no auth
 row = next(entry for entry in coverage["chains"] if entry["chain_id"] == CHAIN)
 assert row["capabilities"] == {"balances": True, "transactions": True,
                                "positions": False, "prices": True, "xpub": False}
-print(f"\nGET /coverage — {len(coverage['chains'])} chains, generated from Deps:")
+print(f"\nGET /coverage: {len(coverage['chains'])} chains, generated from Deps:")
 print(f"  {CHAIN}: " + ", ".join(sorted(name for name, on in row["capabilities"].items() if on)))
-print("  (positions=False because no reader is bound — the matrix cannot flatter us)")
+print("  (positions=False because no reader is bound: the matrix cannot flatter us)")
 
 # ------------------------------------------------------------- 7. serve it
 # In a file called `main.py`:
@@ -210,4 +210,4 @@ print("  (positions=False because no reader is bound — the matrix cannot flatt
 # Behind a proxy that appends one X-Forwarded-For hop, pass
 # `trusted_proxy_hops=1`; it defaults to 0, so no caller can choose the IP
 # its own audit row records.
-print("\nOK — Plaid's envelope over your ports, and nothing else.")
+print("\nOK: Plaid's envelope over your ports, and nothing else.")

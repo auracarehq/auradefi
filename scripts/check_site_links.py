@@ -1,11 +1,11 @@
 """Fail the build if the built site links to a page it did not produce.
 
-    python scripts/build_site.py && python scripts/check_site_links.py
+    Python scripts/build_site.py && python scripts/check_site_links.py
 
 Every internal `href` is resolved against `dist/site/` on disk. A renamed
 reference document, a deleted example or a nav entry pointing at a slug that
 drifted from `site_render.PAGE_FOR` becomes a 404 that nobody notices until
-a reader hits it — cheap to check, so it is checked on every deploy.
+a reader hits it: cheap to check, so it is checked on every deploy.
 
 External links are counted and their hosts printed, not fetched: the site
 must stay buildable offline, and a network check would make this gate flaky
@@ -25,7 +25,7 @@ _HREF = re.compile(r'(?:href|src)="([^"]+)"')
 
 def main() -> int:
     if not SITE.is_dir():
-        print(f"no built site at {SITE} — run scripts/build_site.py first")
+        print(f"no built site at {SITE}: run scripts/build_site.py first")
         return 2
 
     pages = sorted(SITE.rglob("*.html"))

@@ -1,6 +1,6 @@
 """Connections: create, list, read, delete (SPEC §3.1, §7.1).
 
-A Connection is Plaid's Item — one credentialed-or-watched source owned
+A Connection is Plaid's Item: one credentialed-or-watched source owned
 by one end user inside one project. Everything here is driven by a USER
 token, so the caller is the user: ``project_id`` is never echoed back and
 never accepted as input, and another user's (or another tenant's)
@@ -9,13 +9,13 @@ connection id answers 404, identical to an id that never existed.
 The 409 body is not built here. ``TenancyStore.create_connection``
 raises :class:`~auradefi.errors.ConflictError` carrying the existing
 ``conn_`` id and the single handler in ``api/errors.py`` renders both
-``existing_id`` and Vezgo's ``existing_connection_id`` — so the reposted
+``existing_id`` and Vezgo's ``existing_connection_id``, so the reposted
 descriptor, differing only in capitalisation, resolves to the SAME
 deterministic id and the caller is told which one.
 
 ``DELETE`` is mounted only when the host bound ``deps.delete_connection``
 (rule #10 on the route surface: never advertise a capability the
-deployment cannot perform). When it is unbound the path answers 404 —
+deployment cannot perform). When it is unbound the path answers 404,
 never 405, which would confirm the capability exists.
 """
 
@@ -38,7 +38,7 @@ from auradefi.webhooks.models import EventName
 
 
 class ConnectionRequest(BaseModel):
-    """``POST /connections`` body — exactly ``{kind, descriptor}``.
+    """``POST /connections`` body. Exactly ``{kind, descriptor}``.
 
     ``kind`` is typed as :class:`~auradefi.tenancy.models.ConnectionKind`
     rather than re-listed here, so the vocabulary has one home; anything
@@ -55,7 +55,7 @@ def _connection_wire(connection: Connection) -> dict[str, Any]:
     """Project one ``Connection``: exactly ``{id, end_user_id, kind,
     descriptor, created_at_ms}``.
 
-    ``project_id`` is deliberately absent — a user-token caller has no
+    ``project_id`` is deliberately absent. A user-token caller has no
     business learning the tenant id it lives under.
     """
     return {
@@ -70,7 +70,7 @@ def _connection_wire(connection: Connection) -> dict[str, Any]:
 def _event_data(connection: Connection) -> dict[str, Any]:
     """The webhook payload for a connection event.
 
-    Exactly ``{connection_id, descriptor, end_user_id, kind}`` — the same
+    Exactly ``{connection_id, descriptor, end_user_id, kind}``: the same
     four keys for ``connection.created`` and ``connection.deleted``, so a
     receiver parses one shape.
     """
@@ -135,14 +135,14 @@ def _mount_delete(api: APIRouter, deps: Deps) -> None:
 def router(deps: Deps) -> APIRouter:
     """Build the connections router over ``deps``.
 
-    * ``POST /connections`` — user token + ``accounts:write``, quota,
+    * ``POST /connections``. User token + ``accounts:write``, quota,
       get-or-create the user, create, then ONE
       ``connection.created`` emit. 201 with five keys.
-    * ``GET /connections`` — user token + ``accounts:read``, this user's
+    * ``GET /connections``. User token + ``accounts:read``, this user's
       connections in creation order.
-    * ``GET /connections/{connection_id}`` — same, one row, 404 for
+    * ``GET /connections/{connection_id}``: same, one row, 404 for
       anyone else's.
-    * ``DELETE /connections/{connection_id}`` — user token +
+    * ``DELETE /connections/{connection_id}``. User token +
       ``accounts:write``, mounted IFF ``deps.delete_connection`` is
       bound: authorise, call the injected deleter, emit
       ``connection.deleted``, answer 204 with an empty body. Unbound, a
@@ -156,7 +156,7 @@ def router(deps: Deps) -> APIRouter:
         claims = require_user_token(deps, request, Scope.ACCOUNTS_WRITE)
         consume_quota(deps, claims.project_id)
         user = resolve_end_user(deps, claims)
-        # A duplicate raises ConflictError here — before the emit — so a
+        # A duplicate raises ConflictError here, before the emit, so a
         # refused create never queues a webhook.
         connection = deps.tenancy.create_connection(
             claims.project_id, user.id, body.kind, body.descriptor, deps.clock

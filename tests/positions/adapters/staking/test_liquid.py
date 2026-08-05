@@ -4,8 +4,8 @@ tests/golden/test_positions_liquid_staking.py, pinned to block
 20_450_000).
 
 The point these tests prove is the fork economics: each subclass body is
-class attributes ONLY — zero methods, at most 15 source lines — exactly
-Zapper's production Uniswap V2 shape ("15 lines and zero methods" —
+class attributes ONLY, zero methods, at most 15 source lines, exactly
+Zapper's production Uniswap V2 shape ("15 lines and zero methods",
 SPEC §5.4). All behaviour is inherited from ``ReceiptTokenAdapter``.
 """
 
@@ -98,7 +98,7 @@ class TestForkEconomics:
     def test_body_is_at_most_15_source_lines(self, cls):
         source_lines = inspect.getsource(cls).rstrip().splitlines()
         assert len(source_lines) <= 15, (
-            f"{cls.__name__} is {len(source_lines)} lines — the whole point "
+            f"{cls.__name__} is {len(source_lines)} lines: the whole point "
             "is a 15-line, zero-method integration (SPEC §5.4)"
         )
 

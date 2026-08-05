@@ -1,6 +1,6 @@
 """The one exception handler: the pinned error-status table (SPEC §7).
 
-docs/internal/DECISIONS.md ("HTTP error table") is the whole contract, verbatim:
+Docs/internal/DECISIONS.md ("HTTP error table") is the whole contract, verbatim:
 first hit walking ``type(exc).__mro__`` over the ordered table below; body
 ``{"error": {"type", "message", "status"}}`` plus ``existing_id`` (and
 ``existing_connection_id`` when it starts ``conn_``) on 409, plus header
@@ -8,7 +8,7 @@ first hit walking ``type(exc).__mro__`` over the ordered table below; body
 
 Two deliberate non-features:
 
-* ``CursorError`` is 422 rather than inheriting ``LedgerError``'s 500 — a
+* ``CursorError`` is 422 rather than inheriting ``LedgerError``'s 500. A
   mistyped ``?cursor=`` is the client's fault. ``DecodeError`` and
   ``TenantIsolationError`` are NOT in the table and fall through their MRO
   to 500: they are our bug, not a documented client contract.
@@ -17,8 +17,8 @@ Two deliberate non-features:
   response hides it.
 
 ``existing_connection_id`` is SPEC §7.1's Vezgo-verbatim field, emitted by
-this handler from ``ConflictError.existing_id`` — never by route-level
-magic — so every 409 in the surface carries it for free. Both keys live
+this handler from ``ConflictError.existing_id``, never by route-level
+magic, so every 409 in the surface carries it for free. Both keys live
 INSIDE the ``error`` object, beside ``type``/``message``/``status``.
 """
 
@@ -45,7 +45,7 @@ from auradefi.errors import (
     ValidationError,
 )
 
-#: Status for an ``AuradefiError`` whose MRO hits nothing (unreachable —
+#: Status for an ``AuradefiError`` whose MRO hits nothing (unreachable, 
 #: ``AuradefiError`` itself is the table's last entry).
 DEFAULT_STATUS = 500
 
@@ -53,9 +53,9 @@ DEFAULT_STATUS = 500
 VALIDATION_MESSAGE = "request validation failed"
 
 #: The pinned table, ORDERED (DECISIONS "HTTP error table"). Subclasses
-#: precede their bases — ``ScopeError``/``TokenExpiredError``/
+#: precede their bases. ``ScopeError``/``TokenExpiredError``/
 #: ``TokenRevokedError`` before ``AuthError``, ``CaipParseError`` before
-#: ``ValidationError`` — so a table walk and an MRO walk agree.
+#: ``ValidationError``, so a table walk and an MRO walk agree.
 STATUS_TABLE: dict[type[AuradefiError], int] = {
     ValidationError: 422,
     CaipParseError: 422,
@@ -88,11 +88,11 @@ def status_for(exc: AuradefiError) -> int:
 
 
 def error_body(exc: AuradefiError) -> dict[str, object]:
-    """The JSON body for ``exc`` — exactly one top-level key, ``"error"``.
+    """The JSON body for ``exc``: exactly one top-level key, ``"error"``.
 
     ``{"error": {"type": type(exc).__name__, "message": str(exc),
-    "status": status_for(exc)}}``, plus — for a ``ConflictError`` with a
-    non-``None`` ``existing_id`` — ``existing_id``, plus
+    "status": status_for(exc)}}``, plus, for a ``ConflictError`` with a
+    non-``None`` ``existing_id``, ``existing_id``, plus
     ``existing_connection_id`` with the SAME value when it starts
     ``"conn_"`` (SPEC §7.1). Both extra keys sit inside ``error``. A
     ``ConflictError`` carrying ``"whe_abc"`` renders ``existing_id``
@@ -126,7 +126,7 @@ def install_error_handlers(app: FastAPI, deps: Deps) -> None:
     ``error.message == VALIDATION_MESSAGE`` and ``error.details`` holding
     pydantic's JSON-safe error list.
 
-    No handler is registered for ``Exception`` — a non-``AuradefiError``
+    No handler is registered for ``Exception``: a non-``AuradefiError``
     propagates untouched.
     """
 

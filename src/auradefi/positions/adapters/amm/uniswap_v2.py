@@ -1,9 +1,9 @@
 """Uniswap V2 adapter (SPEC §5.4; DECISIONS.md pinned pro-rata).
 
 The bar is Zapper's production UniV2 integration: 15 lines, zero
-methods — a fork is a subclass overriding exactly ``id``, ``chains``
+methods. A fork is a subclass overriding exactly ``id``, ``chains``
 and ``factory_address``. All chain reads go through ``ctx.reader``
-(the only chain-read seam in ``positions/`` — no HTTP client here,
+(the only chain-read seam in ``positions/``, no HTTP client here,
 ever).
 
 ``discover`` (SPEC §5.1, address-blind)::
@@ -13,7 +13,7 @@ ever).
         pair   = call(factory, 'allPairs', (i,))
         token0 = call(pair, 'token0'); token1 = call(pair, 'token1')
 
-emitting one ``ContractDescriptor`` per pair — ``category='amm-pair'``,
+emitting one ``ContractDescriptor`` per pair: ``category='amm-pair'``,
 ``underlyings`` the two canonical CAIP-19 strings
 ``f'{chain_id}/erc20:{token.lower()}'`` in (token0, token1) order.
 
@@ -24,13 +24,13 @@ emitting one ``ContractDescriptor`` per pair — ``category='amm-pair'``,
     (r0, r1, _) = call(pair, 'getReserves')
     d_i = call(token_i, 'decimals')
 
-PINNED pro-rata (DECISIONS.md, burn semantics — integer floor, never
+PINNED pro-rata (DECISIONS.md, burn semantics: integer floor, never
 rounding)::
 
     underlying_raw_i = lp_raw * r_i // total_supply
 
 emitting ONE RAW position per held pair: ``kind=APP_TOKEN`` (an LP
-token is fungible and priceable — SPEC §4.3), ``position_type=DEPOSIT``,
+token is fungible and priceable, SPEC §4.3), ``position_type=DEPOSIT``,
 ``protocol_module=LIQUIDITY_POOL``, ``id=position_id(id, chain, pair)``,
 ``group_id=group_id_for(id, chain, pair)``, underlyings two ``SUPPLIED``
 ``Quantity(raw_i, d_i)`` in (token0, token1) order with NO prices

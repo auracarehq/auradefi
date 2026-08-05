@@ -1,4 +1,4 @@
-"""api/routes/connections.py — create, list, read, and the optional delete.
+"""api/routes/connections.py. Create, list, read, and the optional delete.
 
 Offline throughout; the webhook assertions run against the REAL
 ``WebhookStore``, so "emits exactly one connection.created" is checked
@@ -245,7 +245,7 @@ def test_read_requires_accounts_read(wired):
 
 
 # --------------------------------------------------------------------------
-# DELETE /connections/{id} — mounted iff the host bound a deleter
+# DELETE /connections/{id}: mounted iff the host bound a deleter
 
 
 def test_delete_is_404_when_the_deployment_cannot_delete():
@@ -257,7 +257,7 @@ def test_delete_is_404_when_the_deployment_cannot_delete():
 
     response = client.delete(f"/connections/{created['id']}", headers=_bearer(token))
 
-    assert response.status_code == 404, "never 405 — that would confirm the capability"
+    assert response.status_code == 404, "never 405: that would confirm the capability"
     assert response.json()["error"]["type"] == "NotFoundError"
     assert client.get(f"/connections/{created['id']}", headers=_bearer(token)).status_code == 200
 

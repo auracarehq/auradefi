@@ -86,7 +86,7 @@ for example in examples/[0-9][0-9]_*.py; do
   # so an extras example is EXPECTED to be unrunnable here, and guessing that
   # from an error message would also swallow a real import bug.
   if [ -n "$needs" ] && ! "$SMOKE/bin/python" -c "import $needs" >/dev/null 2>&1; then
-    echo "    $(basename "$example") SKIPPED — needs the $needs extra (CI runs it)"
+    echo "    $(basename "$example") SKIPPED: needs the $needs extra (CI runs it)"
     continue
   fi
   if output=$("$SMOKE/bin/python" "$example" 2>&1); then
@@ -107,7 +107,7 @@ echo "==> executable documentation (docs/books)"
 if [ -x ".venv/bin/jupyter" ] || command -v jupyter >/dev/null 2>&1; then
   bash scripts/run_books.sh
 else
-  echo "    SKIPPED — no jupyter on PATH and no .venv/bin/jupyter."
+  echo "    SKIPPED: no jupyter on PATH and no .venv/bin/jupyter."
   echo "    The books are NOT verified by this run: install the dev extra"
   echo "    (pip install '.[dev]') or rely on the CI 'notebooks' job."
 fi

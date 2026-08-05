@@ -31,7 +31,7 @@ from auradefi.sources.bitcoin.encoding import (
     sha256d,
 )
 
-# Compressed generator point of secp256k1 — BIP173's own example key.
+# Compressed generator point of secp256k1. BIP173's own example key.
 G_COMPRESSED = bytes.fromhex(
     "0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798"
 )
@@ -60,12 +60,12 @@ RIPEMD_VECTORS = [
 ]
 
 BAD_PUBKEYS = [
-    # 65-byte uncompressed G (0x04 || x || y) — compressed only, rejected.
+    # 65-byte uncompressed G (0x04 || x || y): compressed only, rejected.
     bytes.fromhex(
         "0479BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798"
         "483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8"
     ),
-    bytes(32),  # 32 bytes — an x-only key is not a compressed pubkey
+    bytes(32),  # 32 bytes. An x-only key is not a compressed pubkey
     b"\x04" + bytes(32),  # 33 bytes but lead 0x04
     b"\x01" + bytes(32),  # 33 bytes but lead outside {0x02, 0x03}
     b"",  # empty
@@ -88,7 +88,7 @@ def test_ripemd160_falls_back_when_hashlib_new_raises(
 ) -> None:
     """OpenSSL 3 CI reality: hashlib.new('ripemd160') raises ValueError.
 
-    The public function must still return the pinned digests — i.e. the
+    The public function must still return the pinned digests: i.e. the
     fallback decision happens per call, not once at import time.
     """
 
@@ -168,7 +168,7 @@ def test_p2wpkh_rejects_non_compressed_pubkeys(bad: bytes) -> None:
 def test_base58check_leading_zero_bytes_round_trip() -> None:
     encoded = base58check_encode(b"\x00\x00\x00\x01")
     assert encoded == "111E1CgqW"
-    # exactly three leading '1's — one per leading 0x00 byte, no more
+    # exactly three leading '1's: one per leading 0x00 byte, no more
     assert len(encoded) - len(encoded.lstrip("1")) == 3
     assert base58check_decode(encoded) == b"\x00\x00\x00\x01"
 
@@ -207,7 +207,7 @@ def test_base58check_decode_rejects_final_character_mutation() -> None:
 
 
 def test_module_imports_hashlib_struct_errors_only() -> None:
-    """PURE contract: hashlib, struct, auradefi.errors — nothing else, ever.
+    """PURE contract: hashlib, struct, auradefi.errors: nothing else, ever.
 
     Walks the whole AST, so a function-local ``import httpx`` fails too.
     """

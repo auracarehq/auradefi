@@ -1,6 +1,6 @@
 """Structural URL validation for webhook endpoints (SPEC §7.3, rule #8).
 
-The accept cases prove there is no allowlist — localhost, RFC1918, IPv6
+The accept cases prove there is no allowlist: localhost, RFC1918, IPv6
 literals and odd ports all pass. The reject cases prove the stricter
 half: anything httpx would refuse or silently rewrite is refused here,
 because the URL is hashed into the endpoint id and POSTed verbatim.
@@ -55,9 +55,9 @@ def test_validate_endpoint_url_rejects_non_http_urls(url):
 @pytest.mark.parametrize(
     "url",
     [
-        "https:// /x",  # the host is a space — httpx silently rewrites to %20
+        "https:// /x",  # the host is a space: httpx silently rewrites to %20
         "https://a b.com/x",  # embedded space, likewise rewritten
-        "https://[::1/x",  # unbalanced bracket — httpx raises InvalidURL
+        "https://[::1/x",  # unbalanced bracket. Httpx raises InvalidURL
         "http://%zz/x",  # "%zz" is not a percent-escape
         "http://ho\x00st/x",  # NUL
         "http://ho\tst/x",  # tab
@@ -69,9 +69,9 @@ def test_validate_endpoint_url_rejects_a_malformed_host(url):
 
     Rule #8 forbids an ALLOWLIST, not syntax. Every URL this function
     returns is later handed verbatim to ``httpx.Client.post``, so a host
-    httpx cannot parse — ``https://[::1/x`` raises ``httpx.InvalidURL``,
+    httpx cannot parse, ``https://[::1/x`` raises ``httpx.InvalidURL``,
     which is NOT an ``httpx.HTTPError`` and therefore escapes
-    ``Deliverer.tick`` — must never reach the store, and one httpx
+    ``Deliverer.tick``, must never reach the store, and one httpx
     silently rewrites (``https:// /x`` → ``https://%20/x``) must not
     either: the registered URL and the URL POSTed have to be one string.
     """

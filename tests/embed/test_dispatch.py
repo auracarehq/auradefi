@@ -1,4 +1,4 @@
-"""embed/dispatch.py — budget spending and per-connection containment.
+"""embed/dispatch.py: budget spending and per-connection containment.
 
 The containment RELEASE_0.1.1 §5 #24 asked for is the subject here: one
 failing connection must cost its siblings nothing but one budget unit, and
@@ -79,7 +79,7 @@ def test_no_connections_is_an_empty_report_not_an_error():
 
 def test_one_failing_connection_does_not_starve_its_siblings():
     # pins: RELEASE_0.1.1 §5 #24. Before the fix the exception escaped the
-    #       loop, so every connection after the bad one was never visited —
+    #       loop, so every connection after the bad one was never visited, 
     #       one unseeded chain starved the whole tick, forever.
     bad, good = _connection("bad"), _connection("good")
     engine = _Engine({"conn_bad": SourceError("upstream down"), "conn_good": 2})
@@ -91,7 +91,7 @@ def test_one_failing_connection_does_not_starve_its_siblings():
 
 def test_a_failed_connection_is_reported_as_failed_not_as_clean_success():
     # pins: the report-honesty half. A contained failure that reported
-    #       no_op/clean would be the same defect class as #21 — a
+    #       no_op/clean would be the same defect class as #21: a
     #       success-shaped report that is not true.
     bad = _connection("bad")
     engine = _Engine({"conn_bad": SourceError("upstream down")})

@@ -5,7 +5,7 @@ cannot drift. Two things in `scripts/site_reference.py` are hand-written and
 therefore can:
 
 1. **The symbol list.** A renamed or deleted public symbol would take a
-   reference page with it — and because the build imports by string, the
+   reference page with it, and because the build imports by string, the
    failure is an ImportError at deploy time rather than something a reader
    ever sees. Better to fail here.
 2. **`PARAM_DOCS`.** Prose per parameter cannot be derived from a narrative
@@ -13,7 +13,7 @@ therefore can:
    is a lie published beside a correct type, which is worse than no prose:
    the page looks authoritative and the reader trusts it.
 
-A parameter with NO prose is allowed — it renders as "—" — because the
+A parameter with NO prose is allowed, it renders as ", ", because the
 alternative is a gate that blocks adding a keyword argument. A documented
 parameter that is not real is never allowed.
 
@@ -54,7 +54,7 @@ def test_every_documented_symbol_still_exists(target: str) -> None:
     assert obj is not None, target
     assert getattr(obj, "__doc__", None), (
         f"{qualname} has no docstring, so its reference page would be a bare "
-        "signature — the page is generated, the prose is not"
+        "signature: the page is generated, the prose is not"
     )
 
 
@@ -88,7 +88,7 @@ def test_param_docs_name_only_real_parameters() -> None:
             continue
         for name in documented:
             if name not in names:
-                strays.append(f"{key}({name}) — signature has {sorted(names)}")
+                strays.append(f"{key}({name}): signature has {sorted(names)}")
     assert not strays, (
         "PARAM_DOCS documents parameters that do not exist; the page would "
         "publish prose for an argument nobody can pass:\n  " + "\n  ".join(strays)

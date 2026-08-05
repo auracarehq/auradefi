@@ -212,7 +212,7 @@ def test_endpoint_id_is_project_scoped():
 
 
 def test_endpoint_id_does_not_normalise_the_url():
-    # A trailing slash is a different receiver — ids hash the exact bytes.
+    # A trailing slash is a different receiver: ids hash the exact bytes.
     assert endpoint_id(PROJECT, URL + "/") == "whe_41ccbde4da4f9837"
 
 
@@ -387,7 +387,7 @@ GOLDEN_LIST_BODY = (
 )
 
 # The five things JSON cannot carry. Each MUST raise ValidationError at the
-# snapshot boundary — a bare TypeError here means json.dumps blows up at
+# snapshot boundary. A bare TypeError here means json.dumps blows up at
 # SIGNING time instead, inside the deliverer, on a row already persisted.
 NON_JSON_PAYLOADS = [
     pytest.param({"amount": Decimal("1.5")}, id="decimal"),

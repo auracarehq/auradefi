@@ -2,10 +2,10 @@
 
 The load-bearing contracts under test:
 
-* rule #9 — ``is_spam`` takes the THRESHOLD FROM THE CALLER; the library
+* rule #9. ``Is_spam`` takes the THRESHOLD FROM THE CALLER; the library
   ships the numbers (``liquidity_usd`` as ``Decimal``, ``holder_count``)
   and holds no opinion.
-* rotki's scar — ``merge`` is additive, never destructive: an empty new
+* rotki's scar. ``Merge`` is additive, never destructive: an empty new
   assessment (a transient source failure) erases nothing.
 
 Score weights use binary-exact floats (0.25/0.5/0.75) so equality

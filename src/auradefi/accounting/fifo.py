@@ -1,14 +1,14 @@
 """FIFO (first-in, first-out) consumption-order selector (SPEC §9).
 
-One public function — ``select`` — returning an ordered consumption
+One public function, ``select``, returning an ordered consumption
 **plan**. The plan is advice, not an effect: it mutates nothing, computes
 no cost, and prorates nothing. Proration, cost math, and lot mutation are
 centralised in ``LotLedger.consume``; a selector only decides *which lots,
 in what order, for how much*.
 
 Wave independence is structural, not conventional: this module reads
-exactly two attributes of a lot — ``opened_at_ms`` (ms-epoch ``int``) and
-``quantity_remaining`` (``auradefi.money.quantity.Quantity``) — and
+exactly two attributes of a lot, ``opened_at_ms`` (ms-epoch ``int``) and
+``quantity_remaining`` (``auradefi.money.quantity.Quantity``), and
 imports ``Lot`` only under ``TYPE_CHECKING``. There is no runtime
 cross-module import, so anything lot-shaped selects correctly and the
 module stays importable on its own.
@@ -30,7 +30,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only; never imported at runtime
 def select(lots: Sequence[Lot], needed: Quantity) -> list[tuple[Lot, Quantity]]:
     """Plan the FIFO consumption of ``needed`` across ``lots``.
 
-    Order: ascending ``(opened_at_ms, input position)`` — oldest first,
+    Order: ascending ``(opened_at_ms, input position)``: oldest first,
     ties broken by the *earlier* position in ``lots``. The walk takes
     ``min(unmet need, lot.quantity_remaining)`` from every lot whose
     ``quantity_remaining.raw > 0`` and stops the moment the plan sums to
@@ -39,12 +39,12 @@ def select(lots: Sequence[Lot], needed: Quantity) -> list[tuple[Lot, Quantity]]:
     Returns ``(lot, take)`` pairs in consumption order. Every ``take`` is
     a positive ``Quantity`` at ``needed.decimals``; a lot contributing
     nothing never appears. The lot objects returned are the very objects
-    passed in — identity is what lets the caller mutate them — and
+    passed in, identity is what lets the caller mutate them, and
     ``lots`` itself is never reordered in place.
 
     Shortage is never an error: when the live lots hold less than
     ``needed`` the plan sums to exactly the total held, and the caller
-    books the shortfall (DECISIONS: shortfall semantics — pre-history is a
+    books the shortfall (DECISIONS: shortfall semantics, pre-history is a
     data-quality fact, not an exception). ``needed.raw <= 0`` yields
     ``[]`` and no lot is inspected at all.
 
@@ -64,7 +64,7 @@ def _oldest_first(lots: Sequence[Lot]) -> list[Lot]:
     """``lots`` ordered by ascending ``opened_at_ms``, ties by position.
 
     ``sorted`` is stable, so equal timestamps keep their input order, and
-    the result is a new list — ``lots`` is never reordered in place.
+    the result is a new list. ``Lots`` is never reordered in place.
     """
     return sorted(lots, key=lambda candidate: candidate.opened_at_ms)
 

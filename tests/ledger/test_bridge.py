@@ -1,8 +1,8 @@
 """Contract tests for auradefi.ledger.bridge (SPEC §6.4) and the
 DECISIONS.md "Duplication waiver" cross-pins.
 
-decode.models.transaction_id and decode.models.Direction are deliberate
-value-identical duplicates of ledger.models — the layer contract forbids
+Decode.models.transaction_id and decode.models.Direction are deliberate
+value-identical duplicates of ledger.models: the layer contract forbids
 decode→ledger imports. This module pins BOTH sides to the same hardcoded
 golden bytes, derived INDEPENDENTLY via ``python3 -c`` over the pinned
 algorithm:

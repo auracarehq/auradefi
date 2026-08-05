@@ -1,12 +1,12 @@
 """Contract tests for the Esplora client + gap-limit scanner (SPEC §3.2,
-§10 Bitcoin row, §4.2 bip122; DECISIONS "Gap-limit scan" — PINNED).
+§10 Bitcoin row, §4.2 bip122; DECISIONS "Gap-limit scan", PINNED).
 
 HTTP behaviour replays through tests/cassettes/esplora_scan.json. Golden
 values are hand-derived from the cassette body, never computed by the
 code under test: balance = funded 5000 - spent 1000 = 4000 sats;
 str(Quantity(4000, 8)) == "0.00004". The pinned gap=2 trace is
 derive [(0,0,2), (0,2,2), (1,0,2)] with HTTP tb0x0, tb0x1, tb0x2,
-tb1x0, tb1x1 — the cassette records nothing past those, so ANY
+tb1x0, tb1x1: the cassette records nothing past those, so ANY
 over-scan raises CassetteMissError. 2**53 + 1 does not survive a float
 roundtrip, so the exact balance below kills float parsing of sats.
 """
@@ -61,7 +61,7 @@ def _recording_client(cas) -> tuple[httpx.Client, list[httpx.Request]]:
 
 
 def _tripwire_client() -> tuple[httpx.Client, list[httpx.Request]]:
-    """A client that records and refuses every request — proves ZERO HTTP."""
+    """A client that records and refuses every request: proves ZERO HTTP."""
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -228,7 +228,7 @@ class TestUtxos:
         ],
     )
     def test_malformed_row_raises_source_error_strict(self, row):
-        # UTXOs are money — strict, unlike etherscan's additive spam-skip.
+        # UTXOs are money: strict, unlike etherscan's additive spam-skip.
         good = {"txid": "b2" * 32, "vout": 1, "value": 2, "status": {"confirmed": True}}
         source = Esplora(_json_client([good, row]), base_url=TEST_BASE)
         with pytest.raises(SourceError):
@@ -306,7 +306,7 @@ class TestScanSemantics:
                 "tb1x2": (0, 0, 0),
             },
             # Mempool noise on an unused address: used-ness is
-            # chain_stats.tx_count > 0, pinned — this must stay unused.
+            # chain_stats.tx_count > 0, pinned. This must stay unused.
             mempool={"tb0x1": {"funded_txo_sum": 1234, "spent_txo_sum": 0, "tx_count": 5}},
         )
         calls: list[tuple[int, int, int]] = []

@@ -1,4 +1,4 @@
-"""Webhook signing and verification — the v1 scheme (SPEC §7.3, rule #8).
+"""Webhook signing and verification: the v1 scheme (SPEC §7.3, rule #8).
 
 Vezgo authenticates its webhooks by SOURCE-IP ALLOWLIST, which is
 unusable behind most PaaS ingress and proves nothing about the payload.
@@ -13,17 +13,17 @@ Pinned in docs/internal/DECISIONS.md ("Webhook signature (v1)"):
                      hashlib.sha256).hexdigest()
     X-Auradefi-Timestamp: str(timestamp_ms)      # ms epoch
 
-The signed ``body`` is the EXACT string POSTed — the deliverer sends
+The signed ``body`` is the EXACT string POSTed: the deliverer sends
 ``content=body.encode("utf-8")``, never ``json=``, because a
 re-serialisation would change the bytes the receiver hashes.
 
 Verification is ``hmac.compare_digest`` plus a replay window (default
 300_000 ms, boundary INCLUSIVE). A bad signature and a stale timestamp
-raise the SAME class with the SAME message — plain
-:class:`auradefi.errors.AuthError` — so a probing receiver cannot tell
+raise the SAME class with the SAME message, plain
+:class:`auradefi.errors.AuthError`, so a probing receiver cannot tell
 which check it failed.
 
-stdlib only; no httpx here.
+Stdlib only; no httpx here.
 """
 
 from __future__ import annotations
@@ -53,7 +53,7 @@ _REJECTED = "webhook signature verification failed"
 def sign(secret: str, timestamp_ms: int, body: str) -> str:
     """Return the ``X-Auradefi-Signature`` value for ``body``.
 
-    ``f"v1={hmac_sha256(secret, f'{timestamp_ms}.{body}')}"`` — 67
+    ``f"v1={hmac_sha256(secret, f'{timestamp_ms}.{body}')}"``: 67
     characters: the ``v1=`` prefix plus 64 lowercase hex. Both the
     secret and the signed string are encoded UTF-8.
     """
@@ -75,7 +75,7 @@ def verify_signature(
 ) -> None:
     """Return ``None`` iff ``signature`` is valid AND fresh.
 
-    Raises plain :class:`auradefi.errors.AuthError` — one class, one
+    Raises plain :class:`auradefi.errors.AuthError`: one class, one
     message, for every failure: a mismatched signature, a missing or
     wrong ``v1=`` prefix, a mutated body, a wrong secret, and a
     timestamp outside the window are INDISTINGUISHABLE to the caller.

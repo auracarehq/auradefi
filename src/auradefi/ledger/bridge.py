@@ -3,7 +3,7 @@
 ``ledger`` MAY import ``decode`` (tests/style ALLOWED_IMPORTS); ``decode``
 may never import ``ledger``. This is the single place where the deliberate
 duplicates (``decode.models.Direction`` / ``decode.models.transaction_id``,
-DECISIONS.md "Duplication waiver") meet their ledger originals — the bridge
+DECISIONS.md "Duplication waiver") meet their ledger originals: the bridge
 maps enum members by value, and golden vectors in
 ``tests/ledger/test_bridge.py`` pin both sides to the same bytes.
 
@@ -23,7 +23,7 @@ def to_ledger_transaction(rich: Transaction) -> LedgerTransaction:
     / ``initiated_at`` / ``confirmed_at`` are carried verbatim. ``entries``
     is one ``Entry(asset_id=part.asset_id, quantity=part.quantity,
     direction=ledger.models.Direction(part.direction.value))`` per part, in
-    ``parts`` order. Fees NEVER become entries (SPEC §4.4 — fees are
+    ``parts`` order. Fees NEVER become entries (SPEC §4.4, fees are
     siblings, never movements): a failed transaction with zero parts and a
     fee bridges to ``entries == ()``. Bookkeeping defaults apply
     (``removed=False``, ``last_modified_seq=0``). The input is never

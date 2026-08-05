@@ -5,7 +5,7 @@ cap: the containment RELEASE_0.1.1 §5 #24 asked for needed a paragraph of
 reasoning, and the house rule is to split the module rather than to leave
 the reasoning out to make it fit.
 
-Both public entry points — ``Auradefi.sync`` and ``UserHandle.sync`` —
+Both public entry points, ``Auradefi.sync`` and ``UserHandle.sync``,
 funnel through :func:`run_sync`, so they cannot drift apart.
 """
 
@@ -33,8 +33,8 @@ def run_sync(
     and contribute no row.
 
     CONTAINMENT (RELEASE_0.1.1 §5 #24): an ``AuradefiError`` from ONE
-    connection — an unservable address, a malformed row, a chain the
-    registry never held — becomes that connection's
+    connection, an unservable address, a malformed row, a chain the
+    registry never held, becomes that connection's
     ``ConnectionSyncReport.failure`` row and the loop continues, so one
     bad row cannot starve its siblings. It costs ONE unit of the budget:
     the pages it really spent are not observable from here, and one unit
@@ -47,7 +47,7 @@ def run_sync(
     signalling, not a product failure: its whole purpose is that the
     offline guarantee (SPEC §13) "fails loudly, never silently", and a
     containment that files it as one connection's failure row makes it
-    fail silently — a window the fixture never captured would read as an
+    fail silently: a window the fixture never captured would read as an
     upstream outage and land a partial ingest with nothing raised. That
     is the difference between a red suite and a green one that lost rows.
     """

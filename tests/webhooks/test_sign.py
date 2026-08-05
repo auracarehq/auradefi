@@ -1,6 +1,6 @@
 """The v1 webhook signature (SPEC §7.3; DECISIONS "Webhook signature (v1)").
 
-Vezgo authenticates webhooks by SOURCE-IP ALLOWLIST — unusable behind
+Vezgo authenticates webhooks by SOURCE-IP ALLOWLIST: unusable behind
 PaaS ingress and no evidence about the payload. This scheme replaces it,
 and nothing in auradefi consults an IP allowlist or a whitelisted URL.
 

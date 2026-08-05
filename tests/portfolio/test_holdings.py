@@ -6,7 +6,7 @@ value = quantity.as_decimal() * price.amount EXACTLY (no rounding, no
 context-precision loss); unpriced records keep price=None/value=None and
 appear in report.unpriced; record order preserved; address/chain_id
 echoed verbatim; clock injected (FrozenClock) or defaulted (SystemClock);
-holdings.py imports no httpx — portfolio is NOT an I/O domain.
+holdings.py imports no httpx. Portfolio is NOT an I/O domain.
 """
 
 from __future__ import annotations
@@ -117,7 +117,7 @@ def test_value_multiplication_is_exact_past_decimal_context_precision():
     #   3 * (10**77 + 1) / 10**18
     #   = 3e59 + 3e-18
     # A default-context (28-digit) Decimal multiply rounds this to exactly
-    # 3E+59 and silently loses the +3e-18 — rule #1's named failure mode.
+    # 3E+59 and silently loses the +3e-18: rule #1's named failure mode.
     exact = Decimal(
         "300000000000000000000000000000000000000000000000000000000000"
         ".000000000000000003"
@@ -132,7 +132,7 @@ def test_value_multiplication_is_exact_past_decimal_context_precision():
     assert holding.value is not None
     assert holding.value.amount == exact
     assert holding.value.amount != Decimal("3E+59")
-    # assemble's sum is exact too (money/_exact_sum) — the total survives.
+    # assemble's sum is exact too (money/_exact_sum). The total survives.
     assert report.total_value.amount == exact
 
 
@@ -178,7 +178,7 @@ def test_empty_source_yields_zero_total_and_one_empty_prices_call():
 
 
 def test_exactly_one_prices_call_with_ids_in_record_order():
-    # deliberately NOT sorted order — a sorted or deduplicating
+    # deliberately NOT sorted order: a sorted or deduplicating
     # implementation cannot pass by coincidence.
     source = StubSource(
         [
@@ -228,7 +228,7 @@ def test_source_called_once_with_chain_and_address_verbatim():
 
 
 def test_frozen_clock_stamps_as_of_ms_and_identity_echoed_verbatim():
-    # mixed-case address: the service must NOT normalise — the SOURCE
+    # mixed-case address: the service must NOT normalise: the SOURCE
     # lowercases for its own requests; the report echoes the input.
     address = "0xD8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
     service = HoldingsService(
@@ -311,7 +311,7 @@ def test_holdings_module_imports_no_httpx():
         if name == "httpx" or name.startswith("httpx.")
     ]
     assert not offenders, (
-        f"portfolio assembly is transport-free — no httpx: {offenders}"
+        f"portfolio assembly is transport-free: no httpx: {offenders}"
     )
 
 
@@ -322,7 +322,7 @@ def test_a_non_usd_price_is_never_relabelled_usd():
     # pins: the value carries the PRICE's currency, never a hardcoded "USD".
     #       Stamping Money(..., "USD") over a EUR price produced a total off
     #       by the FX rate, labelled USD, with nothing in `unpriced` and
-    #       nothing raised — the caller cannot tell it is wrong, which is
+    #       nothing raised. The caller cannot tell it is wrong, which is
     #       worse than a missing price. A EUR price is a host-oracle contract
     #       violation (Inquirer: "every returned Money has currency USD"),
     #       so the mislabelling must not be the thing that hides it.
@@ -333,7 +333,7 @@ def test_a_non_usd_price_is_never_relabelled_usd():
     try:
         report = service.holdings("eip155:1", "0xabc")
     except CurrencyMismatchError:
-        return  # refusing outright is also correct — it is not silent
+        return  # refusing outright is also correct. It is not silent
     values = [holding.value for holding in report.holdings if holding.value]
     assert values, "the record was priced, so it must have a value"
     assert {value.currency for value in values} == {"EUR"}, (
