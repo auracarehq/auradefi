@@ -4,12 +4,29 @@ Drop a specification in, get a built, tested, documented project out. The
 loop is language- and domain-agnostic: everything project-specific lives in
 one profile file.
 
-This is version 2. Version 1 built a ten-phase library — 3,027 tests green,
-every acceptance gate passing, release artifacts clean — and an independent
-adversarial pass afterwards found **15 verified defects**, three of them
-silent data loss and three security. Every stage added in v2 exists because
-of a specific defect v1 could not see. The evidence is in
-[Why each stage exists](#why-each-stage-exists); read it before deleting a
+This is version 3.
+
+Version 1 built a ten-phase library — 3,027 tests green, every acceptance
+gate passing, release artifacts clean — and an independent adversarial pass
+afterwards found **15 verified defects**, three of them silent data loss and
+three security. Every stage added in v2 exists because of a specific defect
+v1 could not see.
+
+Version 3 comes from running v2 on a **fix release**: nineteen verified
+defects in a shipped 0.1.0, none of which failed a test. v2 found and fixed
+them, and four more that no issue named — but the run also exposed gaps in
+the loop itself, and those are what v3 addresses. Two are structural enough
+to be new stages:
+
+- The **spec was wrong** about how to fix one defect, in a way the project's
+  own gates would have rejected. Nothing in v2 read the instructions before
+  following them.
+- Work decomposed by provably disjoint file ownership turned out **not to be
+  independently mergeable**. v2 ended at Ship and never tried to deliver the
+  orders separately, so it could not know.
+
+Every change is annotated with the defect that motivated it. The evidence is
+in [Why each stage exists](#why-each-stage-exists); read it before deleting a
 stage to save tokens.
 
 ---
@@ -21,7 +38,7 @@ Copy these into any repository:
 ```
 loop.md                          this file
 .claude/loop.profile.yml         the ONLY project-specific file — you write this
-.claude/agents/*.md              nine role definitions
+.claude/agents/*.md              eleven role definitions
 .claude/workflows/phase-build.js the orchestration
 ```
 
@@ -65,15 +82,16 @@ where a human catches a spec misreading before it compounds.
 ## The pipeline
 
 ```
-Interpret ──▶ Gate ──▶ Build ──▶ Prove ──┐
-   (1)        (2)       (3)      (4)     │
-                         ▲               ▼
-                         └── fix ◀── Seam ──▶ Sweep ──▶ Ship
-                                     (5)       (6)      (7)
+Audit ──▶ Interpret ──▶ Gate ──▶ Build ──▶ Prove ──┐
+  (0)        (1)         (2)       (3)      (4)    │
+                                    ▲              ▼
+                                    └── fix ◀── Seam ──▶ Sweep ──▶ Ship ──▶ Integrate
+                                                (5)       (6)      (7)        (8)
 ```
 
 | # | Phase | Agent | Barrier? | Deliverable |
 |---|-------|-------|----------|-------------|
+| 0 | Audit | `spec-auditor` | — | the spec's own claims checked against the enforced gates |
 | 1 | Interpret | `spec-interpreter` | — | work orders with disjoint file ownership |
 | 2 | Gate | `gate-author` | — | the phase acceptance test, written **blind** |
 | 3 | Build | `test-author` → `implementer` → `harsh-reviewer` (≤3 rounds) | per order | green tests + implementation |
@@ -81,11 +99,17 @@ Interpret ──▶ Gate ──▶ Build ──▶ Prove ──┐
 | 5 | Seam | `seam-auditor` | **per wave** | third-party-binding tests across boundaries |
 | 6 | Sweep | `pattern-sweeper` | per finding | the finding's *class* eliminated tree-wide |
 | 7 | Ship | `devops-docs` | end of phase | docs, packaging, release gate |
+| 8 | Integrate | `integrator` | end of phase | the real dependency graph, one branch per order |
 
 Stages 3–4 **pipeline** per work order: order B can be mutating while order
 C is still implementing. Stage 5 is a genuine barrier — it exists precisely
 to look between orders, so it needs them all finished. Stage 6 pipelines per
 confirmed finding.
+
+Stages 0 and 8 bracket the rest and were added in v3. Both exist because a
+build can be internally perfect and still be wrong at its edges: **0** checks
+the instructions before anyone follows them, **8** checks that work which was
+decomposed cleanly can also be *delivered* separately.
 
 ---
 
@@ -98,6 +122,33 @@ then handed that same decomposition as its scope. It caught everything
 *inside* a work order. It could not see anything *between* two orders that
 were each internally consistent and green.
 
+### Stage 0 — spec audit
+
+*v2 failure:* the fix release's spec said to fix a "two derivations of one
+id" defect by making one module derive through the other's function. That
+instruction was **wrong twice over**, and both were mechanically checkable:
+the two formulas were already byte-identical (a golden test existed
+specifically to cross-pin them), so the change was a value no-op; and the
+project's layering gate forbade the import it required, so it would not even
+have run. An agent following the spec faithfully would have written illegal
+code, failed a style gate, and burned a wave — while the actual defect, a
+hardcoded project id, went untouched.
+
+v2 had no stage that read the instructions before anyone followed them. It
+listed "wrong specs" under *what this loop does not catch* and stopped there.
+
+`spec-auditor` runs first and checks each stated fix direction, algorithm and
+claim against what the project **already enforces** — the style gates, the
+pinned decisions, the existing golden vectors. Its deliverable is
+`contradictions[]`, each naming the gate or pin that would reject the
+instruction. It fixes nothing and writes no code. A contradiction is a
+question for the human at the phase boundary, which is where loop.md already
+says spec misreadings get caught; this stage just makes the catch cheap
+instead of dependent on someone being suspicious.
+
+It cannot catch a spec that is wrong in a way nothing in the repo contradicts.
+That remains yours.
+
 ### Stage 2 — blind gates
 
 *v1 failure:* the phase-3 acceptance gate was written by the same lineage
@@ -108,6 +159,20 @@ than the one it claimed to pin, and a real bug shipped underneath it.
 `gate-author` reads the spec and is **forbidden from reading the source
 tree** (enforced by ownership, and by running before any implementation
 exists). Its gate must fail against a mutated build in stage 4.
+
+*v2 failure, same stage, one level deeper:* a blind gate for "one address on
+two chains yields two connections" built its fake upstream keyed by address
+alone, ignoring the chain argument entirely. The fixture therefore served
+both chains identical history — a state no real upstream can produce — and
+the test failed. The report read "the fix is only half-applied", with
+convincing evidence: every stored row carried the first chain's id. The
+source was correct; the fixture **could not express the property the pin
+named**, and cost a debugging cycle chasing a defect that did not exist.
+
+So a `pins:` declaration is now only proven when the fixture can produce
+**both** the pinned behaviour and its negation. `gate-author` and
+`seam-auditor` must demonstrate that: state which input flips the assertion,
+and if none can, the fixture is the finding.
 
 ### Stage 4 — mutation gate
 
@@ -136,6 +201,32 @@ findings:
 This is the highest-value stage in the loop. It converts "the suite is green"
 from a proxy into evidence.
 
+*v2 failure — a finding kind that did not exist.* On the fix release, three
+pre-existing tests were red **before any mutation was applied**, because they
+asserted the defect as contract: one pinned `entries[0].ip` equal to the
+forwarded header hop, which *was* the forgeable-audit-IP defect, and two
+encoded the exact off-by-one window arithmetic that lost transactions. The
+mutation gate had nowhere to file that. It used `vacuous-test` and said so in
+its own diagnosis — *"the kind enum has no category for this; routing to the
+test-author is why I used it."* An agent working around the schema is the
+schema's bug.
+
+There is now a third finding kind, `bug-pinned-test`: a test whose assertion
+encodes the behaviour the phase is removing. It routes to `test-author`, never
+to `implementer` — invariant 2 holds, and this is exactly the case that
+tempts you to break it. The updated test must record inline why it changed,
+so the next reader does not "restore" it.
+
+*And a missing baseline.* The same run produced reports containing phrases
+like "present at BASELINE, before any mutation was applied, and again after
+every mutation was restored" — the agent reconstructing, in prose, a fact the
+loop should have handed it. Without a recorded baseline no agent can
+distinguish *I broke this* from *this was already broken*, and both look
+identical in a test runner's output.
+
+The orchestrator now records the pass/fail set before the phase starts and
+puts it in the plan. Stage 4 diffs against that, not against green.
+
 ### Stage 5 — seam auditor
 
 *v1 failures (four of the fifteen):* two modules derived the same logical
@@ -149,6 +240,27 @@ boundaries, and its deliverable is a test that **binds a minimal
 implementation written only from the declared interface** — the thing no
 in-repo test ever does, because in-repo tests use the in-repo class.
 
+*v2 evidence — this stage earns its keep, and needs one guard.* On the fix
+release it found four defects **no issue named**: a security fix applied to
+one decoder while the identical unguarded decode sat in the core verifier two
+files away; an interface that both over- and under-declared its surface, so
+hosts had to implement dead code *and* still got a 500; a function typed to a
+concrete class while its only caller passed the Protocol, making the shipped
+composition untypeable; and a reorg planner that would remove another chain's
+live rows, newly reachable because of a different fix in the same wave.
+
+But one of its findings **contradicted a spec'd fix**. It reported that a
+resurrection "claims an ingest when nothing new arrived" — while the phase's
+own #22 required precisely that an unchanged redelivery of a removed row be
+re-added and counted. Two of its scenarios were also unreachable in the
+assembled system.
+
+So a seam finding is now adjudicated against the pins the wave is
+implementing **before** it is routed for fixing. A finding that contradicts a
+specified behaviour is a finding about the finding. Do not weaken this into
+"seam findings are advisory" — the four above were real, and three of them
+were the most valuable output of the run.
+
 ### Stage 6 — pattern sweeper
 
 *v1 failure:* a falsy-vs-absent bug (`if not x` where `x is None` was meant)
@@ -159,6 +271,21 @@ A confirmed finding is a sample, not an incident. `pattern-sweeper` searches
 the tree for the *class*, and where the class is mechanically detectable,
 writes a permanent check into the style-gate directory. It is the only agent
 that may write there.
+
+*v2 evidence — the class it named unprompted.* On the fix release it
+generalised a finding into **"a derived value that only DOCUMENTATION still
+consumes"**: when a pinned derivation changes, every consumer under `src/` and
+`tests/` moves with it because a red test is loud — but the executable
+documentation keeps the retired value, and nothing the loop runs opens a
+notebook. Three published books were asserting ids the code had stopped
+minting, and a fourth a dataclass field that no longer existed, with the suite
+green throughout.
+
+That is the sweeper working exactly as intended, and it is worth stating as a
+standing rule rather than leaving to be rediscovered: **when a derived value
+changes, its non-code consumers are part of the change** — cassettes, stored
+notebook outputs, README literals, changelog entries. Also see the profile
+note on `commands`: an artefact no command executes is outside every gate.
 
 ### Stage 3 — report-honesty lens
 
@@ -171,7 +298,75 @@ shape — a success-shaped report that is not true.
 is wrong*, try to construct a state where it lies. Success-shaped failure is
 the worst outcome for a library, and nothing in v1 was pointed at it.
 
+### Stage 8 — integrate
+
+*v2 failure:* file ownership was provably disjoint across every order, and
+seven order branches later merged into one integration branch with **zero
+conflicts**. The decomposition was sound. And yet three of those branches
+were **red on their own**: one order's tests called a function whose signature
+a *different* order had changed, and another order's source read a field a
+*different* order had added. Both compiled fine in the assembled tree and
+failed the moment they were separated.
+
+v2 ended at Ship. Nothing ever tried to deliver the orders independently, so
+the loop could not know its own output was not separable — I found out by
+building each branch by hand and running the suite on it, after the work was
+done.
+
+`integrator` builds one branch per order from the phase's base, applies only
+that order's files, runs the suite, and reports the **actual** dependency
+graph. That graph is an output, not an assumption: it tells you the real merge
+order, and a cycle in it means two orders should have been one.
+
+**Ownership partitions who may write. It does not partition what compiles.**
+Those are different graphs and the loop now computes both.
+
+This stage also owns the release preconditions, because a publish step is the
+last place a false success is cheap. Every irreversible command — an upload, a
+tag push, a registry write — must be preceded by an assertion that exits
+non-zero if its precondition is false. That rule comes from the same run: a
+release procedure said "rebuild from merged main" in a comment while nothing
+checked that the merge had happened, so it cheerfully built and published the
+**old** code under the new version's tag. It is the identical shape to the
+`backfill_complete` and `no_op` defects the phase had just fixed — a step
+reporting success while its precondition is false — committed by the
+instructions rather than the code.
+
 ---
+
+## Fix-release mode
+
+Everything above is written for a greenfield phase: `test-author` is told "no
+implementation exists", `implementer` is told "your `src_files` exist as
+stubs", and red-for-the-right-reason means *fails with the unimplemented
+sentinel*. On a fix release every one of those is false, and v2 had no way to
+say so — the fix release ran with a hand-written override block pasted into
+all eleven work-order contracts, which is a sign the loop was missing a mode,
+not that the operator was being clever.
+
+Set `mode: fix` in the profile (default `greenfield`) and the roles change:
+
+- **The source already exists and is fully implemented.** `test-author` writes
+  regression tests only, stubs nothing, and touches no `src_file` at all.
+- **Red for the right reason inverts.** It means the assertion prints the
+  *shipped* wrong value. An import or attribute error is now the wrong kind of
+  red, not the right one — except on genuinely new surface, which the contract
+  must name explicitly.
+- **The bug is the mutant.** Stage 4 does not construct one: reverting the fix
+  *is* the mutation. A test that passes before the fix is testing something
+  else.
+- **`bug-pinned-test` is expected, not exceptional.** Tests asserting the
+  defect as contract are normal in shipped code; the contract should name the
+  ones already known.
+- **Line-count headroom is a first-class constraint.** Greenfield modules grow
+  into their budget; shipped ones are often already at it. Three orders on the
+  fix release needed a module split to say something honestly, and every one
+  was cheaper to pre-authorise in the contract (naming the new module and its
+  mirror test) than to discover at the cap. State the current count per file.
+
+The per-fix protocol — write the test, prove it red against shipped code, fix
+the source, prove it reds again on revert — is the discipline this mode
+exists to support. It is worth more than any single stage.
 
 ## What was kept, deliberately
 
@@ -198,6 +393,7 @@ project:
   spec: docs/SPEC.md          # the specification (required)
   decisions: docs/DECISIONS.md # pinned algorithms; "" if you have none
   status: STATUS.md            # where unresolved findings land (required)
+  mode: greenfield             # or `fix` — see [Fix-release mode]
 
 layout:
   source_root: src/my_project
@@ -230,6 +426,15 @@ rules:                         # your project's non-negotiables, verbatim
   - "Timestamps are millisecond-epoch integers."
   - "Only exception classes declared in errors_module may be raised."
 ```
+
+**The profile is preflighted before any agent runs.** Every path it declares
+must be legal under the project's own gates, and a profile that names an
+illegal one fails immediately rather than at the first file written. The fix
+release shipped with `seam_tests: tests/seams` while the project's placement
+gate exempted only four other directories from its source-mirror rule — so the
+seam auditor's very first file would have failed a style gate it had no way to
+know about. Repointing the directory took one line; discovering it cost a
+debugging cycle inside a 3,000-test suite.
 
 Everything the agents need is here. If an agent needs something that is not,
 it stops and reports `blocked_on` rather than guessing — a guess in one agent
@@ -271,6 +476,20 @@ an agent's role definition, and violating one is how a build corrupts itself.
 6. **Unresolved findings are written down.** Three fix rounds and still
    disputed means it lands in the `status` file with its evidence. A loop
    that quietly drops what it cannot fix is worse than no loop.
+7. **Ownership partitions writing, not compiling.** Disjoint file ownership
+   does not make orders independently mergeable, and v2 assumed it did. The
+   dependency graph is computed in stage 8, never inferred from the ownership
+   graph.
+8. **A baseline is recorded before the phase starts.** Every agent that reads
+   a test result needs to know which failures it inherited. Without this,
+   "already broken" and "I broke it" are the same observation.
+9. **A test that asserts the behaviour being removed is escalated, not
+   edited by the implementer** — the `bug-pinned-test` case. It is invariant 2
+   under the most pressure it ever gets, and the updated test says inline why
+   it changed.
+10. **Every irreversible command asserts its precondition first**, and the
+    assertion exits non-zero. Publishing, tagging and registry writes are
+    where a false success stops being recoverable.
 
 ---
 
@@ -278,9 +497,13 @@ an agent's role definition, and violating one is how a build corrupts itself.
 
 Stated plainly, so you do not over-trust it.
 
-- **Wrong specs.** Every stage measures fidelity to the spec. If the spec is
-  wrong, the loop will faithfully build the wrong thing and prove it works.
-  Phase boundaries are the human review point for exactly this reason.
+- **Wrong specs — now partially caught.** Stage 0 checks a spec's stated fix
+  directions against what the project already enforces, so an instruction that
+  contradicts a style gate, a pinned decision or an existing golden vector is
+  found before anyone follows it. That is a narrow win: it catches the spec
+  contradicting *the repo*. A spec that is wrong in a way nothing in the repo
+  disagrees with still gets faithfully built and proven to work. Phase
+  boundaries remain the human review point, for exactly that residue.
 - **Live integration.** Everything is verified offline against recorded
   fixtures. Provider drift, real network semantics, real clock skew and real
   concurrency are outside its reach. Budget a separate, credentialed
@@ -362,3 +585,33 @@ value. Do not assume a cached result was non-empty.
 
 During the v1 build I hit roughly a dozen usage-limit windows and re-ran
 phases from scratch rather than resuming. That was avoidable and expensive.
+
+### Transient API failures are not the same as a killed run
+
+On the fix release, **11 of 36 agents died on `529 Overloaded`** in one wave
+and 5 of 6 in the resumed run — including both mutation gates, the seam
+auditor and Ship. The loop had no retry at all, so a server-side blip
+propagated straight into a half-built tree: implementations landed with no
+mutation proof, and the phase reported findings it never adjudicated.
+
+Every `agent()` call now retries on a transient error with backoff before
+giving up. A 529 is not a result.
+
+### Contract edits invalidate more cache than you think
+
+Resuming after appending one instruction to a work order's `contract` re-ran
+that order's **entire** chain — test-author included — because the contract is
+part of the cache key and every later stage depends on it. I needed one
+downstream agent to re-run and paid for four.
+
+Work orders therefore carry `addenda: string[]`, concatenated into prompts but
+excluded from the cache key of stages that already completed. Late guidance is
+cheap; rewriting the contract is not.
+
+### What to check before you trust a resumed run
+
+`journal.jsonl` records what each agent returned, but not whether the tree is
+coherent. After any resume with failures, run the suite before reading the
+report — on the fix release the report said "zero unresolved findings" while
+22 tests were red, because the agents that would have found them had died.
+The report is only as honest as the stages that produced it.

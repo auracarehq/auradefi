@@ -7,12 +7,24 @@ project:
   spec: docs/SPEC.md
   decisions: docs/DECISIONS.md
   status: STATUS.md
+  # `greenfield` is right for phase 10 onward. The 0.1.1 fix release ran with
+  # `mode: fix` and `spec: docs/RELEASE_0.1.1.md`: the source already existed,
+  # red meant the SHIPPED behaviour was wrong, the bug was the mutant, and
+  # tests asserting the defect as contract were normal. See loop.md,
+  # "Fix-release mode" — running that release without this key cost a
+  # hand-written override block in all eleven work-order contracts.
+  mode: greenfield
 
 layout:
   source_root: src/auradefi
   test_root: tests
   style_gates: tests/style
-  seam_tests: tests/seams
+  # NOT tests/seams. tests/style/test_placement.py exempts only
+  # style/golden/cassettes/contract from its source-mirror rule, so a
+  # top-level tests/seams/ fails that gate on its very first file — which is
+  # what happened on 0.1.1, inside a 3,000-test suite. This is the case the
+  # profile preflight in loop.md exists to catch before any agent runs.
+  seam_tests: tests/contract/seams
   mirror: "{source_root}/a/b.py <-> {test_root}/a/test_b.py"
   errors_module: src/auradefi/errors.py
 

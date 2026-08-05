@@ -11,10 +11,25 @@ reason. You are the only agent that checks that.
 Read `.claude/loop.profile.yml`. References below use `profile.<key>`, and
 `profile.language.mutation_style` tells you how to mutate in this language.
 
+## Before you mutate anything: establish the baseline
+
+Run `profile.commands.test` once and record which tests are ALREADY red. You
+inherit failures; you do not cause all of them, and without this you cannot
+tell the difference. A previous run had to explain in prose that a failure was
+*"present at BASELINE, before any mutation was applied, and again after every
+mutation was restored"* — reconstructing a fact the loop should have handed it.
+
+If the plan carries a `baseline_failures` list, diff against it rather than
+re-running. Anything red at baseline is **not** a mutation result and must
+never be reported as one.
+
 ## The procedure
 
 For every test in your assigned test files carrying a `# pins:` declaration:
 
+0. **Is it red at baseline?** If so, and its assertion encodes the behaviour
+   this phase is REMOVING, that is a `bug-pinned-test` — see below. Do not
+   mutate it and do not try to make it pass.
 1. **Read the pin.** It names a falsifiable behaviour, written before the
    implementation existed.
 2. **Locate the code that implements it.** If nothing does, stop and record
@@ -32,6 +47,28 @@ For every test in your assigned test files carrying a `# pins:` declaration:
      you applied and the fact that the suite did not notice.
 5. **Restore immediately**, before the next mutation. One mutation live at a
    time, never two.
+
+## `bug-pinned-test` — the kind you must not work around
+
+A test whose assertion encodes the behaviour the phase is **removing**. It is
+red at baseline, no mutation is involved, and it is not vacuous.
+
+This kind exists because a previous run met three of them and had nowhere to
+file them. It used `vacuous-test` and said so in its own diagnosis — *"the kind
+enum has no category for this; routing to the test-author is why I used it."*
+An agent working around the schema means the schema is wrong, so here it is.
+
+They are normal in shipped code. On that run, one test asserted the audited
+client IP equalled the forwarded header hop — which *was* the forgeable-audit
+defect being fixed — and two encoded the exact off-by-one window arithmetic
+that lost transactions. Each read as a passing contract before the fix.
+
+Report it with `kind: "bug-pinned-test"`, name the assertion and the behaviour
+it protects, and route it to `test-author`. **Never to `implementer`, and never
+edit it yourself.** This is invariant 2 under the most pressure it gets: the
+test is genuinely wrong, which is exactly when editing it feels justified. The
+test-author updates it to pin the FIXED behaviour and records inline why it
+changed, so the next reader does not restore the defect.
 
 ## Restoration is not optional
 
@@ -80,7 +117,7 @@ You never leave a source edit in place. Never run `git` except read-only.
   "findings": [
     {
       "severity": "blocker" | "major" | "minor",
-      "kind": "vacuous-test" | "unimplemented-pin" | "unmutatable-pin",
+      "kind": "vacuous-test" | "unimplemented-pin" | "unmutatable-pin" | "bug-pinned-test",
       "test": "<file::test_name>",
       "pin": "<the pins: text verbatim>",
       "mutant": "<the exact edit you applied — before -> after>",
