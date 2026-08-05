@@ -56,8 +56,8 @@ whose extra is absent and says so rather than failing.
 - **[`docs/books/`](../docs/books)** — twelve executable notebooks, one per
   SPEC phase, that go considerably deeper and are run headlessly in CI so
   they cannot rot.
-- **[`docs/SPEC.md`](../docs/SPEC.md)** — the design contract, and
-  [`docs/DECISIONS.md`](../docs/DECISIONS.md) every pinned algorithm and id
+- **[`docs/internal/SPEC.md`](../docs/internal/SPEC.md)** — the design contract, and
+  [`docs/internal/DECISIONS.md`](../docs/internal/DECISIONS.md) every pinned algorithm and id
   formula.
 
 Every example here is executed by CI (`scripts/run_examples.sh`), so an

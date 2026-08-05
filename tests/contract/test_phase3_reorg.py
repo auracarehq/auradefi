@@ -8,7 +8,7 @@ Composes the full pipeline end to end:
     apply_reorg -> sync
 
 Golden transaction ids were derived INDEPENDENTLY via ``python3 -c`` over
-the algorithm pinned in docs/DECISIONS.md
+the algorithm pinned in docs/internal/DECISIONS.md
 (``"txn_" + sha256(f"{chain_id}|{tx_hash}|{account_id}").hexdigest()[:16]``):
 
     eip155:1 | 0x + 'bb'*32 | acct_1  ->  txn_e5e727672fb4ada6   (B)

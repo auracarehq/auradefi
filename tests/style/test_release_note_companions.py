@@ -1,7 +1,7 @@
 """A behaviour change pinned in DECISIONS.md must reach CHANGELOG.md too.
 
 MOTIVATING FINDING (0.1.1 wave 2, `CHANGELOG.md:6`, spec-fidelity, major):
-`docs/RELEASE_0.1.1.md` §5 wave A says, verbatim, "Update `docs/DECISIONS.md`
+`docs/internal/RELEASE_0.1.1.md` §5 wave A says, verbatim, "Update `docs/internal/DECISIONS.md`
 in the same change, and note in `CHANGELOG.md` that any 0.1.0 data is not
 portable to 0.1.1." DECISIONS.md got its three `(0.1.1)` bullets — the embed
 id derivation, the sync loop, the `SyncStatePort` break. CHANGELOG.md got
@@ -31,7 +31,7 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-DECISIONS = REPO / "docs" / "DECISIONS.md"
+DECISIONS = REPO / "docs" / "internal" / "DECISIONS.md"
 CHANGELOG = REPO / "CHANGELOG.md"
 
 # `(0.1.1)` on a bullet line. Three-part only: a two-part `(0.1)` is a
@@ -117,7 +117,7 @@ def test_every_version_pinned_in_decisions_has_a_changelog_section():
     missing = missing_changelog_sections(decisions_text, changelog_text)
 
     assert not missing, (
-        "docs/DECISIONS.md pins behaviour for version(s) "
+        "docs/internal/DECISIONS.md pins behaviour for version(s) "
         + ", ".join(missing)
         + " with no `## [version]` section in CHANGELOG.md. RELEASE_0.1.1 §5 "
         "and §3.7 require both artefacts to move in the same change: "
@@ -132,7 +132,7 @@ def test_a_portability_break_is_announced_to_hosts():
     offenders = unannounced_portability_breaks(decisions_text, changelog_text)
 
     assert not offenders, (
-        "docs/DECISIONS.md declares data NOT PORTABLE for version(s) "
+        "docs/internal/DECISIONS.md declares data NOT PORTABLE for version(s) "
         + ", ".join(offenders)
         + " but that CHANGELOG.md section never mentions portability. A host "
         "upgrading in place has no way to learn its persisted ids re-derive."

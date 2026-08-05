@@ -281,3 +281,51 @@ footer a { color: var(--ink-soft); }
   .toc { float: none; width: auto; margin: 1rem 0; }
   h1 { font-size: 1.7rem; }
 }
+
+/* ------------------------------------------------- generated API reference */
+/* Plaid's anatomy: a signature line, then fields as an indented list where
+   the type and required-ness sit beside the name rather than in a column a
+   reader has to track back to a header. */
+pre.sig {
+  font: 0.8rem/1.5 var(--mono);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 0.6rem 0.8rem;
+  margin: 0.5rem 0 1rem;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--ink);
+}
+
+.member { margin: 2.5rem 0; }
+.member > h2 { border-top: 1px solid var(--rule); }
+
+.params, .fields { margin: 0.6rem 0 1.4rem; }
+
+.param, .field {
+  padding: 0.55rem 0 0.55rem 0.85rem;
+  border-left: 2px solid var(--rule);
+  margin-bottom: 0.35rem;
+}
+.param:hover, .field:hover { border-left-color: var(--accent); }
+
+code.pname, code.fname {
+  font-weight: 600; background: none; padding: 0;
+  color: var(--ink); font-size: 0.9rem;
+}
+.ptype, .ftype {
+  font: 0.78rem/1.4 var(--mono);
+  color: var(--accent);
+  margin-left: 0.55rem;
+}
+.fnote { font: 0.78rem/1.4 var(--mono); color: var(--ink-faint); margin-left: 0.5rem; }
+.pdoc { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--ink-soft); }
+.pdoc code { font-size: 0.85em; }
+
+.raises { margin: 0.3rem 0 1.2rem; }
+.raises code { color: var(--accent); }
+
+/* The reference nav is long; let its own entries stay compact. */
+.nav a { line-height: 1.35; }

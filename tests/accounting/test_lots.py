@@ -1,6 +1,6 @@
 """Lot ledger, taxable events, and the exact-math boundary (SPEC §9).
 
-Golden vectors here are recomputed from docs/DECISIONS.md by hand, not by
+Golden vectors here are recomputed from docs/internal/DECISIONS.md by hand, not by
 calling the code under test:
 
 * lot id     — ``"lot_" + sha256(f"{tx}|{asset}|{seq}").hexdigest()[:16]``

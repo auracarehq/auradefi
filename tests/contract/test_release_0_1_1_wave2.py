@@ -6,7 +6,7 @@ they lose transactions or return empty results while reporting success — so
 every test below asserts a VALUE a caller can observe: the rows read back,
 the id handed out, the flag the report shows. Never the absence of an error.
 
-Written blind from docs/RELEASE_0.1.1.md, docs/SPEC.md §8, docs/DECISIONS.md
+Written blind from docs/internal/RELEASE_0.1.1.md, docs/internal/SPEC.md §8, docs/internal/DECISIONS.md
 and the published surface (README.md, docs/books/, examples/quickstart.py).
 Nothing under src/auradefi was read; every expected id is derived from the
 formula pinned in DECISIONS.md, never by calling the code under test.
@@ -276,11 +276,11 @@ def test_26_same_address_on_two_chains_is_two_connections():
 def test_26_decisions_records_the_chain_scoped_connection_id():
     # pins: the breaking derivation change is written down where the project
     #       pins its algorithms, including that 0.1.0 ids do not carry over.
-    lines = (REPO / "docs" / "DECISIONS.md").read_text(encoding="utf-8").lower().splitlines()
+    lines = (REPO / "docs" / "internal" / "DECISIONS.md").read_text(encoding="utf-8").lower().splitlines()
     assert any("embed" in line and "chain" in line and "connection" in line for line in lines), (
-        "docs/DECISIONS.md does not record that embed connection ids are chain-scoped")
+        "docs/internal/DECISIONS.md does not record that embed connection ids are chain-scoped")
     assert any("0.1.0" in line and "portab" in line for line in lines), (
-        "docs/DECISIONS.md does not record that 0.1.0 connection ids are not portable")
+        "docs/internal/DECISIONS.md does not record that 0.1.0 connection ids are not portable")
 
 
 def test_21_a_restarted_worker_syncs_from_the_state_port():

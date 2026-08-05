@@ -1,5 +1,5 @@
 """Scoped API keys: issue, hash-at-rest, authenticate, rotate, revoke
-(SPEC §7.2; format pinned in docs/DECISIONS.md "API key format").
+(SPEC §7.2; format pinned in docs/internal/DECISIONS.md "API key format").
 
 The golden literals below were derived INDEPENDENTLY via ``python3 -c``
 implementing the pinned algorithm: plaintext ``f"adk_{env}_{body}"`` with

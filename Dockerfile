@@ -35,8 +35,9 @@ COPY docs ./docs
 COPY examples ./examples
 COPY scripts ./scripts
 # tests/style/test_release_note_companions.py checks that a version pinned in
-# docs/DECISIONS.md owns a CHANGELOG section.
-COPY CHANGELOG.md STATUS.md ./
+# docs/internal/DECISIONS.md owns a CHANGELOG section. STATUS.md moved under
+# docs/internal/, which the `COPY docs` above already carries.
+COPY CHANGELOG.md ./
 # [dev] = pytest + build/twine + nbformat/nbclient/ipykernel + fastapi + sqlmodel.
 RUN pip install --quiet ".[dev]"
 # Bare `pytest`: pyproject's addopts already carries -q, and a second -q

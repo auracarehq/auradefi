@@ -2,19 +2,19 @@
 
 This repo was built by a five-role agent graph, phase by phase, and the
 graph is checked in: the roles as agent definitions under
-[`.claude/agents/`](../.claude/agents), the orchestration as a workflow at
-[`.claude/workflows/phase-build.js`](../.claude/workflows/phase-build.js).
+[`.claude/agents/`](../../.claude/agents), the orchestration as a workflow at
+[`.claude/workflows/phase-build.js`](../../.claude/workflows/phase-build.js).
 
 This file is the copy-paste runbook. A newcomer with Claude Code and this
 document can run the next phase — or re-run an existing one — unaided.
 
-All ten SPEC phases are done (see [`STATUS.md`](../STATUS.md)); the loop
+All ten SPEC phases are done (see [`STATUS.md`](STATUS.md)); the loop
 remains the way to add a phase 10, a new chain, or a new adapter family.
 
 ## The graph
 
 ```
-docs/SPEC.md §11 (phase N)
+docs/internal/SPEC.md §11 (phase N)
       │
       ▼
 spec-interpreter ──► work orders (disjoint file ownership, dependency waves)
@@ -48,7 +48,7 @@ Two things this diagram encodes that are easy to get wrong:
   finishes, because waves encode dependency ordering.
 
 Unresolved blockers/majors after 3 rounds escalate to
-[`STATUS.md`](../STATUS.md) — never silently dropped.
+[`STATUS.md`](STATUS.md) — never silently dropped.
 
 ## Running a phase with the workflow (recommended)
 
@@ -94,8 +94,8 @@ are the short form that loads it.
 ### 1 — spec-interpreter
 ```text
 You are the spec-interpreter for auradefi (read-only). Decompose SPEC
-phase N into work orders. Read docs/SPEC.md §11 for the gate, the phase's
-sections, docs/DECISIONS.md for pinned algorithms, and
+phase N into work orders. Read docs/internal/SPEC.md §11 for the gate, the phase's
+sections, docs/internal/DECISIONS.md for pinned algorithms, and
 tests/style/test_layering.py for the ALLOWED_IMPORTS matrix. Output ONLY
 the JSON described in .claude/agents/spec-interpreter.md: waves of orders
 with disjoint src_files/test_files (tests mirror source exactly),
@@ -109,7 +109,7 @@ orchestrator may touch.
 You are the test-author for the auradefi work order below. Create ONLY its
 test_files plus its src_files as stubs (full typed signatures, docstring
 contracts, bodies = raise NotImplementedError). Golden vectors: derive
-values yourself from docs/DECISIONS.md pinned algorithms via python3 -c,
+values yourself from docs/internal/DECISIONS.md pinned algorithms via python3 -c,
 hardcode the literals. Cover happy path, every documented error with
 pytest.raises on the specific auradefi.errors class, boundaries (zero,
 negative, 10^77), immutability. Done when:
@@ -164,7 +164,7 @@ pinning the bug.
 You are the devops-docs agent for auradefi phase N. Make the phase
 shippable and documented. Your surface: docs/books/*.ipynb,
 examples/quickstart.py, README.md, CHANGELOG.md, STATUS.md,
-docs/AGENT_PROMPTS.md, docs/RELEASING.md, Dockerfile, docker-compose.yml,
+docs/internal/AGENT_PROMPTS.md, docs/internal/RELEASING.md, Dockerfile, docker-compose.yml,
 .github/workflows/ci.yml, scripts/*. Never src/, never tests/, never git.
 
 1. Add a numbered executable notebook under docs/books/ for the new

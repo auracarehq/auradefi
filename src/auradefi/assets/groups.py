@@ -8,7 +8,7 @@ members mix decimals is rejected server-side (Zerion punts this to the
 client; we do not).
 
 The group id is a PERMANENTLY STABLE wire contract, same recipe as the
-pinned asset id (docs/DECISIONS.md)::
+pinned asset id (docs/internal/DECISIONS.md)::
 
     "grp_" + sha256("\\n".join(sorted(asset_ids)).encode()).hexdigest()[:16]
 

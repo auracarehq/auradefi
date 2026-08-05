@@ -1,7 +1,7 @@
 """HS256 JWT mint/verify and jti revocation (SPEC §7.1/§7.2).
 
 The token literals below were derived INDEPENDENTLY via a ``python3 -c``
-scratch script implementing the algorithm pinned in docs/DECISIONS.md
+scratch script implementing the algorithm pinned in docs/internal/DECISIONS.md
 ("JWT wire form"): base64url-no-pad segments over
 ``json.dumps(obj, separators=(",", ":"), sort_keys=True)``, header exactly
 ``{"alg":"HS256","typ":"JWT"}``, HMAC-SHA256 signature, iat/exp as

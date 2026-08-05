@@ -7,7 +7,7 @@ from the host's opaque user id. The layer gate forbids
 ``embed`` → ``tenancy`` imports, so the two formulas are LOCAL COPIES and
 nothing inside either module can notice them drifting. Every expected
 value below is computed independently from the formula written in
-``docs/DECISIONS.md``, never regenerated from the code.
+``docs/internal/DECISIONS.md``, never regenerated from the code.
 
 Both derivations are RUN, never read. Consequences that cross a module
 boundary are pinned too: an embed connection id is the ``account_id``
@@ -42,11 +42,11 @@ REPO = Path(__file__).resolve().parents[3]
 EXTERNAL_USER_ID = "host-user-1"
 ADDRESS = "0x1111111111111111111111111111111111111111"
 
-#: Independently computed from docs/DECISIONS.md:
+#: Independently computed from docs/internal/DECISIONS.md:
 #: end_user_id = "usr_" + sha256(f"{project_id}|{external_user_id}")[:16]
 TENANT_UNDER_EMBED = "usr_1e63721d071ea2d9"
 
-#: Independently computed from docs/DECISIONS.md's 0.1.1 line:
+#: Independently computed from docs/internal/DECISIONS.md's 0.1.1 line:
 #: "conn_" + sha256(f"embed|{tenant_id}|address|{chain_id}|{descriptor}")[:16]
 CONN_MAINNET = "conn_d0327e21d9b0ea55"
 CONN_POLYGON = "conn_acb7e927076b309e"
@@ -150,7 +150,7 @@ class TestConnectionDerivation:
     def test_it_matches_the_formula_documented_in_decisions(self):
         """The DOCUMENTED segment order is the contract, not the code's.
 
-        ``docs/DECISIONS.md`` states
+        ``docs/internal/DECISIONS.md`` states
         ``embed|{tenant_id}|address|{chain_id}|{normalized_descriptor}``;
         any other order produces a different id and silently orphans the
         rows written under the documented one.
@@ -197,7 +197,7 @@ class TestConnectionIdReachesTheLedger:
         wave. Changing the connection-id formula rehashes every one of
         them, so that file has to change in the same commit as #26.
 
-        The expected connection id here is the one ``docs/DECISIONS.md``
+        The expected connection id here is the one ``docs/internal/DECISIONS.md``
         specifies, not the one the code returns, so the pin holds whatever
         state ``derive_connection_id``'s signature is in.
         """

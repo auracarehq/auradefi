@@ -1,7 +1,7 @@
 """Golden vectors and invariants for auradefi.embed.models (SPEC §8, §7.1).
 
 The id literals below were derived INDEPENDENTLY of the code under test,
-via ``python3 -c`` over the algorithms pinned in docs/DECISIONS.md:
+via ``python3 -c`` over the algorithms pinned in docs/internal/DECISIONS.md:
 
     tenant_id     = "usr_"  + sha256(f"{project_id}|{external_user_id}".encode()).hexdigest()[:16]
     connection_id = "conn_" + sha256(f"embed|{tenant_id}|address|{chain_id}|{normalized}".encode()).hexdigest()[:16]

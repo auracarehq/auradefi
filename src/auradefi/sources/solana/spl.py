@@ -6,7 +6,7 @@ parse via ``int()`` from the ``amount`` STRING — never through float
 (SPEC rules #1/#2), and the ``uiAmount`` float member of ``tokenAmount``
 is NEVER read.
 
-Token-2022 ScaledUiAmount (docs/DECISIONS.md, "Solana ScaledUiAmount
+Token-2022 ScaledUiAmount (docs/internal/DECISIONS.md, "Solana ScaledUiAmount
 detection"; SPEC §4.1 warning): the ``raw / 10**decimals`` identity does
 not hold for every mint, so BOTH representations are carried —
 ``Quantity(int(amount), decimals)`` for arithmetic and ``uiAmountString``

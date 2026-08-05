@@ -2,7 +2,7 @@
 
 SPEC §7.2 ("Scoped keys", "Key rotation"): separate keys per environment,
 independent rotation with an overlap window, hashed at rest. The wire
-format is PINNED in docs/DECISIONS.md ("API key format"):
+format is PINNED in docs/internal/DECISIONS.md ("API key format"):
 
 * plaintext = ``f"adk_{environment}_{body}"``, environment ∈
   {``live``, ``test``} (both 4 chars), body = ``entropy(24)`` = 48

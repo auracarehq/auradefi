@@ -5,7 +5,7 @@ strings, exact ordering. Nothing is mocked and nothing touches the
 network — the whole point of keeping this module pure is that its output
 contract is testable from fixtures alone (SPEC rule #11).
 
-Golden values are derived from the pinned algorithms in docs/DECISIONS.md
+Golden values are derived from the pinned algorithms in docs/internal/DECISIONS.md
 and hardcoded as literals; they are never recomputed by calling the code
 under test.
 """
@@ -910,7 +910,7 @@ def test_wire_imports_only_permitted_auradefi_domains():
 
 # --- Regression pins for the Phase 8 harsh-review findings -----------------
 # Each of these failed before the fix; they exist so the failure cannot
-# return silently. See docs/DECISIONS.md and the Phase 8 review notes.
+# return silently. See docs/internal/DECISIONS.md and the Phase 8 review notes.
 
 
 def test_mapping_binding_honours_its_values_never_just_its_keys():

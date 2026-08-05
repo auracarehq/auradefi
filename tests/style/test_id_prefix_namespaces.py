@@ -44,7 +44,7 @@ derives each site's RECIPE from the preimage/join literals in its function
    prefix — a single place that goes red when one copy drifts. (Rule 2 in
    spirit is DECISIONS' duplication waiver made enforceable.)
 2. RECIPES THAT DIFFER MUST BE REGISTERED HERE, in `DIVERGENT_PREFIXES`, with
-   an anchor phrase that must literally appear in `docs/DECISIONS.md`. An
+   an anchor phrase that must literally appear in `docs/internal/DECISIONS.md`. An
    unregistered divergence is the wire.py:63 defect; a registered one whose
    DECISIONS anchor has been deleted is the same defect with the reasoning
    thrown away.
@@ -64,7 +64,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO / "src" / "auradefi"
 TEST_ROOT = REPO / "tests"
-DECISIONS = REPO / "docs" / "DECISIONS.md"
+DECISIONS = REPO / "docs" / "internal" / "DECISIONS.md"
 
 #: A mint prefix literal: `conn_`, `txn_`, `usr_`, … lowercase, trailing `_`.
 _PREFIX = re.compile(r"^([a-z]{2,8})_$")
@@ -206,7 +206,7 @@ def duplicated_prefixes(sites: list[MintSite]) -> dict[str, list[MintSite]]:
     }
 
 
-#: Divergences reviewed and accepted, each with the phrase docs/DECISIONS.md
+#: Divergences reviewed and accepted, each with the phrase docs/internal/DECISIONS.md
 #: must carry so the reasoning cannot be deleted without a red test.
 #:
 #: `conn_`: #26 chain-scoped the embed id; `tenancy.connection_id` stays
@@ -252,7 +252,7 @@ def test_divergent_id_prefixes_are_registered_and_documented() -> None:
         "envelope's account_id and /connections' connection_id are both "
         "`conn_<16 hex>` and never equal). Either make the recipes agree, or "
         "register the prefix here and document the divergence in "
-        "docs/DECISIONS.md:\n"
+        "docs/internal/DECISIONS.md:\n"
         + "\n".join(
             f"  {prefix}_:\n"
             + "\n".join(f"    {site}  recipe={site.recipe}" for site in group)

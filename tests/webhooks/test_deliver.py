@@ -10,7 +10,7 @@ All HTTP is ``httpx.MockTransport``; the autouse socket guard in
 tests/conftest.py fails the run if anything reaches a real socket.
 
 Golden ids/bodies/signatures were derived INDEPENDENTLY via ``python3
--c`` from the algorithms pinned in docs/DECISIONS.md — see the module
+-c`` from the algorithms pinned in docs/internal/DECISIONS.md — see the module
 docstring of tests/webhooks/test_models.py for the formulas. With
 ``entropy = lambda n: "ab" * n`` the endpoint secret is ``"ab" * 32``.
 """

@@ -22,7 +22,7 @@ review the touched files individually rather than in one broad pass.
 
 None of them fail a test. That is the point: every one of them is green today.
 
-A separate set of issues, **#1–#17**, records gaps between `docs/SPEC.md` §3.2's
+A separate set of issues, **#1–#17**, records gaps between `docs/internal/SPEC.md` §3.2's
 declared module layout and what actually shipped. **Those are roadmap, not
 release blockers** — see §7.
 
@@ -164,7 +164,7 @@ so a forged attribution is permanent and indistinguishable from a real one.
 ### Wave A — identity and persistence (breaking derivations; do together)
 
 These two change values that are already persisted. Update
-`docs/DECISIONS.md` in the same change, and note in `CHANGELOG.md` that any
+`docs/internal/DECISIONS.md` in the same change, and note in `CHANGELOG.md` that any
 0.1.0 data is not portable to 0.1.1.
 
 **#19 — library and API address different ledger tenants.**
@@ -259,7 +259,7 @@ every returned `Money` is USD) and carry `price.currency` through.
 
 **#29 — `rounded_basis` flag discarded.** `src/auradefi/accounting/report.py`
 lines 231, 241, 283-286, 287-289 all index `[0]` and drop `fraction_to_money`'s
-`is_exact` bit. `docs/DECISIONS.md` pins that this boundary is *always flagged*.
+`is_exact` bit. `docs/internal/DECISIONS.md` pins that this boundary is *always flagged*.
 `AssetPnL` / `PnLReport` / `TaxLot` carry no flags field at all — add one.
 
 **#31 — one stale descriptor drops the whole staking slice.**
@@ -302,7 +302,7 @@ siblings do.
 declares: the whole `jobs/` package, four `api/routes/` modules,
 `project/plaid.py`+`native.py`, and `prices/historian.py`+`store.py`.
 *Fix:* correct the section, and add a test that diffs the shipped tree against
-`docs/SPEC.md` §3.2 so the docs cannot drift silently again.
+`docs/internal/SPEC.md` §3.2 so the docs cannot drift silently again.
 
 ---
 
@@ -324,7 +324,7 @@ For each issue:
    makes the test worth keeping.
 5. Close the issue with the test name and the before/after output.
 
-`loop.md` describes the agent loop that automates this if you want it;
+`docs/internal/loop.md` describes the agent loop that automates this if you want it;
 `.claude/agents/` has the roles. Not required — the protocol above is the part
 that matters.
 

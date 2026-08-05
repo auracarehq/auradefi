@@ -1,7 +1,7 @@
 """Golden vectors and invariants for auradefi.tenancy.models (SPEC §3.1, §7.2).
 
 The id literals below were derived INDEPENDENTLY of the code under test,
-via ``python3 -c`` over the algorithms pinned in docs/DECISIONS.md:
+via ``python3 -c`` over the algorithms pinned in docs/internal/DECISIONS.md:
 
     end_user_id   = "usr_"  + sha256(f"{project_id}|{external_user_id}".encode()).hexdigest()[:16]
     connection_id = "conn_" + sha256(f"{project_id}|{end_user_id}|{kind}|{normalized}".encode()).hexdigest()[:16]

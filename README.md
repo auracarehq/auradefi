@@ -16,14 +16,14 @@ shell over the importable core.
 >
 > **Do not use 0.1.0.** An independent adversarial review found nineteen
 > verified defects in it — five security, four silent data loss — none of
-> which failed a test. [`docs/RELEASE_0.1.1.md`](docs/RELEASE_0.1.1.md) is
+> which failed a test. [`docs/internal/RELEASE_0.1.1.md`](docs/internal/RELEASE_0.1.1.md) is
 > the full accounting; 0.1.1 fixes them and **breaks one id derivation on
 > purpose**, so read *Upgrading* in [`CHANGELOG.md`](CHANGELOG.md) before
 > moving library-ingested data across.
 >
 > Alpha means the gaps below are real: read *What is not there* before you
-> budget work against this. [`STATUS.md`](STATUS.md) carries the live gate
-> state and [`docs/SPEC.md`](docs/SPEC.md) is the design contract.
+> budget work against this. [`STATUS.md`](docs/internal/STATUS.md) carries the live gate
+> state and [`docs/internal/SPEC.md`](docs/internal/SPEC.md) is the design contract.
 
 **[Documentation site →](https://auracarehq.github.io/auradefi/)** — the
 examples, the twelve executable notebooks and the full reference, rendered
@@ -200,23 +200,33 @@ docker compose run --rm demo    # quickstart against the installed wheel
 
 ## Docs
 
-Everything below is published at
-**[auracarehq.github.io/auradefi](https://auracarehq.github.io/auradefi/)**,
-built from this repository by `scripts/build_site.py` with every example
-executed at build time.
+**[auracarehq.github.io/auradefi](https://auracarehq.github.io/auradefi/)** —
+built from this repository, with every example executed at build time and
+every signature generated from the code.
 
-- [`examples/`](examples) — eleven single-file recipes, offline, CI-executed
-- [`docs/SPEC.md`](docs/SPEC.md) — the design contract
+Start here:
+
+- **[Quickstart](https://auracarehq.github.io/auradefi/quickstart.html)** — five lines, no credentials
+- **[Authentication & keys](https://auracarehq.github.io/auradefi/authentication.html)** — what you need before mainnet (at most one key, and it is optional)
+- **[Bring your own](https://auracarehq.github.io/auradefi/bring-your-own.html)** — your API, your database, your prices: every port and its methods
+- **[Guides](https://auracarehq.github.io/auradefi/examples/index.html)** — [`examples/`](examples), eleven single files that run offline
+- **[API reference](https://auracarehq.github.io/auradefi/reference/index.html)** — signatures, parameters, return fields, exceptions
+- **[HTTP API](https://auracarehq.github.io/auradefi/http.html)** — Plaid's wire format, plus `openapi.json`
+- **[Errors](https://auracarehq.github.io/auradefi/errors.html)** — every exception and its HTTP status
+
+Also in the repository:
+
 - [`docs/books/`](docs/books) — twelve executable notebooks, run headlessly in
   CI so they cannot rot
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — every pinned algorithm and id formula
-- [`STATUS.md`](STATUS.md) — phase gates and known caveats
-- [`docs/AGENT_PROMPTS.md`](docs/AGENT_PROMPTS.md) — the agent loop that builds this repo, with copy-paste prompts
-- [`docs/RELEASING.md`](docs/RELEASING.md) — pip + Docker release procedure
-- [`docs/RELEASE_0.1.1.md`](docs/RELEASE_0.1.1.md) — every defect found in
-  0.1.0, its fix and the regression-test protocol
 - [`CHANGELOG.md`](CHANGELOG.md) — what changed per release, including the
   0.1.1 upgrade note
+- [`docs/internal/`](docs/internal) — how this was designed and built, not how
+  to use it: the [design contract](docs/internal/SPEC.md), the
+  [pinned algorithms](docs/internal/DECISIONS.md),
+  [build status](docs/internal/STATUS.md), the
+  [0.1.0 defect accounting](docs/internal/RELEASE_0.1.1.md), the
+  [release procedure](docs/internal/RELEASING.md) and the
+  [agent loop](docs/internal/AGENT_PROMPTS.md) that wrote most of it
 
 ## Licence
 

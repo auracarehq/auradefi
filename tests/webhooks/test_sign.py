@@ -11,7 +11,7 @@ The golden signatures were derived INDEPENDENTLY via ``python3 -c``:
              hashlib.sha256).hexdigest()
 
 with secret ``"0123456789abcdef" * 4`` and ts ``1754000000000``. The
-first one is quoted verbatim in docs/DECISIONS.md; the second signs the
+first one is quoted verbatim in docs/internal/DECISIONS.md; the second signs the
 golden delivery body from tests/webhooks/test_models.py.
 """
 

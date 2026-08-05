@@ -2,7 +2,7 @@
 
 The CAIP-2 reference is the first 32 chars of the genesis hash in base58.
 SLIP-44 coin type 501 keys the native-asset CAIP-19 (``solana:.../slip44:501``).
-Canonical CAIP-19 keeps base58 case (docs/DECISIONS.md — asset-id pin).
+Canonical CAIP-19 keeps base58 case (docs/internal/DECISIONS.md — asset-id pin).
 """
 
 from __future__ import annotations

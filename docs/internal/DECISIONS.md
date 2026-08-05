@@ -14,7 +14,7 @@ still open.
 | 7 | Cassette harness ships as public `auradefi.testing.cassettes` | Hosts embedding the library get the same offline-testing story we use ourselves. | 2026-08-02 |
 | 8 | Exceptions live in `auradefi/errors.py` only | Convention drift between concurrent agents is a red test (`tests/test_errors.py`), not a debate. | 2026-08-02 |
 | 9 | httpx is the only HTTP client, runtime dependency | One client to cassette-mock; layering gate confines it to I/O domains. | 2026-08-02 |
-| 10 | Version 0.1.0, Development Status :: 3 - Alpha; artifacts built but **never uploaded autonomously** | Publishing needs the owner's PyPI credentials and judgement. `docs/RELEASING.md` has the exact commands. | 2026-08-02 |
+| 10 | Version 0.1.0, Development Status :: 3 - Alpha; artifacts built but **never uploaded autonomously** | Publishing needs the owner's PyPI credentials and judgement. `docs/internal/RELEASING.md` has the exact commands. | 2026-08-02 |
 
 ## Pinned algorithms (public stability guarantees)
 

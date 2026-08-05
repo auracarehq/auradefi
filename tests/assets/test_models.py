@@ -1,7 +1,7 @@
 """Asset/Implementation models and the PINNED asset id (rule #3).
 
 The ast_… literals below were derived independently via
-``python3 -c`` from the algorithm pinned in docs/DECISIONS.md:
+``python3 -c`` from the algorithm pinned in docs/internal/DECISIONS.md:
 
     "ast_" + sha256("\\n".join(sorted(canonical_caip19s)).encode()).hexdigest()[:16]
 

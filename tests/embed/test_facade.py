@@ -10,7 +10,7 @@ timing: a bad chain, a bad address and a duplicate must each cost ZERO
 requests, and a valid connect must cost EXACTLY one.
 
 Ids are golden literals derived independently with ``python3 -c`` from
-the pinned formulas in docs/DECISIONS.md — never regenerated from the
+the pinned formulas in docs/internal/DECISIONS.md — never regenerated from the
 code under test. The facade is constructed INSIDE test bodies so a stub
 fails with NotImplementedError instead of erroring during collection.
 

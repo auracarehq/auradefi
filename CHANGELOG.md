@@ -9,7 +9,7 @@ follow SemVer once past 1.0.
 
 A correctness release. 0.1.0 is published and **should not be used**: an
 independent adversarial review found nineteen verified defects — #18 to #36 —
-and **none of them failed a test** (`docs/RELEASE_0.1.1.md` is the full
+and **none of them failed a test** (`docs/internal/RELEASE_0.1.1.md` is the full
 accounting). All nineteen are fixed here, each with a regression test that
 fails against the unfixed code.
 
@@ -203,13 +203,13 @@ unaffected.
   `project/plaid.py` + `native.py`, and `prices/historian.py` + `store.py`.
   All are now stated, and
   `tests/style/test_spec_layout_matches_tree.py` diffs the shipped tree
-  against `docs/SPEC.md` §3.2 in **both** directions against a committed
+  against `docs/internal/SPEC.md` §3.2 in **both** directions against a committed
   inventory, so neither a module arriving nor one leaving can happen without
   the prose being revisited.
 
 ### Documentation
 
-- `docs/DECISIONS.md` pins the three 0.1.1 decisions (embed id derivation,
+- `docs/internal/DECISIONS.md` pins the three 0.1.1 decisions (embed id derivation,
   the sync loop's containment rules, the `SyncStatePort` version break).
 - Three new style gates keep the docs from drifting: a version pinned in
   DECISIONS must own a CHANGELOG section and announce a portability break
@@ -225,7 +225,7 @@ fresh clone with no API keys and no network access. Entries below describe
 
 ### Added
 
-- **Scaffold and gates.** Spec (`docs/SPEC.md`), Apache-2.0 licence,
+- **Scaffold and gates.** Spec (`docs/internal/SPEC.md`), Apache-2.0 licence,
   packaging (hatchling, `py.typed`), CI, Docker (test + runtime stages),
   and a release gate that builds, `twine`-checks and installs the wheel into
   a clean venv. Style is enforced as tests, not convention: size caps
@@ -324,6 +324,6 @@ fresh clone with no API keys and no network access. Entries below describe
 - **Documentation.** Twelve executable notebooks under `docs/books/` — one
   per capability, every cell offline and asserting real values, executed
   headlessly in CI so they cannot rot — plus a quickstart that exercises
-  every phase against the installed wheel, `docs/DECISIONS.md` recording
-  every pinned algorithm and id formula, and `docs/AGENT_PROMPTS.md`
+  every phase against the installed wheel, `docs/internal/DECISIONS.md` recording
+  every pinned algorithm and id formula, and `docs/internal/AGENT_PROMPTS.md`
   documenting the agent loop that built the repo.

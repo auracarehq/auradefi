@@ -1,6 +1,6 @@
 """HS256 JWT mint/verify and jti revocation, stdlib only (SPEC §7.1/§7.2).
 
-Wire form is PINNED in docs/DECISIONS.md ("JWT wire form") and honoured
+Wire form is PINNED in docs/internal/DECISIONS.md ("JWT wire form") and honoured
 verbatim:
 
 * each segment is ``base64.urlsafe_b64encode(json.dumps(obj,

@@ -1,6 +1,6 @@
 """CAIP-19 parsing and canonicalization (SPEC §4.2, rule #3).
 
-Canonical strings feed the pinned asset-id hash (docs/DECISIONS.md), so
+Canonical strings feed the pinned asset-id hash (docs/internal/DECISIONS.md), so
 every expected value here is a hardcoded literal, byte-for-byte.
 """
 

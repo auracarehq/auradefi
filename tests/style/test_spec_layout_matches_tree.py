@@ -1,4 +1,4 @@
-"""The shipped tree vs docs/SPEC.md §3.2, diffed both ways (§5 #17).
+"""The shipped tree vs docs/internal/SPEC.md §3.2, diffed both ways (§5 #17).
 
 README's *What is not there* understated the gap: it omitted the whole
 ``jobs/`` package, five ``api/routes/`` modules, ``project/plaid.py`` and
@@ -31,7 +31,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 SRC = REPO / "src" / "auradefi"
-SPEC = REPO / "docs" / "SPEC.md"
+SPEC = REPO / "docs" / "internal" / "SPEC.md"
 README = REPO / "README.md"
 
 #: Declared in §3.2, absent from the tree. Each is a documented limitation.
@@ -212,7 +212,7 @@ def test_every_declared_absence_is_inventoried():
 def test_every_undeclared_module_is_inventoried():
     extra = _shipped_modules() - _declared_modules()
     assert extra == SHIPPED_BUT_UNDECLARED, (
-        "a module exists that docs/SPEC.md §3.2 does not declare and this "
+        "a module exists that docs/internal/SPEC.md §3.2 does not declare and this "
         "inventory does not list.\n"
         f"new: {sorted(extra - SHIPPED_BUT_UNDECLARED)}\n"
         f"gone: {sorted(SHIPPED_BUT_UNDECLARED - extra)}\n"

@@ -26,7 +26,7 @@ WETH_ADDR = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 WETH = f"eip155:1/erc20:{WETH_ADDR}"
 ETH_NATIVE = "eip155:1/slip44:60"
 
-# Golden literals (derivation: docs/DECISIONS.md algorithm, python3 -c hashlib).
+# Golden literals (derivation: docs/internal/DECISIONS.md algorithm, python3 -c hashlib).
 AST_USDC_TRI = "ast_99f26454cb92a351"
 AST_ETH = "ast_ed0bcc482c2859ce"
 AST_WETH = "ast_5cd4341d4474350c"

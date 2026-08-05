@@ -1,7 +1,7 @@
 """Pure Bitcoin hash/encoding primitives and address codecs (SPEC §3.2, §10).
 
 PURE stdlib module: ``hashlib`` and ``struct`` only — zero I/O, no httpx.
-Every algorithm here is a pinned wire-format contract (docs/DECISIONS.md):
+Every algorithm here is a pinned wire-format contract (docs/internal/DECISIONS.md):
 
 * Base58Check alphabet ``123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnop
   qrstuvwxyz``; checksum = first 4 bytes of double-SHA256; each leading

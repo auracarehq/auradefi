@@ -2,7 +2,7 @@
 
 The transaction-id literals below were derived INDEPENDENTLY of the code
 under test, via ``python3 -c`` over the algorithm pinned in
-docs/DECISIONS.md:
+docs/internal/DECISIONS.md:
 
     "txn_" + sha256(f"{chain_id}|{tx_hash}|{account_id}".encode()).hexdigest()[:16]
 

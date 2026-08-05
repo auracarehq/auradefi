@@ -61,7 +61,7 @@ packages = ["src/auradefi"]
 [tool.hatch.build.targets.sdist]
 include = [
   "src/auradefi", "tests", "docs", "examples", "scripts",
-  "README.md", "CHANGELOG.md", "STATUS.md", "LICENSE",
+  "README.md", "CHANGELOG.md", "LICENSE", ".env.example",
 ]
 
 [tool.pytest.ini_options]

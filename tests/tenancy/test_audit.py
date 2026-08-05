@@ -1,6 +1,6 @@
 """Audit: append-only token-mint log (SPEC §7.2 — the gap Vezgo shipped).
 
-Pinned record shape (docs/DECISIONS.md "Audit record shape"): seq is
+Pinned record shape (docs/internal/DECISIONS.md "Audit record shape"): seq is
 per-project from 1, event is exactly "token.minted", append-only with no
 delete/update/clear, and an unknown project reads as () so the log is not
 a tenant-existence probe surface.
