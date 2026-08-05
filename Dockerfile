@@ -27,10 +27,15 @@ RUN pip install --quiet .
 FROM base AS test
 COPY tests ./tests
 COPY docs ./docs
-# The suite reads repo-root prose too: tests/style/test_release_note_companions.py
-# checks that a version pinned in docs/DECISIONS.md owns a CHANGELOG section.
-# Without this COPY the container's run differs from the host's — which it did:
-# 24 failures in the image against 22 on the host.
+# The suite reads the published surface, not just the source: `examples/` and
+# its runner are asserted by tests/style/test_examples_are_published.py and
+# tests/style/test_docs_pin_live_values.py, so a container missing them fails
+# five gates that are green on the host — the exact host/image divergence the
+# CHANGELOG/STATUS copy below was added to close.
+COPY examples ./examples
+COPY scripts ./scripts
+# tests/style/test_release_note_companions.py checks that a version pinned in
+# docs/DECISIONS.md owns a CHANGELOG section.
 COPY CHANGELOG.md STATUS.md ./
 # [dev] = pytest + build/twine + nbformat/nbclient/ipykernel + fastapi + sqlmodel.
 RUN pip install --quiet ".[dev]"
