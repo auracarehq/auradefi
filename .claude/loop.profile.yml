@@ -4,7 +4,11 @@
 
 Project:
   name: auradefi
-  spec: docs/internal/SPEC.md
+  # 0.2.0 closes the declared-layout gap (GitHub #1 to #15) in eight phases,
+  # numbered 11 to 18 so they continue past SPEC §11's ten. That document is
+  # self-contained and states the gate facts each phase inherits; SPEC.md
+  # remains the architectural authority it cites.
+  spec: docs/internal/RELEASE_0.2.0.md
   decisions: docs/internal/DECISIONS.md
   status: docs/internal/STATUS.md
   # `greenfield` is right for phase 10 onward. The 0.1.1 fix release ran with

@@ -77,10 +77,7 @@ DECLARED_BUT_ABSENT = frozenset(
         "decode/protocols/staking/lido.py",
         "decode/protocols/staking/rocketpool.py",
         "decode/protocols/staking/solana_stake.py",
-        # No concrete on-chain reader, no multicall, no log fetch.
-        "sources/evm/rpc.py",
-        "sources/evm/multicall.py",
-        "sources/evm/logs.py",
+        # No enhanced-transaction Solana source, so no Solana tx decode.
         "sources/solana/helius.py",
         # Position adapters the spec names that no golden vector covers.
         "positions/adapters/erc4626.py",
@@ -115,6 +112,17 @@ SHIPPED_BUT_UNDECLARED = frozenset(
         "portfolio/models.py",
         "positions/models.py",
         "sources/bitcoin/encoding.py",
+        # 0.2.0 phase 11 (#1, #2, #3). §3.2's `sources/evm/` names the four
+        # HTTP modules and nothing else, because it did not anticipate that
+        # "no new third-party dependencies" makes the codec ours to write:
+        # `hashlib.sha3_256` is not keccak256, so a function selector cannot
+        # come from the stdlib. `reader.py` is undeclared for a different
+        # reason: it binds `positions.protocol.ContractReader` structurally,
+        # and §3.2 put the protocol in `positions/` without naming who
+        # implements it.
+        "sources/evm/codec/abi.py",
+        "sources/evm/codec/keccak.py",
+        "sources/evm/reader.py",
         "sources/evm/source.py",  # both seams over one client, so a host writes none
         "sources/evm/txfetch.py",
         "sources/evm/txlist.py",
