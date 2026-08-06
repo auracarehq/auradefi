@@ -94,8 +94,10 @@ PUBLISHED_PAGES = (
     "README.md",
     "docs/quickstart.md",
     "docs/authentication.md",
+    "docs/limits.md",
     "docs/bring-your-own.md",
     "docs/schema.md",
+    "docs/glossary.md",
     "examples/README.md",
     "CHANGELOG.md",
 )

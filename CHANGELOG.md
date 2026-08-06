@@ -5,6 +5,37 @@ follow SemVer once past 1.0.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-06
+
+A documentation and testing release. No behaviour of the library changed, no
+persisted id re-derives, and 0.1.1 data is fully portable to 0.1.2. The one
+wire-format change is additive: every HTTP error body gained a `docs_url` key
+beside the three it already carried.
+
+### Added
+
+- `auradefi.testing.cassettes.Recorder`, the other half of the replay harness.
+  It wraps a real transport, saves each interaction, and answers the caller
+  from the entry it just saved, so a recording run exercises the same bytes the
+  replay will. Point it at a live service once and every run after that is
+  offline, over your own addresses rather than the single one the bundled
+  Sandbox holds. Credential query parameters (`apikey`, `api_key`, `api-key`,
+  `access_token`) are stripped as it writes, which keeps a committed cassette
+  free of secrets and is also what lets the replay run with no key. Only
+  `content-type` survives from the response headers. Response bodies are saved
+  whole, so read a recording before committing it.
+- Every HTTP error body now carries `docs_url`, a link to the errors page
+  anchored at the row for that type. Additive: the three keys a client already
+  parses are unchanged, and the link is derived from the exception's class
+  rather than stored, so it cannot disagree with the `type` beside it.
+- Two documentation pages, *Limits and cost* (what a call costs in requests,
+  what each service allows, and what arrives when you exceed one) and
+  *Glossary* (every term the other pages assume). A twelfth guide,
+  `examples/11_provoke_every_error.py`, triggers sixteen error types
+  deterministically so a host can test its handlers.
+- The documentation site has search, a copy button on every code block, and
+  serves each prose page as markdown at the same path with a `.md` suffix.
+
 ## [0.1.1]
 
 A correctness release. 0.1.0 is published and should not be used: a separate

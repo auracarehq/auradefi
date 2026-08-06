@@ -9,8 +9,8 @@ It is a library first and a service second. A Python host imports `auradefi`
 directly and pays no serialisation or network cost. The HTTP API is a thin
 shell over the same importable core.
 
-> Status: alpha, and 0.1.1 is the release to use. Every planned capability
-> is implemented. The suite is 3,247 tests green offline on a fresh clone with no
+> Status: alpha, and 0.1.2 is the release to use. Every planned capability
+> is implemented. The suite is 3,426 tests green offline on a fresh clone with no
 > API keys, all twelve notebooks execute clean, and every example under
 > [`examples/`](examples) runs against the published wheel.
 >
@@ -47,7 +47,7 @@ git clone https://github.com/auracarehq/auradefi
 cd auradefi && bash scripts/bootstrap.sh
 .venv/bin/pytest                           # the whole suite, offline, no keys
 .venv/bin/python examples/quickstart.py    # every capability, end to end
-bash scripts/run_examples.sh               # all eleven examples
+bash scripts/run_examples.sh               # all twelve examples
 ```
 
 ## Examples
@@ -70,6 +70,7 @@ stale example fails the build.
 | [`08_report_cost_basis_and_pnl.py`](examples/08_report_cost_basis_and_pnl.py) | FIFO/LIFO/HIFO/ACB, any instant, Plaid `tax_lots[]` |
 | [`09_deliver_signed_webhooks.py`](examples/09_deliver_signed_webhooks.py) | signing, the pinned retry schedule, replay |
 | [`10_scan_bitcoin_and_solana.py`](examples/10_scan_bitcoin_and_solana.py) | an xpub that never leaves the process, and Token-2022 |
+| [`11_provoke_every_error.py`](examples/11_provoke_every_error.py) | every error on purpose, so you can test your handler |
 
 [`examples/README.md`](examples/README.md) annotates the index, and the
 [documentation site](https://auradefi.info/examples/) renders
@@ -216,7 +217,7 @@ Start here:
 - [Bring your own](https://auradefi.info/bring-your-own.html):
   your API, your database, your prices, with every port and its methods
 - [Guides](https://auradefi.info/examples/index.html):
-  [`examples/`](examples), eleven single files that run offline
+  [`examples/`](examples), twelve single files that run offline
 - [API reference](https://auradefi.info/reference/index.html):
   signatures, parameters, return fields, exceptions
 - [HTTP API](https://auradefi.info/http.html): Plaid's wire

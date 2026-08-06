@@ -46,6 +46,31 @@ it does not hold, such as a different address, a second chain or a wider page,
 and you get `CassetteMissError` listing what it does hold. That is the offline
 guarantee working as intended.
 
+## Record your own Sandbox
+
+One address is enough to learn the shape and not enough to test against your
+own data. `Recorder` is the other half: point it at the live service once, and
+every run after that is offline.
+
+```python
+from auradefi.testing.cassettes import Recorder, load
+from auradefi.sources.evm.source import EtherscanSource
+
+with Recorder("mywallet.json") as recorder:                  # records
+    EtherscanSource(recorder.client(), api_key=KEY).balances("eip155:1", ADDRESS)
+
+source = EtherscanSource(load("mywallet.json").client())     # replays, no key
+```
+
+The saved file is keyless on purpose. Query parameters that carry credentials
+are stripped as it writes, which is also what lets the replay run without a
+key at all. Response bodies are saved whole, so read a recording before you
+commit it: a service that echoes your credential back to you defeats the
+stripping.
+
+Committed alongside your tests, that file gives you the offline guarantee this
+package holds itself to, over your addresses instead of ours.
+
 ## Sync some history
 
 ```python
@@ -97,6 +122,34 @@ aura = Auradefi.from_env(ledger=SqlModelLedger(session_factory=…))
 [Bring your own](bring-your-own.html) has that in full, along with the other
 four ports.
 
+## Or serve it over HTTP
+
+The library is the product and the HTTP API is one adapter over it, so the
+same ports you just bound also make an app:
+
+```python
+from auradefi.api.app import create_app
+from auradefi.api.deps import Deps
+
+app = create_app(Deps(ledger=…, tenancy=…, keys=…, clock=…, …))
+```
+
+It holds no state, opens no connections and creates no stores. Responses use
+Plaid's wire format, so a client that already reads Plaid reads this. The
+journey a caller makes:
+
+```
+POST /auth/token          server key -> short-lived user token
+POST /connections         user token -> conn_…
+GET  /crypto/sync         user token -> added/modified/removed + cursor
+GET  /coverage            public     -> the capability matrix, as data
+```
+
+`Deps` has more fields than the four above, and every one of them is a port
+you already own. [Guide 05](examples/05_serve_the_http_api.html) is a single
+file that wires all of them and drives the result, and the
+[HTTP API](http.html) page lists every route with its fields.
+
 ## Where to go next
 
 - [Guides](examples/index.html): one file per task, covering holdings, your
@@ -104,8 +157,12 @@ four ports.
   basis, webhooks, Bitcoin and Solana.
 - [Authentication & keys](authentication.html): what you need before pointing
   this at mainnet, and what happens when a key is wrong.
+- [Limits and cost](limits.html): what one call costs in requests, what the
+  services allow, and what you get when you cross a line.
 - [Bring your own](bring-your-own.html): every port, its exact methods, and a
   minimal implementation of each.
+- [Glossary](glossary.html): CAIP-2, parts, acts, tenants, cursors, and every
+  other term these pages assume.
 - [API reference](reference/index.html): signatures, parameters, return
   fields and exceptions.
 - [Build with an LLM](llms.html): a prompt to paste into a model before

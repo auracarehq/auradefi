@@ -2,8 +2,8 @@
 
 Docs/internal/DECISIONS.md ("HTTP error table") is the whole contract, verbatim:
 first hit walking ``type(exc).__mro__`` over the ordered table below; body
-``{"error": {"type", "message", "status"}}`` plus ``existing_id`` (and
-``existing_connection_id`` when it starts ``conn_``) on 409, plus header
+``{"error": {"type", "message", "status", "docs_url"}}`` plus ``existing_id``
+(and ``existing_connection_id`` when it starts ``conn_``) on 409, plus header
 ``Retry-After`` (whole seconds, >= 1) on 429.
 
 Two deliberate non-features:
@@ -52,6 +52,13 @@ DEFAULT_STATUS = 500
 #: The reshaped message for pydantic's ``RequestValidationError``.
 VALIDATION_MESSAGE = "request validation failed"
 
+#: The published errors page. Every exception on it carries an anchor that is
+#: its own lowercased class name, so :func:`docs_url_for` CONSTRUCTS the link
+#: instead of a table here restating one. Pinned against the site's own domain
+#: by ``tests/style/test_reference_is_generated.py``, because a docs link that
+#: 404s is worse than no link: a client reads it as the type not existing.
+DOCS_URL_BASE = "https://auradefi.info/errors.html"
+
 #: The pinned table, ORDERED (DECISIONS "HTTP error table"). Subclasses
 #: precede their bases. ``ScopeError``/``TokenExpiredError``/
 #: ``TokenRevokedError`` before ``AuthError``, ``CaipParseError`` before
@@ -87,21 +94,40 @@ def status_for(exc: AuradefiError) -> int:
     return DEFAULT_STATUS
 
 
+def docs_url_for(exc: AuradefiError) -> str:
+    """The published page and anchor documenting ``exc``'s type.
+
+    ``f"{DOCS_URL_BASE}#{type(exc).__name__.lower()}"``. The errors page
+    is generated from the same class tree, so every type this package
+    raises has that anchor. A host subclassing ``AuradefiError`` itself
+    gets a link to the page with an anchor nobody serves, which browsers
+    treat as the top of the page.
+    """
+    return f"{DOCS_URL_BASE}#{type(exc).__name__.lower()}"
+
+
 def error_body(exc: AuradefiError) -> dict[str, object]:
     """The JSON body for ``exc``: exactly one top-level key, ``"error"``.
 
     ``{"error": {"type": type(exc).__name__, "message": str(exc),
-    "status": status_for(exc)}}``, plus, for a ``ConflictError`` with a
-    non-``None`` ``existing_id``, ``existing_id``, plus
-    ``existing_connection_id`` with the SAME value when it starts
-    ``"conn_"`` (SPEC §7.1). Both extra keys sit inside ``error``. A
-    ``ConflictError`` carrying ``"whe_abc"`` renders ``existing_id``
-    only; one carrying ``None`` renders neither.
+    "status": status_for(exc), "docs_url": docs_url_for(exc)}}``, plus,
+    for a ``ConflictError`` with a non-``None`` ``existing_id``,
+    ``existing_id``, plus ``existing_connection_id`` with the SAME value
+    when it starts ``"conn_"`` (SPEC §7.1). Every extra key sits inside
+    ``error``. A ``ConflictError`` carrying ``"whe_abc"`` renders
+    ``existing_id`` only; one carrying ``None`` renders neither.
+
+    ``docs_url`` is Plaid's affordance and it is here for Plaid's reason:
+    the type alone tells a client what went wrong and nothing about what
+    to do, and a developer holding a JSON body should not have to guess
+    which page describes it. It is derived, never stored, so it cannot
+    disagree with the class it names.
     """
     error: dict[str, object] = {
         "type": type(exc).__name__,
         "message": str(exc),
         "status": status_for(exc),
+        "docs_url": docs_url_for(exc),
     }
     existing_id = exc.existing_id if isinstance(exc, ConflictError) else None
     if existing_id is not None:
@@ -156,6 +182,7 @@ def install_error_handlers(app: FastAPI, deps: Deps) -> None:
                     "type": ValidationError.__name__,
                     "message": VALIDATION_MESSAGE,
                     "status": status,
+                    "docs_url": docs_url_for(ValidationError(VALIDATION_MESSAGE)),
                     "details": jsonable_encoder(exc.errors()),
                 }
             },

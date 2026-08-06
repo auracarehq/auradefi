@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 
 from auradefi.api.app import create_app
 from auradefi.api.deps import Deps
+from auradefi.api.errors import DOCS_URL_BASE
 from auradefi.api.routes.auth import _client_ip
 from auradefi.chains.registry import ChainRegistry
 from auradefi.clock import Clock, FrozenClock
@@ -477,6 +478,7 @@ def test_a_zero_privilege_token_is_refused_by_a_scoped_route(wired):
             "type": "ScopeError",
             "message": "missing required scope: accounts:read",
             "status": 403,
+            "docs_url": f"{DOCS_URL_BASE}#scopeerror",
         }
     }
 

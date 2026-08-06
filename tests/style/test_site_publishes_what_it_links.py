@@ -48,8 +48,10 @@ PUBLISHED_SOURCES = (
     "examples/README.md",
     "docs/quickstart.md",
     "docs/authentication.md",
+    "docs/limits.md",
     "docs/bring-your-own.md",
     "docs/schema.md",
+    "docs/glossary.md",
 )
 
 

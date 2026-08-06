@@ -366,3 +366,90 @@ button.copy {
   cursor: pointer;
 }
 button.copy:hover { filter: brightness(1.12); }
+
+/* ---------------------------------------------------------------- search */
+/* The panel is absolutely positioned inside a sticky header, so it overlays
+   the prose instead of pushing it down while a reader types. */
+.search { position: relative; }
+.search input {
+  font: 400 0.85rem/1 var(--text);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  width: 13rem;
+  max-width: 40vw;
+}
+.search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--paper);
+}
+.search .results {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  z-index: 10;
+  width: 24rem;
+  max-width: 78vw;
+  max-height: 22rem;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 6px 22px rgb(0 0 0 / 0.14);
+}
+.search .results[hidden] { display: none; }
+.search .results a {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.88rem !important;
+}
+.search .results a:last-child { border-bottom: none; }
+.search .results a:hover,
+.search .results a:focus {
+  background: var(--accent-soft);
+  color: var(--accent) !important;
+  outline: none;
+}
+.search .results .hit { color: var(--ink); }
+.search .results a:hover .hit, .search .results a:focus .hit { color: var(--accent); }
+.search .results .where {
+  font: 400 0.72rem/1 var(--mono);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.search .results .empty {
+  margin: 0; padding: 0.6rem 0.75rem;
+  font-size: 0.85rem; color: var(--ink-faint);
+}
+
+/* --------------------------------------------------- per-block copy button */
+/* The button is only drawn on hover or keyboard focus: a permanent one on
+   every block competes with the code for attention on a page that is mostly
+   code. It stays visible once focused so it is reachable by tab. */
+.codeshell { position: relative; }
+.codeshell:hover .copybtn, .copybtn:focus { opacity: 1; }
+.copybtn {
+  position: absolute; top: 0.4rem; right: 0.4rem;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  font: 500 0.72rem/1 var(--text);
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}
+.copybtn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ------------------------------------------------- this page as markdown */
+.asmd {
+  font: 400 0.8rem/1.5 var(--mono);
+  color: var(--ink-faint);
+  margin-bottom: 0.6rem;
+}

@@ -21,6 +21,15 @@ This file also pins that every authored `.html` link in the published
 markdown resolves to a page the build actually emits, which nothing else
 can check: `rewrite_links` passes those hrefs through untouched, and the
 rendered-link checker only runs after a build.
+
+THE THIRD DERIVED-VS-AUTHORED PAIR is `docs_url`. Every HTTP error body
+carries `https://<domain>/errors.html#<lowercased type>`, built in
+`api/errors.py`, and the anchor it names is emitted by
+`scripts/site_errors_http.py` from the same class tree. Two files, one
+convention, no import between them: the library cannot import the build
+script and the build script does not read the constant. So a renamed error
+class, a moved page or a changed domain breaks the link silently, and a
+404 in an error body reads to a client as the error type not existing.
 """
 
 from __future__ import annotations
@@ -118,7 +127,9 @@ def test_authored_html_links_resolve_to_real_pages() -> None:
     sources = {
         "docs/quickstart.md": "quickstart.html",
         "docs/authentication.md": "authentication.html",
+        "docs/limits.md": "limits.html",
         "docs/bring-your-own.md": "bring-your-own.html",
+        "docs/glossary.md": "glossary.html",
     }
     broken = []
     for source, rendered_at in sources.items():
@@ -132,4 +143,57 @@ def test_authored_html_links_resolve_to_real_pages() -> None:
     assert not broken, (
         "authored links to pages the build does not emit:\n  " + "\n  ".join(broken)
         + f"\n\npages built: {sorted(pages)[:12]} …"
+    )
+
+
+# --------------------------------------------------------------------------
+# docs_url: the link every error body carries
+
+
+def test_the_docs_url_base_is_the_site_this_repository_publishes() -> None:
+    """A stale domain here ships a dead link inside every error response."""
+    import build_site
+
+    from auradefi.api.errors import DOCS_URL_BASE
+
+    assert DOCS_URL_BASE == f"https://{build_site.CUSTOM_DOMAIN}/errors.html"
+
+
+def test_the_docs_url_page_is_one_the_build_emits() -> None:
+    from build_site import collect
+
+    from auradefi.api.errors import DOCS_URL_BASE
+
+    page = DOCS_URL_BASE.rsplit("/", 1)[-1]
+    assert page in {built.path for built in collect(run_examples=False)}
+
+
+def test_every_error_type_has_the_anchor_its_docs_url_points_at() -> None:
+    """The two halves of the convention, checked against each other.
+
+    `api/errors.py` builds `#<lowercased class name>`; `site_errors_http.py`
+    emits `id="<lowercased class name>"` per row. Neither imports the other,
+    so only this can see them disagree.
+    """
+    import re as regex
+
+    from site_errors_http import errors_html
+
+    from auradefi import errors
+    from auradefi.api.errors import docs_url_for
+
+    served = set(regex.findall(r'<tr id="([^"]+)"', errors_html()))
+    assert served, "the errors page emitted no anchored rows at all"
+
+    missing = []
+    for name, value in sorted(vars(errors).items()):
+        if not (inspect.isclass(value) and issubclass(value, errors.AuradefiError)):
+            continue
+        anchor = docs_url_for(value("probe")).rsplit("#", 1)[-1]
+        if anchor not in served:
+            missing.append(f"{name} -> #{anchor}")
+    assert not missing, (
+        "error types whose docs_url anchor the errors page does not serve, so "
+        "the link in the response body lands on the wrong row:\n  "
+        + "\n  ".join(missing)
     )

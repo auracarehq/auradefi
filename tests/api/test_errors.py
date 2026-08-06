@@ -26,8 +26,10 @@ from pydantic import BaseModel, ConfigDict
 
 from auradefi.api.deps import Deps, consume_quota
 from auradefi.api.errors import (
+    DOCS_URL_BASE,
     STATUS_TABLE,
     VALIDATION_MESSAGE,
+    docs_url_for,
     error_body,
     install_error_handlers,
     status_for,
@@ -258,12 +260,13 @@ def test_the_deliberate_mro_overrides():
 # the body
 
 
-def test_error_body_is_one_error_object_with_three_keys():
+def test_error_body_is_one_error_object_with_four_keys():
     assert error_body(NotFoundError("connection not found: 'conn_x'")) == {
         "error": {
             "type": "NotFoundError",
             "message": "connection not found: 'conn_x'",
             "status": 404,
+            "docs_url": f"{DOCS_URL_BASE}#notfounderror",
         }
     }
 
@@ -276,6 +279,7 @@ def test_conflict_renders_existing_connection_id_only_for_connection_ids():
             "type": "ConflictError",
             "message": "dup",
             "status": 409,
+            "docs_url": f"{DOCS_URL_BASE}#conflicterror",
             "existing_id": "conn_deadbeefdeadbeef",
             "existing_connection_id": "conn_deadbeefdeadbeef",
         }
@@ -285,12 +289,42 @@ def test_conflict_renders_existing_connection_id_only_for_connection_ids():
             "type": "ConflictError",
             "message": "dup",
             "status": 409,
+            "docs_url": f"{DOCS_URL_BASE}#conflicterror",
             "existing_id": "whe_abc",
         }
     }
     assert error_body(ConflictError("dup")) == {
-        "error": {"type": "ConflictError", "message": "dup", "status": 409}
+        "error": {
+            "type": "ConflictError",
+            "message": "dup",
+            "status": 409,
+            "docs_url": f"{DOCS_URL_BASE}#conflicterror",
+        }
     }
+
+
+# --------------------------------------------------------------------------
+# docs_url
+
+
+def test_the_docs_url_anchors_on_the_lowercased_type_name():
+    assert docs_url_for(NotFoundError("x")) == f"{DOCS_URL_BASE}#notfounderror"
+    assert docs_url_for(ScopeError("x")) == f"{DOCS_URL_BASE}#scopeerror"
+
+
+# pins: a relative or templated link is unusable from a JSON body read in a
+#       terminal. It has to be something a developer can paste into a browser.
+def test_the_docs_url_is_absolute_and_carries_an_anchor():
+    url = docs_url_for(SourceError("upstream said no"))
+    assert url.startswith("https://")
+    assert url.count("#") == 1 and not url.endswith("#")
+
+
+# pins: the anchor is derived from the CONCRETE type, so a subclass links to
+#       its own row instead of its parent's. ScopeError under AuthError is the
+#       case that matters: the two have different causes and different fixes.
+def test_a_subclass_links_to_its_own_row_not_its_parents():
+    assert docs_url_for(ScopeError("nope")) != docs_url_for(AuthError("nope"))
 
 
 # --------------------------------------------------------------------------
@@ -346,6 +380,7 @@ def test_each_pinned_error_renders_its_pinned_status_and_body():
             "type": "NotFoundError",
             "message": "connection not found: 'conn_x'",
             "status": 404,
+            "docs_url": f"{DOCS_URL_BASE}#notfounderror",
         }
     }
 
@@ -356,6 +391,7 @@ def test_each_pinned_error_renders_its_pinned_status_and_body():
             "type": "ConflictError",
             "message": "connection already exists: 'conn_deadbeefdeadbeef'",
             "status": 409,
+            "docs_url": f"{DOCS_URL_BASE}#conflicterror",
             "existing_id": "conn_deadbeefdeadbeef",
             "existing_connection_id": "conn_deadbeefdeadbeef",
         }
@@ -373,6 +409,11 @@ def test_each_pinned_error_renders_its_pinned_status_and_body():
         assert response.json()["error"]["status"] == status, path
         assert response.json()["error"]["type"] == kind, path
         assert set(response.json()) == {"error"}, path
+        # Every route, not only the two spelled out above: a type with no
+        # link is a type a client cannot look up.
+        assert response.json()["error"]["docs_url"] == (
+            f"{DOCS_URL_BASE}#{kind.lower()}"
+        ), path
 
 
 def test_a_route_raising_value_error_is_not_converted():

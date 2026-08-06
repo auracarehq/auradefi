@@ -20,7 +20,7 @@ Sandbox data is a recording, so its numbers are constants: 5025 USD of
 holdings and seven transactions. Asking for anything it does not hold raises
 `CassetteMissError`, which names what it does hold.
 
-Ten task-shaped guides follow. Each is a single file that runs offline without
+Eleven task-shaped guides follow. Each is a single file that runs offline without
 keys, asserts its own output, and prints a readable trace. All of them are
 self-contained, so you can copy a file out, `pip install auradefi`, and run it.
 
@@ -45,6 +45,7 @@ change that points it at real infrastructure.
 | [How do I answer "what did they make, and what tax lots are open"?](08_report_cost_basis_and_pnl.py) | FIFO/LIFO/HIFO/ACB, any instant you ask about, Plaid `tax_lots[]`, and a visible rounding flag. | core |
 | [How do I get told when something changes, and trust what arrives?](09_deliver_signed_webhooks.py) | HMAC signing with the shipped verifier, a pinned retry schedule into a dead letter queue, and replay. | core |
 | [How do I handle a Bitcoin xpub and Solana's token zoo?](10_scan_bitcoin_and_solana.py) | Non-EVM chains: a Bitcoin xpub that never leaves the process, gap-limit scanning, and a Token-2022 mint that breaks `raw / 10**decimals`. | core |
+| [How do I make each error happen on purpose, so I can test my handler?](11_provoke_every_error.py) | Sixteen error types triggered deterministically in three lines each, grouped by whose problem they are, with the `docs_url` each one carries over HTTP. | core |
 
 Install the extras with `pip install 'auradefi[sql]'` or
 `pip install 'auradefi[api]'`. `scripts/run_examples.sh` skips an example whose

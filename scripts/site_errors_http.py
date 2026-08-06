@@ -41,6 +41,7 @@ def _error_tree() -> list[tuple[type, int | None]]:
 
 def errors_html() -> str:
     from auradefi import errors
+    from auradefi.api.errors import DOCS_URL_BASE
 
     rows = []
     for cls, status in _error_tree():
@@ -78,8 +79,15 @@ something the recording does not hold: not that a credential is missing. See
 
 <h2>Over HTTP</h2>
 <p>Every failure is one shape, so a client parses one shape:</p>
-<pre class="code">{escape(json.dumps({"error": {"type": "ValidationError",
-    "message": "request validation failed", "status": 422}}, indent=2))}</pre>
+<pre class="code">{escape(json.dumps({"error": {
+    "type": "ValidationError", "message": "request validation failed",
+    "status": 422,
+    "docs_url": f"{DOCS_URL_BASE}#validationerror"}}, indent=2))}</pre>
+<p><code>docs_url</code> is a link back into this page, at the row for that
+type: <code>{escape(DOCS_URL_BASE)}#</code> plus the type name in lower case.
+It is built from the exception's own class, so it is right for every type
+without a table of URLs to maintain, and a test checks each anchor against the
+rows above.</p>
 <p>A 409 also carries <code>existing_connection_id</code>, and a 429 carries a
 <code>Retry-After</code> header in whole seconds. Source:
 <a href="{BLOB}/src/auradefi/errors.py">errors.py</a>,

@@ -83,6 +83,14 @@ SECTIONS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "auradefi.webhooks.deliver:Deliverer",
         "auradefi.webhooks.replay:replay",
     )),
+    # Shipped host-facing surface, not test scaffolding (DECISIONS #7). It is
+    # last because a host reaches for it once Sandbox's single address stops
+    # being enough, which is never on the first day.
+    ("Testing offline", "Record a real address once, then replay it forever.", (
+        "auradefi.testing.cassettes:Recorder",
+        "auradefi.testing.cassettes:Cassette",
+        "auradefi.testing.cassettes:load",
+    )),
 )
 
 #: Per-parameter prose, which no amount of introspection can invent.

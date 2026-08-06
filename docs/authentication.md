@@ -2,17 +2,17 @@
 
 You need at most one key, and even that one is optional.
 
-| Service | What it gives you | Key | Covers |
-|---|---|---|---|
-| Sandbox | Everything, recorded | none | one address, one chain, seven transactions |
-| Etherscan V2 | EVM balances + history | optional | one key, *every* `eip155:*` chain |
-| DefiLlama | USD prices | none, keyless | 6 EVM chains. No BTC or SOL prices at all |
-| Blockstream Esplora | Bitcoin UTXO balances | none, keyless | Bitcoin; the network is the base URL |
-| Solana JSON-RPC | SPL + Token-2022 balances | none for the public endpoint | mainnet-beta |
-| Webhooks | Delivery to *you* | n/a; we sign, you verify | your endpoints |
+| Key | Where to get it | What it unlocks |
+|---|---|---|
+| `AURADEFI_ETHERSCAN_API_KEY` | [etherscan.io/apis](https://etherscan.io/apis), free tier | EVM balances and history on every `eip155:*` chain |
+
+Nothing else takes a key. DefiLlama prices, Blockstream Esplora for Bitcoin
+and the public Solana endpoint are all keyless, and
+[Sandbox](quickstart.html#what-just-happened) is a recording that makes no
+network call at all. Webhooks run the other way: we sign, you verify.
 
 There is no auradefi account, no dashboard and no credential of ours to
-obtain. Every key above belongs to a third party, and you bring it.
+obtain. The key above belongs to a third party, and you bring it.
 
 ## Environment variables
 
@@ -48,11 +48,8 @@ One key covers every EVM chain. The chain travels in the request as `chainid`,
 derived from the CAIP-2 id, so Ethereum, Polygon, Base and any other
 `eip155:N` Etherscan supports all use the same key.
 
-The free tier allows 3 requests per second and 100k per day. This package has
-no retry and no rate limiting anywhere, so a burst surfaces immediately as
-`SourceError` and you pace your own ticks with `sync(budget=…)`. Token
-balances cost one request each, because there is no multicall yet, which makes
-a wide address proportionally expensive.
+The free tier allows 3 requests per second and 100k per day, and what one call
+costs against that allowance is on [Limits and cost](limits.html).
 
 A wrong or revoked key is not a distinct error type. Etherscan answers HTTP
 200 with `{"status": "0", "message": "NOTOK", "result": "Invalid API Key"}`,
@@ -88,8 +85,8 @@ Esplora(client)                                              # mainnet
 Esplora(client, base_url="https://blockstream.info/testnet/api")
 ```
 
-The thing to budget for here is request volume. A gap-20 scan of an empty
-wallet is about 40 requests, one per derived address, with no throttle.
+The thing to budget for here is request volume, which
+[Limits and cost](limits.html) puts a number on.
 
 The extended public key never leaves your process. Every request carries a
 derived `bc1…` address, and the test suite asserts that against recorded
@@ -97,10 +94,10 @@ traffic.
 
 ## Solana
 
-The public endpoint needs no key and is aggressively rate-limited upstream; a
-429 surfaces as `SourceError: solana rpc HTTP 429`. For a keyed provider, pass
-the entire URL. `AURADEFI_HELIUS_API_KEY` is parsed by `Settings` and consumed
-by nothing, because the Helius adapter does not ship:
+The public mainnet-beta endpoint needs no key and is aggressively rate-limited
+upstream; a 429 surfaces as `SourceError: solana rpc HTTP 429`. For a keyed
+provider, pass the entire URL. `AURADEFI_HELIUS_API_KEY` is parsed by
+`Settings` and consumed by nothing, because the Helius adapter does not ship:
 
 ```python
 SolanaRpc(client, url="https://mainnet.helius-rpc.com/?api-key=…")
@@ -154,6 +151,8 @@ recorded in sandbox.json. Recorded interactions: …
 ```
 
 It means you asked for something the recording does not contain, usually a
-different address, chain or page size. Switch to `from_env()` with a real key,
-or ask for what the recording holds, which
-[Quickstart](quickstart.html#what-just-happened) lists.
+different address, chain or page size. Three ways out: ask for what the
+recording holds, which [Quickstart](quickstart.html#what-just-happened) lists;
+switch to `from_env()` with a real key; or
+[record your own](quickstart.html#record-your-own-sandbox) once and replay it
+offline after that.

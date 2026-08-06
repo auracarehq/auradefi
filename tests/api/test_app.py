@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient
 import auradefi
 from auradefi.api.app import ROUTE_MODULES, create_app
 from auradefi.api.deps import Deps
+from auradefi.api.errors import DOCS_URL_BASE
 from auradefi.chains.registry import ChainRegistry
 from auradefi.clock import FrozenClock
 from auradefi.ledger.backends.memory import MemoryLedger
@@ -165,7 +166,7 @@ def test_app_metadata_is_pinned():
     # The literal is the point: a half-bump (one file moved, the other not)
     # is what release_check.sh refuses to ship, and this pins the app
     # surface to the same value.
-    assert app.version == auradefi.__version__ == "0.1.1"
+    assert app.version == auradefi.__version__ == "0.1.2"
     assert app.docs_url == "/docs"
 
 
@@ -258,6 +259,7 @@ def test_error_handlers_are_installed():
             "type": "AuthError",
             "message": "api key failed authentication",
             "status": 401,
+            "docs_url": f"{DOCS_URL_BASE}#autherror",
         }
     }
 

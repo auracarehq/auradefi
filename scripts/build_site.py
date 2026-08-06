@@ -11,10 +11,18 @@ reference documents. A page whose source moves or whose example breaks fails
 this build rather than going stale on the web.
 
 Deployed to GitHub Pages by `.github/workflows/pages.yml`. The output is
-self-contained static HTML: one stylesheet, no web fonts, no third-party
-requests of any kind, and the only script is a dozen inline lines for the
-light/dark toggle. It therefore works offline, from a file:// path, and
-behind any CSP that allows inline script.
+self-contained static HTML: one stylesheet, no web fonts and no third-party
+requests of any kind. Script is a few inline lines for the theme toggle and
+the copy buttons, plus one same-origin `search.js` carrying the search index
+(`scripts/site_search.py` explains why it is a file and not inlined). So the
+site works offline, from a file:// path, and behind any CSP that allows
+inline script; a reader whose browser refuses the index gets every page and
+a search box that finds nothing.
+
+Every markdown-sourced page is also written as `.md` beside its `.html`, so
+`limits.html` has `limits.md`. Stripe serves the same pair, and the reason is
+the same: an agent or a reader in a terminal wants the source, and ours is
+already markdown in the repository.
 """
 
 from __future__ import annotations
@@ -40,6 +48,11 @@ from site_render import (  # noqa: E402  (path set above so this runs from anywh
     render_example,
     render_markdown,
     render_notebook,
+)
+from site_search import (  # noqa: E402
+    assert_index_is_searchable,
+    search_html,
+    search_js,
 )
 
 REPO = Path(__file__).resolve().parents[1]
@@ -73,6 +86,10 @@ class Page:
     section: str = ""
     summary: str = ""
     extra: str | None = None      # a sibling file to write, e.g. openapi.json
+    #: Repo-relative markdown this page was rendered FROM, when there is one.
+    #: Set it and the build publishes that source at the page's own `.md`
+    #: path, and the page links to it.
+    source: str | None = None
 
 
 def _run_example(path: Path) -> tuple[str | None, str | None]:
@@ -148,15 +165,19 @@ def collect(run_examples: bool) -> list[Page]:
     body, outline = render_markdown(REPO / "docs" / "quickstart.md",
                                     "docs/quickstart.md", 0)
     pages.append(Page("quickstart.html", "Quickstart", body, outline, "Get started",
-                      "Five lines, no credentials, working code."))
+                      "Five lines, no credentials, working code.",
+                      source="docs/quickstart.md"))
 
     body, outline = render_markdown(REPO / "README.md", "README.md", 0)
     pages.append(Page("index.html", "auradefi", body, outline, "Get started",
-                      "What it is, what works today, and what is not there."))
+                      "What it is, what works today, and what is not there.",
+                      source="README.md"))
 
     for source, title, summary in (
         ("docs/authentication.md", "Authentication & keys",
          "What credentials you need: at most one, and it is optional."),
+        ("docs/limits.md", "Limits and cost",
+         "What each call costs in requests, and what happens at a limit."),
         ("docs/bring-your-own.md", "Bring your own",
          "Your API, your database, your prices: every port and its methods."),
         ("docs/schema.md", "Database schema",
@@ -164,7 +185,7 @@ def collect(run_examples: bool) -> list[Page]:
     ):
         body, outline = render_markdown(REPO / source, source, 0)
         pages.append(Page(f"{Path(source).stem}.html", title, body, outline,
-                          "Get started", summary))
+                          "Get started", summary, source=source))
 
     # Last in the section because it is not a step: a reader who has met the
     # first program and the ports can judge whether the rules in the prompt
@@ -180,7 +201,8 @@ def collect(run_examples: bool) -> list[Page]:
     body, outline = render_markdown(REPO / "examples" / "README.md",
                                     "examples/README.md", 1)
     pages.append(Page("examples/index.html", "All guides", body, outline, "Guides",
-                      "Ten task-shaped recipes that run offline."))
+                      "Eleven task-shaped recipes that run offline.",
+                      source="examples/README.md"))
 
     example_files = [REPO / "examples" / "quickstart.py"] + sorted(
         path for path in (REPO / "examples").glob("[0-9][0-9]_*.py")
@@ -224,6 +246,15 @@ def collect(run_examples: bool) -> list[Page]:
         path, title, body, outline = symbol_page(target)
         pages.append(Page(path, title, body, outline, "API reference", ""))
 
+    # First in Reference because it is the page you arrive at from another
+    # page: a reader who met "part", "act" or "tenant" mid-sentence and needed
+    # it defined comes here, and goes back.
+    body, outline = render_markdown(REPO / "docs" / "glossary.md",
+                                    "docs/glossary.md", 0)
+    pages.append(Page("glossary.html", "Glossary", body, outline, "Reference",
+                      "Every term the other pages assume, defined once.",
+                      source="docs/glossary.md"))
+
     pages.append(Page("errors.html", "Errors", errors_html(), [], "Reference",
                       "Every exception, when it fires, and its HTTP status."))
 
@@ -233,7 +264,8 @@ def collect(run_examples: bool) -> list[Page]:
 
     body, outline = render_markdown(REPO / "CHANGELOG.md", "CHANGELOG.md", 0)
     pages.append(Page("changelog.html", "Changelog", body, outline, "Reference",
-                      "What changed per release, and what breaks."))
+                      "What changed per release, and what breaks.",
+                      source="CHANGELOG.md"))
 
     return pages
 
@@ -269,6 +301,21 @@ def toc_html(page: Page) -> str:
     return f'<aside class="toc"><p>On this page</p><ul>{items}</ul></aside>'
 
 
+def markdown_link(page: Page) -> str:
+    """A footer link to the page's own markdown, when one is published.
+
+    Sits in the footer rather than beside the title: a reader wants the prose
+    and an agent wants the source, and only one of the two is scanning for a
+    link. `scripts/site_search.py` does not index it, because it is the same
+    page.
+    """
+    if page.source is None:
+        return ""
+    name = Path(page.path).with_suffix(".md").name
+    return (f'<p class="asmd">This page as Markdown: <a href="{name}">{name}</a>'
+            "</p>")
+
+
 def write(page: Page, pages: list[Page]) -> None:
     depth = page.path.count("/")
     up = "../" * depth
@@ -282,6 +329,7 @@ def write(page: Page, pages: list[Page]) -> None:
 <title>{escape(page.title)} · auradefi</title>
 <meta name="description" content="{escape(page.summary or TAGLINE, quote=True)}">
 <link rel="stylesheet" href="{up}style.css">
+<script src="{up}search.js" defer></script>
 <script>
   // Apply the reader's saved choice BEFORE first paint; absent one, the CSS
   // follows prefers-color-scheme on its own.
@@ -295,7 +343,8 @@ def write(page: Page, pages: list[Page]) -> None:
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <a class="brand" href="{up}index.html">auradefi</a>
-  <span class="version">0.1.1</span>
+  <span class="version">0.1.2</span>
+  {search_html(up)}
   <div class="spacer"></div>
   <a href="https://pypi.org/project/auradefi/">PyPI</a>
   <a href="{REPO_URL}">GitHub</a>
@@ -308,6 +357,7 @@ def write(page: Page, pages: list[Page]) -> None:
 <main id="content">
 {page.body}
 <footer>
+{markdown_link(page)}
 <p class="by">Built by <a href="https://stephenokita.com">Stephen Okita</a> at
 <a href="https://auracarehealth.com">auracarehealth.com</a>.</p>
 <p>Licensed under <a href="{REPO_URL}/blob/main/LICENSE">Apache-2.0</a>. Source
@@ -326,6 +376,32 @@ every example executed at build time.</p>
     root.dataset.theme = dark ? "light" : "dark";
     try {{ localStorage.setItem("auradefi-theme", root.dataset.theme); }} catch (error) {{}}
   }});
+
+  // A copy button per code block. Added here rather than in the markup
+  // because every block on this site comes from one of five renderers, and
+  // one pass over the DOM beats five that can disagree. `pre.prompt` on the
+  // LLM page brings its own button and is skipped.
+  document.querySelectorAll("main pre").forEach(function (block) {{
+    if (block.classList.contains("prompt")) return;
+    var shell = document.createElement("div");
+    shell.className = "codeshell";
+    block.parentNode.insertBefore(shell, block);
+    shell.appendChild(block);
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "copybtn";
+    button.textContent = "Copy";
+    button.setAttribute("aria-label", "Copy this block");
+    button.addEventListener("click", function () {{
+      navigator.clipboard.writeText(block.textContent).then(function () {{
+        button.textContent = "Copied";
+        setTimeout(function () {{ button.textContent = "Copy"; }}, 1400);
+      }}, function () {{
+        button.textContent = "Select it and copy";
+      }});
+    }});
+    shell.appendChild(button);
+  }});
 </script>
 </body>
 </html>
@@ -338,10 +414,19 @@ def main() -> int:
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
     pages = collect(run_examples)
+    assert_index_is_searchable(pages)
     for page in pages:
         write(page, pages)
         if page.extra is not None:
             (OUT / "openapi.json").write_text(page.extra, encoding="utf-8")
+        # The page's own markdown, beside its HTML. Copied verbatim from the
+        # repository, so it is the source and not a round trip through HTML.
+        if page.source is not None:
+            twin = OUT / Path(page.path).with_suffix(".md")
+            twin.parent.mkdir(parents=True, exist_ok=True)
+            twin.write_text((REPO / page.source).read_text(encoding="utf-8"),
+                            encoding="utf-8")
+    (OUT / "search.js").write_text(search_js(pages), encoding="utf-8")
     (OUT / "style.css").write_text(
         STYLE.read_text(encoding="utf-8") + "\n" + pygments_css(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("", encoding="utf-8")

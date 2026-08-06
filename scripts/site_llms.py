@@ -46,7 +46,7 @@ SUMMARY = (
     "Bitcoin and Solana balances and history, prices them exactly, keeps "
     "tenants isolated, and emits Plaid's wire format. Library first: import "
     "it and pay no network cost. The HTTP API is a thin shell over the same "
-    "core. Version 0.1.1, Apache-2.0, alpha."
+    "core. Version 0.1.2, Apache-2.0, alpha."
 )
 
 #: The whole program, and the only code most readers need to see first.
@@ -124,8 +124,10 @@ PROSE_FILES: tuple[str, ...] = (
     "docs/quickstart.md",
     "README.md",
     "docs/authentication.md",
+    "docs/limits.md",
     "docs/bring-your-own.md",
     "docs/schema.md",
+    "docs/glossary.md",
     "examples/README.md",
     ".env.example",
 )
@@ -162,7 +164,7 @@ def prompt_txt(base_url: str, full_bytes: int) -> str:
         ("    " + line) if line else "" for line in FIRST_PROGRAM.split("\n")
     )
     paragraphs = [
-        _fill("You are writing Python against auradefi 0.1.1, an "
+        _fill("You are writing Python against auradefi 0.1.2, an "
               "open-source, multi-tenant crypto data aggregator. Its "
               f"documentation is at {base_url} and its source is at "
               "https://github.com/auracarehq/auradefi."),
@@ -230,6 +232,10 @@ def index_txt(pages: list, base_url: str) -> str:
         "model before asking it for auradefi code.\n"
         f"- [openapi.json]({base_url}/openapi.json): the HTTP surface, "
         "generated from the app.\n"
+        "- Every prose page above is also served as markdown at the same "
+        "path with a `.md` suffix, so "
+        f"[{base_url}/limits.md]({base_url}/limits.md) is that page without "
+        "the nav around it.\n"
         f"- [Source](https://github.com/auracarehq/auradefi): Apache-2.0. "
         "Every example on this site is executed at build time.\n"
     )
@@ -273,7 +279,7 @@ def reference_txt() -> str:
 def full_txt(base_url: str) -> str:
     """`llms-full.txt`: the documentation as one file a model can hold."""
     chunks = [
-        f"# auradefi 0.1.1: the complete documentation\n\n{SUMMARY}\n\n"
+        f"# auradefi 0.1.2: the complete documentation\n\n{SUMMARY}\n\n"
         f"Source: https://github.com/auracarehq/auradefi\n"
         f"Rendered: {base_url}\n"
         "Licence: Apache-2.0\n\n"
@@ -314,7 +320,7 @@ obvious guess. Paste it in, add your task, and go.</p>
 <pre class="prompt" id="prompt">{prompt}</pre>
 <button class="copy" type="button" data-for="prompt">Copy the prompt</button>
 <script>
-  document.querySelector(".copy").addEventListener("click", function (event) {{
+  document.querySelector(".copy[data-for]").addEventListener("click", function (event) {{
     var button = event.currentTarget;
     var text = document.getElementById(button.dataset.for).textContent;
     navigator.clipboard.writeText(text).then(function () {{
@@ -345,6 +351,12 @@ source, and the signature listing.</td>
 <tr><td><a href="openapi.json"><code>openapi.json</code></a></td>
 <td>The HTTP surface, generated from the running app.</td>
 <td>Client generation, or a tool definition.</td></tr>
+<tr><td><code>&lt;page&gt;.md</code></td>
+<td>Every prose page also exists as its own markdown, at the same path with
+a <code>.md</code> suffix: <a href="limits.md"><code>limits.md</code></a>,
+<a href="glossary.md"><code>glossary.md</code></a>,
+<a href="quickstart.md"><code>quickstart.md</code></a>.</td>
+<td>One page, without the nav and the stylesheet around it.</td></tr>
 </tbody></table>
 
 <h2>In a coding agent</h2>
@@ -358,7 +370,7 @@ goes there.</p>
 <h2>What the model still cannot know</h2>
 <p>Sandbox answers are a recording, so a model can assert them and be right,
 and a live address will not match them. The gaps in
-<a href="index.html">the README</a> are current as of 0.1.1: no
+<a href="index.html">the README</a> are current as of 0.1.2: no
 multicall, one price oracle over six EVM chains, no on-chain reader for the
 position adapters, and no scheduler. A model asked to work around one of
 those will happily write the missing component and present it as ours, so
