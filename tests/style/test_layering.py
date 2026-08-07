@@ -52,18 +52,14 @@ ALLOWED_IMPORTS: dict[str, set[str]] = {
         "positions", "portfolio", "ledger", "project",
     },
     "webhooks": {"money", "tenancy", "ledger"},
-    "jobs": {
-        "money", "chains", "assets", "sources", "prices", "decode",
-        "positions", "ledger", "accounting", "tenancy", "webhooks",
-    },
     "api": {
         "money", "chains", "assets", "sources", "prices", "decode", "positions",
-        "ledger", "accounting", "tenancy", "project", "webhooks", "jobs",
+        "ledger", "accounting", "tenancy", "project", "webhooks",
     },
 }
 
 # domains allowed to touch an HTTP client (project/ stays pure by omission)
-IO_DOMAINS = {"sources", "prices", "testing", "api", "jobs", "webhooks"}
+IO_DOMAINS = {"sources", "prices", "testing", "api", "webhooks"}
 
 # The root __init__ may lazily export these domains' public entry points
 # (SPEC §8 "import, don't call": `from auradefi import Auradefi`). Every

@@ -169,10 +169,13 @@ Rule #10 applies to the absences too.
   `prices/store.py` are declared in the module layout and absent, as are the
   `coingecko`, `manual` and `onchain_amm` oracles, so accounting marks are
   the caller's.
-- No `jobs/` package. The layout declares `scheduler.py`, `discover.py`,
-  `refresh.py`, `reprocess.py` and `backfill.py`; none of them ship. There is
-  no scheduler, no background worker and no reprocess path. The host owns
-  every tick, and a backfill is a `sync()` budget you spend yourself.
+- No scheduler and no background worker. The host owns every tick, and a
+  backfill is a `sync()` budget you spend yourself. This is the design, not
+  a gap: 0.2.0 removed `jobs/` from the declared layout after finding four
+  of its five modules already shipped under other names, and the fifth was
+  a cron evaluator wearing a domain's clothes. What is genuinely missing is
+  a reprocess path for re-decoding stored rows after the decoder improves;
+  the `decoder_version` it would select on is already persisted.
 - Five of the nine declared `api/routes/` modules are absent:
   `accounts.py`, `holdings.py`, `positions.py`, `transactions.py` and
   `webhooks.py`. What ships is `auth`, `connections`, `sync` and `admin`, so

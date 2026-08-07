@@ -26,10 +26,15 @@ list: 42 entries, of which 38 are in scope here and four are the position
 adapters §12 defers. Three of the fifteen issues are capability gaps that are
 not modules at all (#13 persistence, #14 Postgres, #15 live reconciliation).
 
-Two of the fifteen are decisions before they are code. #11 asks whether `jobs/`
-should exist at all or whether §3.2 should stop advertising it; #15 asks for a
-credentialed job that the default suite must never run. Both are answered in
-§11, and the answer in each case is build it.
+Two of the fifteen were decisions before they were code, and both have since
+been made. #11 asked whether `jobs/` should exist or whether §3.2 should stop
+advertising it: the tree answered, four of its five modules already ship under
+other names, so §3.2 dropped it and the issue is closed (§11). #15 asks for a
+credentialed drift job the default suite must never run, and that gets built.
+Two more were reshaped by the same reading: #4 lost its `helius.py` half (a
+paid vendor behind a second key, for a decode the keyless endpoint already
+reaches) and #10 lost its route (the PATCH it specifies would re-derive every
+id the tenant owns; §8 states what replaces it).
 
 The order below is a dependency order, not a priority order. Phase 11 exists
 first because six later modules cannot be written without it: there is no
@@ -43,10 +48,12 @@ fixture.
 
 All of the following, none assumed:
 
-1. Every issue #1 to #15 closed, each with a test that fails against the tree
-   before its phase and passes after.
+1. Every issue #1 to #15 closed or answered, each closure that ships code
+   carrying a test that fails against the tree before its phase and passes
+   after. #11 is already closed as not planned.
 2. `DECLARED_BUT_ABSENT` in `tests/style/test_spec_layout_matches_tree.py` is
    **empty** except for the four position adapters §12 puts out of scope, and
+   the entries #11 and #4 removed from §3.2 altogether, and
    `SHIPPED_BUT_UNDECLARED` accounts for every module this release adds that
    §3.2 does not name.
 3. `.venv/bin/pytest` green. The count will exceed 3,426; new tests only.
@@ -60,7 +67,7 @@ All of the following, none assumed:
    as it then is. Rule #10 cuts both ways: overstating what ships is a
    correctness problem, and so is understating it.
 
-This is eight phases of work. Run one at a time and read the report before
+This is seven phases of work. Run one at a time and read the report before
 starting the next, as `docs/internal/loop.md` says. A phase that lands is a
 commit on `main`; the version bump and the CHANGELOG section are the last
 phase's work, not the first's.
@@ -110,11 +117,10 @@ including new subpackages. This is enforced and it is deliberate.
 - `prices` may import `sources`. `prices/oracles/onchain_amm.py` is legal.
 - `decode` may import `sources` and `prices`. `decode/enrich.py` is legal.
 - `positions` is **not** in `IO_DOMAINS`, so no HTTP client may ever appear
-  there. `IO_DOMAINS` is `sources`, `prices`, `testing`, `api`, `jobs`,
-  `webhooks`.
-- `jobs` is already declared in `ALLOWED_IMPORTS` and in `IO_DOMAINS`, so #11
-  needs no gate change. Its declared layer is everything except `embed`,
-  `project` and `api`.
+  there. `IO_DOMAINS` is `sources`, `prices`, `testing`, `api`, `webhooks`.
+  `jobs` was in both that set and `ALLOWED_IMPORTS` until #11 closed; removing
+  a domain nothing implements is part of that closure, because a declared
+  layer for a package that will never exist reads as a plan.
 - **An ORM may only be imported under `ledger/backends/`.** Issue #13's own
   suggested fix, "a SQLModel backend per store", is illegal as written. Phase 16
   widens that exemption to a declared list of per-domain `backends/`
@@ -614,10 +620,11 @@ transaction decode.
 
 ```
 chains/cosmos.py               the Cosmos family and its seeded chains
-sources/solana/helius.py       the enhanced-transaction source
 ```
 
-`chains/` reaches five modules, `sources/solana/` three.
+`chains/` reaches five modules. `sources/solana/` gains none: #4's
+`helius.py` half was dropped and the decode goes through the keyless
+endpoint `rpc.py` already posts to.
 
 ### Interface detail
 
@@ -631,12 +638,12 @@ cross-pins it.
 `bech32` address handling is stdlib-only, like `sources/bitcoin/encoding.py`.
 That module already exists and its reference-vector discipline is the model.
 
-`helius.py` satisfies the same source protocol `rpc.py` does and needs an API
-key, so it is keyless-by-default: absent the key, the package behaves exactly as
-it does today and says so. This is the second key in the whole package, and
-`docs/authentication.md` currently states there is one. That page, its one-row
-table and the keyless sentence beneath it are part of this phase, not a
-documentation afterthought.
+Solana transaction decode is reached with `getTransaction` and
+`{"encoding": "jsonParsed"}`, on the same keyless `mainnet-beta` URL
+`sources/solana/rpc.py:139` already posts to for token accounts. No second API
+key, and `docs/authentication.md`'s one-row table stays true. Helius would have
+bought convenience and pre-decoded protocol labels, not access, and a protocol
+attribution taken from a vendor is one no committed vector can reproduce.
 
 Solana transaction decode reuses phase 13's rules and registry. An SPL transfer
 decodes to the same act shape an ERC-20 transfer does, which is the test worth
@@ -653,82 +660,49 @@ Helius key configured, every Solana path behaves as it does today.
 
 ---
 
-## 11. Phase 18: the host stops having to own the tick
+## 11. Phase 18: drift shows up as a failing job
 
-**Closes #11, #15.**
+**Closes #15.** (#11 was closed as not planned; see below.)
 
-### The decision #11 asks for
+### What happened to `jobs/`
 
-`src/auradefi/jobs/` does not exist. The README states the consequence as a
-posture: no async surface, no background worker, no scheduler, the host owns the
-tick, and `embed/sync.py` is built around that assumption. #11 asks whether to
-build `jobs/` or amend §3.2 so the layout stops advertising it.
+This phase was drafted to build `jobs/` and answer #11 with "build it". Reading
+the tree answered it the other way. Four of the five declared modules already
+ship: `embed/sync.py:182` is the budgeted two-phase backfill, `embed/dispatch.py:22`
+the shared-budget refresh with per-connection containment, `positions/discovery.py:55`
+the address-blind discovery pass, and `decode/models.py:153,185` already persist
+the `decoder_version` a reprocess would select on. The fifth, `scheduler.py`,
+cannot be built as asked: a scheduler that owns no event loop and starts no
+thread, which the embedding posture requires, is a cron-expression evaluator.
+That is a utility, not a domain, and shipping it would advertise a background
+worker this package does not have.
 
-**Build it.** The embedding posture stays exactly as it is: `embed/` remains
-host-driven, budgeted and two-phase, and nothing in `jobs/` is imported by
-`embed/`. `jobs/` is a separate, opt-in layer for the deployment that wants a
-worker, and the layering gate already declares its layer, which is evidence the
-design intended it. Without it there is no way to backfill history, reprocess
-after a decoder improves, or refresh on a schedule without the host writing all
-of it, and this release's phases 13 and 14 make "reprocess after the decoder
-improves" a thing hosts will immediately need.
+So `jobs/` left SPEC §3.2, `ALLOWED_IMPORTS` and `IO_DOMAINS`, and #11 is
+closed. The one real need it named, reprocess after a decoder improves, is a
+query over a field that already exists and belongs beside the decoder. It is
+phase 14's, not a package of its own.
 
-### Modules
+### #15, live reconciliation
 
-```
-jobs/scheduler.py    when work runs; no event loop of its own
-jobs/discover.py     the address-blind discovery pass (SPEC §5.1)
-jobs/refresh.py      per-connection refresh on a cadence
-jobs/reprocess.py    re-decode stored transactions after a decoder change
-jobs/backfill.py     walk history backwards under a budget
-```
+Every I/O path in the suite replays committed cassettes, which is what makes
+`pytest` green offline in a `--network none` container, the SPEC §13 acceptance
+criterion. That stays true for the default suite, without exception.
 
-Plus, for #15, `scripts/reconcile_live.py` and `.github/workflows/reconcile.yml`.
-
-### Interface detail
-
-`scheduler.py` owns no event loop and starts no thread by default. It computes
-what is due and hands it back; a host or a `__main__` runs it. Importing
-`auradefi.jobs` must not start anything, and a test asserts that by importing
-it and observing no thread and no socket. A library that starts a thread on
-import is not embeddable, and this package's whole posture is embeddability.
-
-`reprocess.py` is where the decoder-version question lands: a stored transaction
-carries the decoder version that produced it, and reprocess selects on that.
-Without a version stamp, reprocess is either "re-decode everything" or "guess",
-and both are wrong. If no such stamp exists in `ledger/models.py`, adding it is
-part of this order and it changes persisted rows, so it is a DECISIONS.md pin
-and a CHANGELOG entry.
-
-`backfill.py` reuses `embed/sync.py`'s budget discipline rather than inventing a
-second one. Two budget implementations with drifting semantics is the class of
-defect the seam auditor exists to find.
-
-**#15, live reconciliation.** Every I/O path in the suite replays committed
-cassettes, which is what makes `pytest` green offline in a `--network none`
-container, the SPEC §13 acceptance criterion. That stays true for the default
-suite, without exception. The reconciliation job is opt-in and credentialed,
-nightly or manual, and it hits the real endpoints and diffs against the
-cassettes so that provider drift, a changed Etherscan V2 response shape, a
-renamed DefiLlama field, shows up as a failing job rather than a bug report.
-Cassette re-recording is the fix path, and `auradefi.testing.cassettes.Recorder`
-shipped in 0.1.2 exactly for this.
+The reconciliation job is opt-in and credentialed, nightly or manual. It hits
+the real endpoints and diffs against the cassettes, so provider drift, a changed
+Etherscan V2 response shape or a renamed DefiLlama field, shows up as a failing
+job rather than a bug report. Cassette re-recording is the fix path, and
+`auradefi.testing.cassettes.Recorder` shipped in 0.1.2 exactly for it.
 
 The job must fail loudly on a diff and must never rewrite a cassette by itself.
-A job that silently re-records is a job that reports success while the contract
+A job that silently re-records is a job reporting success while the contract
 moved, which is the `backfill_complete` defect shape in a CI file.
 
 ### Done when
 
-`tests/contract/test_phase18_jobs.py`: importing `auradefi.jobs` starts no
-thread and opens no socket; the scheduler returns due work for a fixture clock
-and nothing for a clock before it; discovery runs address-blind and emits
-descriptors; refresh drives one connection and leaves the others untouched;
-reprocess re-decodes only rows whose decoder version is behind and proves it by
-count; backfill walks under a budget and resumes at the same point twice.
-Plus `.github/workflows/reconcile.yml` running against real endpoints on a
-schedule, failing on any diff from the committed cassettes, and never writing
-one.
+`scripts/reconcile_live.py` and `.github/workflows/reconcile.yml` run against
+real endpoints on a schedule, fail on any diff from the committed cassettes,
+never write one, and are unreachable from `.venv/bin/pytest`.
 
 ---
 

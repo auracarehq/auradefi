@@ -93,6 +93,19 @@ Plaid made the modelling decision for us. **Use `type: investment` for every wal
 
 Domains are packages. Files target 300 lines, 400 hard. No directory holds more than 10 non-`__init__` modules: past that it grows subfolders. Tests mirror the source tree exactly.
 
+Two entries were **removed** from this layout in 0.2.0, after the tree
+answered the question they were asking. `jobs/` (GitHub #11) named five modules
+of which four already ship under other names: `embed/sync.py` is the budgeted
+backfill, `embed/dispatch.py` the shared-budget refresh, `positions/discovery.py`
+the address-blind discovery pass, and `decode/models.py` already persists the
+`decoder_version` a reprocess selects on. The fifth, a scheduler that owns no
+event loop and starts no thread, is a cron-expression evaluator, and shipping
+it as a domain would advertise a background worker this package does not have.
+The host owns the tick by design. `sources/solana/helius.py` (GitHub #4) went
+for a different reason: it is a paid vendor behind a second API key, and
+`getTransaction` with `{"encoding": "jsonParsed"}` reaches the same decode from
+the keyless endpoint `sources/solana/rpc.py` already posts to.
+
 ```
 src/auradefi/
   __init__.py  clock.py  config.py  errors.py        ← foundation only, nothing else flat
@@ -104,7 +117,7 @@ src/auradefi/
   sources/        __init__.py (Source protocol)
     evm/          etherscan.py  rpc.py  multicall.py  logs.py
     bitcoin/      esplora.py  xpub.py  utxo.py
-    solana/       rpc.py  helius.py  spl.py
+    solana/       rpc.py  spl.py
 
   prices/         inquirer.py  historian.py  store.py
     oracles/      defillama.py  coingecko.py  onchain_amm.py  manual.py
@@ -132,8 +145,6 @@ src/auradefi/
   api/            deps.py  errors.py
     routes/       auth.py  connections.py  accounts.py  holdings.py
                   transactions.py  positions.py  sync.py  webhooks.py  admin.py
-
-  jobs/           scheduler.py  discover.py  refresh.py  reprocess.py  backfill.py
 
 tests/
   <mirrors src/ exactly>

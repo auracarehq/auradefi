@@ -1,8 +1,9 @@
 """The shipped tree vs docs/internal/SPEC.md §3.2, diffed both ways (§5 #17).
 
-README's *What is not there* understated the gap: it omitted the whole
-``jobs/`` package, five ``api/routes/`` modules, ``project/plaid.py`` and
-``native.py``, and ``prices/historian.py`` and ``store.py``. A README that
+README's *What is not there* understated the gap: it omitted five
+``api/routes/`` modules, ``project/plaid.py`` and ``native.py``,
+``prices/historian.py`` and ``store.py``, and the whole ``jobs/`` package
+that §3.2 declared at the time. A README that
 understates its own gaps is a correctness problem, not a documentation
 nicety: rule #10 cuts both ways, and a reader budgeting work off that
 section was being told the package was closer to the spec than it is.
@@ -37,12 +38,6 @@ README = REPO / "README.md"
 #: Declared in §3.2, absent from the tree. Each is a documented limitation.
 DECLARED_BUT_ABSENT = frozenset(
     {
-        # No background worker at all. The host owns the tick.
-        "jobs/scheduler.py",
-        "jobs/discover.py",
-        "jobs/refresh.py",
-        "jobs/reprocess.py",
-        "jobs/backfill.py",
         # Five of the nine declared route modules. auth/connections/sync/admin ship.
         "api/routes/accounts.py",
         "api/routes/holdings.py",
@@ -77,8 +72,6 @@ DECLARED_BUT_ABSENT = frozenset(
         "decode/protocols/staking/lido.py",
         "decode/protocols/staking/rocketpool.py",
         "decode/protocols/staking/solana_stake.py",
-        # No enhanced-transaction Solana source, so no Solana tx decode.
-        "sources/solana/helius.py",
         # Position adapters the spec names that no golden vector covers.
         "positions/adapters/erc4626.py",
         "positions/adapters/amm/curve.py",
@@ -145,7 +138,6 @@ SHIPPED_BUT_UNDECLARED = frozenset(
 #: This is the #17 complaint made mechanical: the four things it named were
 #: missing from the prose entirely.
 README_MUST_MENTION = {
-    "jobs/": "jobs/",
     "api/routes/": "api/routes/",
     "project/": "project/",
     "prices/ history": "historian",
@@ -220,8 +212,8 @@ def test_the_spec_declares_a_layout_this_test_can_read():
     # A parse that silently found nothing would make every assertion below
     # vacuously true: the failure mode this whole gate exists to prevent.
     declared = _declared_modules()
-    assert len(declared) > 90, f"parsed only {len(declared)} declared modules"
-    assert "jobs/scheduler.py" in declared
+    assert len(declared) > 85, f"parsed only {len(declared)} declared modules"
+    assert "decode/protocols/registry.py" in declared
     assert "api/routes/auth.py" in declared
 
 
