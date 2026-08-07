@@ -1,14 +1,30 @@
-"""DefiLlama current-price oracle (SPEC §3.2; §6.3: being Plaid-shaped
-forces us to own a price oracle).
+"""DefiLlama price oracle, current and historical (SPEC §3.2; §6.3: being
+Plaid-shaped forces us to own a price oracle).
 
 Keyless, no retry, no rate limiting. The injected ``httpx.Client`` is the
 only I/O path; import performs none. Conforms STRUCTURALLY to
-``prices.inquirer.PriceOracle`` without importing it.
+``prices.inquirer.PriceOracle`` and to ``prices.inquirer
+.HistoricalPriceOracle`` without importing either.
 
 Pinned request layout (deterministic URLs so cassettes replay):
 ``GET {base_url}/prices/current/{coins}`` where ``coins`` is the
 deduplicated, lexicographically sorted key set joined by ``','``, at most
 ``CHUNK_SIZE`` keys per request, chunks issued in global sorted order.
+
+Pinned historical request layout, the same key set at a past instant:
+``GET {base_url}/prices/historical/{unix_seconds}/{coins}``, with the SAME
+deduplicated lexicographically sorted keys joined by ``','``, at most
+``CHUNK_SIZE`` per request, chunks issued in global sorted order. Pinned
+conversion ``unix_seconds = at_ms // 1000``: floor division, the
+sub-second remainder is dropped, so 1620000000999 and 1620000000000 build
+one URL.
+
+This oracle NEVER buckets. It puts ``at_ms`` on the wire verbatim, and
+``prices/historian.py`` is the only bucketer, which is what keeps a
+recorded historical URL deterministic. It never declares an unreachable
+instant either: DefiLlama reaches every instant its feed carries, and an
+instant it holds no mark for comes back as an absent response key, which
+is "not listed" rather than "cannot reach".
 
 Pinned price conversion: ``Decimal(str(price))``, NEVER ``Decimal(price)``
 from the raw float.
@@ -24,6 +40,7 @@ import httpx
 from auradefi.errors import (
     SourceError,
     ValidationError,
+    require_int,
     require_sequence,
     require_str,
 )
@@ -107,11 +124,12 @@ def chunk_keys(keys: Sequence[str]) -> list[list[str]]:
 
 
 class DefiLlamaOracle:
-    """Current USD prices from DefiLlama's keyless ``coins.llama.fi``.
+    """Current and past USD prices from the keyless ``coins.llama.fi``.
 
     ``client`` is REQUIRED and injected: the oracle never constructs a
     transport of its own, never retries, never rate-limits. Structurally a
-    ``prices.inquirer.PriceOracle``; does not import it.
+    ``prices.inquirer.PriceOracle`` and a ``prices.inquirer
+    .HistoricalPriceOracle``; imports neither.
     """
 
     def __init__(
@@ -143,6 +161,50 @@ class DefiLlamaOracle:
         # TypeError, outside the SourceError this method documents.
         for caip19 in require_sequence(caip19s, "caip19s", SourceError):
             require_str(caip19, "caip19", SourceError)
+        return self._priced(caip19s, "current")
+
+    def usd_prices_at(
+        self, caip19s: Sequence[str], at_ms: int
+    ) -> dict[str, Money]:
+        """USD price for each priceable input CAIP-19 at ``at_ms``.
+
+        The id mapping, the chunking, the reverse mapping of response keys
+        onto the caller's ids and the ``Money(Decimal(str(price)), 'USD')``
+        conversion are :meth:`usd_prices`'s, unchanged. Only the URL
+        differs: ``{base_url}/prices/historical/{at_ms // 1000}/{coins}``.
+
+        ``at_ms`` goes on the wire verbatim, floored to whole seconds and
+        never bucketed: the historian is the only bucketer.
+
+        Unmapped ids contribute no request key and are absent from the
+        result; if NO input maps, returns ``{}`` with zero HTTP. A key
+        absent from the response's ``coins`` object is unpriced and absent
+        from the result, which is "not listed" and not an unreachable
+        instant.
+
+        ``caip19s`` must be a list or tuple of strings and ``at_ms`` a
+        non-negative integer, both refused with ``SourceError`` before any
+        HTTP. A non-2xx response or a malformed body raises ``SourceError``
+        too, so every failure this method has is one channel.
+        """
+        for caip19 in require_sequence(caip19s, "caip19s", SourceError):
+            require_str(caip19, "caip19", SourceError)
+        if require_int(at_ms, "at_ms", SourceError) < 0:
+            raise SourceError(f"at_ms must not precede the epoch, got {at_ms}")
+        # Floor, never round: 1620000000999 and 1620000000000 are the same
+        # second on the wire, so a remainder cannot walk the instant on.
+        return self._priced(caip19s, f"historical/{at_ms // 1000}")
+
+    def _priced(self, caip19s: Sequence[str], endpoint: str) -> dict[str, Money]:
+        """Map, chunk, fetch and reverse-map, which is everything both
+        public methods do once their entry doors have run.
+
+        ``endpoint`` is the segment between ``/prices/`` and the joined
+        coin keys, either ``'current'`` or ``'historical/{unix_seconds}'``,
+        and it is the only difference between a mark now and a mark then.
+        Ids sharing one key each receive that key's price; a key the
+        response body omits leaves its ids unpriced and absent.
+        """
         ids_by_key: dict[str, list[str]] = {}
         for caip19 in caip19s:
             key = coin_key(caip19)
@@ -153,7 +215,9 @@ class DefiLlamaOracle:
 
         result: dict[str, Money] = {}
         for chunk in chunk_keys(list(ids_by_key)):
-            coins = self._fetch_coins(chunk)
+            coins = self._coins(
+                f"{self._base_url}/prices/{endpoint}/{','.join(chunk)}"
+            )
             for key in chunk:
                 quote = coins.get(key)
                 if quote is None:
@@ -163,11 +227,19 @@ class DefiLlamaOracle:
                     result[caip19] = price
         return result
 
-    def _fetch_coins(self, chunk: list[str]) -> dict:
-        """GET one chunk's ``/prices/current/{coins}`` and return the
-        response's ``coins`` object; ``SourceError`` on non-2xx or a body
-        that is not JSON with a ``coins`` mapping."""
-        url = f"{self._base_url}/prices/current/{','.join(chunk)}"
+    def _coins(self, url: str) -> dict:
+        """GET one fully built URL and return the response's ``coins``
+        object; ``SourceError`` on non-2xx or a body that is not JSON with
+        a ``coins`` mapping.
+
+        The single transport door in this module. Both endpoints hand a
+        finished URL here, so ``_SEND_FAILURES`` is caught in one place
+        and the refusal ladder below is written once. A second door
+        catching ``httpx.HTTPError`` alone would leak urllib's bare
+        ``ValueError`` for a scheme-less base URL, and
+        ``tests/style/test_transport_doors_catch_every_httpx_root.py``
+        reads this file's AST to say so.
+        """
         try:
             response = self._client.get(url)
         except _SEND_FAILURES as exc:

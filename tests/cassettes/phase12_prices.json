@@ -1,0 +1,161 @@
+{
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/current/coingecko:ethereum,ethereum:0x1111111111111111111111111111111111111111,ethereum:0x2222222222222222222222222222222222222222,ethereum:0x3333333333333333333333333333333333333333"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "coins": {
+            "coingecko:ethereum": {
+              "price": 3584.17,
+              "symbol": "TKN",
+              "timestamp": 1754089200,
+              "confidence": 0.99
+            }
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/current/ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "coins": {
+            "ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+              "price": 3584.17,
+              "symbol": "TKN",
+              "timestamp": 1754089200,
+              "confidence": 0.99
+            }
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/historical/1620000000/coingecko:ethereum,ethereum:0x2222222222222222222222222222222222222222,ethereum:0x3333333333333333333333333333333333333333"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "coins": {
+            "coingecko:ethereum": {
+              "price": 2949.68,
+              "symbol": "TKN",
+              "timestamp": 1620000000,
+              "confidence": 0.99
+            }
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/historical/1620000000/ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "coins": {
+            "ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+              "price": 2949.68,
+              "symbol": "TKN",
+              "timestamp": 1620000000,
+              "confidence": 0.99
+            }
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/historical/1620003600/coingecko:ethereum"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "coins": {
+            "coingecko:ethereum": {
+              "price": 3419.44,
+              "symbol": "TKN",
+              "timestamp": 1620003600,
+              "confidence": 0.99
+            }
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/historical/1620003600/ethereum:0x2222222222222222222222222222222222222222"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "coins": {}
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://coins.llama.fi/prices/historical/1620000000/ethereum:0x3333333333333333333333333333333333333333"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "coins": {}
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=0x1111111111111111111111111111111111111111,0x2222222222222222222222222222222222222222,0x3333333333333333333333333333333333333333&vs_currencies=usd"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "0x1111111111111111111111111111111111111111": {
+            "usd": 0.42
+          }
+        }
+      }
+    }
+  ]
+}
