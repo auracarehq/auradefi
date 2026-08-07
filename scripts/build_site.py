@@ -6,7 +6,7 @@
 
 Everything published here already lives in the repository: the README, the
 examples (each one EXECUTED at build time, with its real output captured
-onto the page), the twelve PyBooks with their stored outputs, and the
+onto the page), the thirteen PyBooks with their stored outputs, and the
 reference documents. A page whose source moves or whose example breaks fails
 this build rather than going stale on the web.
 
@@ -221,11 +221,11 @@ def collect(run_examples: bool) -> list[Page]:
     )
     pages.append(Page(
         "books/index.html", "PyBooks",
-        "<h1>PyBooks</h1><p>Twelve executable notebooks, one per capability. "
+        "<h1>PyBooks</h1><p>Thirteen executable notebooks, one per capability. "
         "Each runs offline against committed fixtures, asserts its own "
         "outputs, and is executed headlessly in CI, so it cannot drift from "
         f"the code.</p><ul class=\"cards\">{book_rows}</ul>",
-        section="Notebooks", summary="Twelve executable notebooks, run in CI."))
+        section="Notebooks", summary="Thirteen executable notebooks, run in CI."))
     for path in books:
         body, outline = render_notebook(path, 1)
         pages.append(Page(f"books/{path.stem}.html", _notebook_title(path),

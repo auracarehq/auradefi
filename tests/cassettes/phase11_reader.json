@@ -1,0 +1,575 @@
+{
+  "note": "HAND-AUTHORED, NOT RECORDED. No archive node produced these bytes. Every result word was packed by hand from the integers the phase-4 golden fixtures already pin, by a throwaway script that imports nothing from auradefi, and the ten selectors were derived from an independent keccak256 and cross-checked against the literals the abi and reader orders pin. The file therefore proves the selector derivation, the word packing, the tuple decode, the block pin and the JSON-RPC wire path. It does NOT prove agreement with Ethereum mainnet at block 20,450,000: two of the preimages cannot come from a node at all (a fabricated Aave user, and a protocol-global rETH exchange rate no choice of holder can make a node return). Obtaining a genuine archive-node recording at that block and re-pinning every existing golden to whatever it returns needs network and an archive node, and it is a separate human task. The per-interaction 'note' and 'request.body' keys are ignored by auradefi.testing.cassettes.load, so this stays one cassette format while carrying what the JSON-RPC matcher in tests/golden/test_phase11_reader.py keys on.",
+  "interactions": [
+    {
+      "note": "uniswap-v2 pair LP balance of vitalik: 850000000000000",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+              "data": "0x70a08231000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa96045"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x000000000000000000000000000000000000000000000000000305120c0f2000"
+        }
+      }
+    },
+    {
+      "note": "uniswap-v2 pair totalSupply: 850000000000000000",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+              "data": "0x18160ddd"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000bcbce7f1b150000"
+        }
+      }
+    },
+    {
+      "note": "uniswap-v2 pair getReserves: (52e12, 14.5e21, 1722470000)",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+              "data": "0x0902f1ac"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x00000000000000000000000000000000000000000000000000002f4b318740000000000000000000000000000000000000000000000003120bec57b51c1000000000000000000000000000000000000000000000000000000000000066aace70"
+        }
+      }
+    },
+    {
+      "note": "uniswap-v2 pair decimals: 18 (the LP token itself)",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+              "data": "0x313ce567"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000012"
+        }
+      }
+    },
+    {
+      "note": "usdc decimals: 6",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "data": "0x313ce567"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000006"
+        }
+      }
+    },
+    {
+      "note": "weth decimals: 18",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "data": "0x313ce567"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000012"
+        }
+      }
+    },
+    {
+      "note": "uniswap-v3 manager NFT count for vitalik: 1",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xc36442b4a4522e871399cd717abdd847ab11fe88",
+              "data": "0x70a08231000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa96045"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000001"
+        }
+      }
+    },
+    {
+      "note": "uniswap-v3 manager tokenOfOwnerByIndex(vitalik, 0): 912345",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xc36442b4a4522e871399cd717abdd847ab11fe88",
+              "data": "0x2f745c59000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa960450000000000000000000000000000000000000000000000000000000000000000"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x00000000000000000000000000000000000000000000000000000000000debd9"
+        }
+      }
+    },
+    {
+      "note": "uniswap-v3 manager positions(912345): twelve words",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xc36442b4a4522e871399cd717abdd847ab11fe88",
+              "data": "0x99fbab8800000000000000000000000000000000000000000000000000000000000debd9"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000000000000000000000000000000000000000000bb8000000000000000000000000000000000000000000000000000000000002f328000000000000000000000000000000000000000000000000000000000002fb9800000000000000000000000000000000000000000000000000071afd498d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007735940000000000000000000000000000000000000000000000000008e1bc9bf040000"
+        }
+      }
+    },
+    {
+      "note": "uniswap-v3 factory getPool(usdc, weth, 3000): the 0.3% pool",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0x1f98431c8ad98523631ae4a59f267346ea31f984",
+              "data": "0x1698ee82000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000000000000000000000000000000000000000000bb8"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000008ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+        }
+      }
+    },
+    {
+      "note": "uniswap-v3 pool slot0: sqrtPriceX96 and tick 194470",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
+              "data": "0x3850c7bd"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x00000000000000000000000000000000000041397e2a57a10fe7d84be28fb3c6000000000000000000000000000000000000000000000000000000000002f7a600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"
+        }
+      }
+    },
+    {
+      "note": "aave aWETH balance of alice: 10 ETH",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8",
+              "data": "0x70a0823100000000000000000000000000000000000000000000000000000000000a11ce"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000008ac7230489e80000"
+        }
+      }
+    },
+    {
+      "note": "aave variable-debt WETH balance of alice: 0",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xea51d7853eefb32b6ee06b1c12e6dcca88be0ffe",
+              "data": "0x70a0823100000000000000000000000000000000000000000000000000000000000a11ce"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      }
+    },
+    {
+      "note": "aave aUSDC balance of alice: 0",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+              "data": "0x70a0823100000000000000000000000000000000000000000000000000000000000a11ce"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      }
+    },
+    {
+      "note": "aave variable-debt USDC balance of alice: 5000 USDC",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0x72e95b8931767c79ba4eee721354d6e99a61d004",
+              "data": "0x70a0823100000000000000000000000000000000000000000000000000000000000a11ce"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x000000000000000000000000000000000000000000000000000000012a05f200"
+        }
+      }
+    },
+    {
+      "note": "aave pool getUserAccountData(alice): ltv 8000bp, hf 5.8125",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+              "data": "0xbf92857c00000000000000000000000000000000000000000000000000000000000a11ce"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000000034285f2b280000000000000000000000000000000000000000000000000000000746a5288000000000000000000000000000000000000000000000000000000022734093a00000000000000000000000000000000000000000000000000000000000000203a0000000000000000000000000000000000000000000000000000000000001f4000000000000000000000000000000000000000000000000050aa25f43cf54000"
+        }
+      }
+    },
+    {
+      "note": "lido stETH balance of vitalik: 12.34 stETH",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+              "data": "0x70a08231000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa96045"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x000000000000000000000000000000000000000000000000ab407c9eb0520000"
+        }
+      }
+    },
+    {
+      "note": "rocket pool rETH balance of vitalik: 2.5 rETH",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xae78736cd615f374d3085123a210448e74fc6393",
+              "data": "0x70a08231000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa96045"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x00000000000000000000000000000000000000000000000022b1c8c1227a0000"
+        }
+      }
+    },
+    {
+      "note": "rocket pool rETH getExchangeRate: 1.12",
+      "request": {
+        "method": "POST",
+        "url": "https://evm-node.invalid/rpc",
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "eth_call",
+          "params": [
+            {
+              "to": "0xae78736cd615f374d3085123a210448e74fc6393",
+              "data": "0xe6aa216c"
+            },
+            "0x1380ad0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x0000000000000000000000000000000000000000000000000f8b0a10e4700000"
+        }
+      }
+    }
+  ]
+}

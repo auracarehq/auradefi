@@ -123,6 +123,14 @@ SHIPPED_BUT_UNDECLARED = frozenset(
         "sources/evm/codec/abi.py",
         "sources/evm/codec/keccak.py",
         "sources/evm/reader.py",
+        # Three splits the 400-line hard cap forced during phase 11, each on
+        # a seam the package already uses rather than at a convenient line.
+        # `txfetch.py`/`txlist.py` is the precedent: one module issues the
+        # requests, one owns the grammar, and there is never a second place
+        # that parses.
+        "sources/evm/codec/aggregate3.py",  # the one dynamic shape, out of abi
+        "sources/evm/jsonrpc.py",  # the envelope vocabulary, no transport
+        "sources/evm/logrows.py",  # the log-row grammar, out of the scanner
         "sources/evm/source.py",  # both seams over one client, so a host writes none
         "sources/evm/txfetch.py",
         "sources/evm/txlist.py",

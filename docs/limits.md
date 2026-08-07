@@ -28,9 +28,12 @@ balance for every connection. A dashboard that calls it per page view pays the
 full cost per page view, so hold the report on your side and refresh it on
 your own schedule.
 
-There is no multicall anywhere, so one token balance is one request. An
-address that has touched two hundred tokens costs about two hundred requests
-to value, and a wide address is expensive in proportion to its width.
+Nothing in the holdings path batches its reads, so one token balance is one
+request. An address that has touched two hundred tokens costs about two
+hundred requests to value, and a wide address is expensive in proportion to
+its width. `auradefi.sources.evm.multicall.Multicall3` ships and will collapse
+a batch of contract reads into one `eth_call`, but the holdings path does not
+use it yet: today it is a component you wire yourself.
 
 ## What the services allow
 

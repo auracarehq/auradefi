@@ -121,3 +121,59 @@ class CassetteMissError(CassetteError):
     Raised instead of letting a live call escape. The offline guarantee
     (SPEC §13) fails loudly, never silently.
     """
+
+
+# --- argument guards ---------------------------------------------------------
+#
+# A module that documents "Raises: SourceError" for an argument and then
+# reaches straight for `address.lower()` or `page_size < 1` keeps the
+# promise for a wrong VALUE and breaks it for a wrong TYPE: the caller sees
+# AttributeError or TypeError, which `except AuradefiError` does not catch.
+# 0.2.0 phase 11's pattern sweep found that at twenty-odd entry points and
+# left `tests/style/test_a_promised_taxonomy_holds_at_the_entry_door.py`
+# behind to keep it found.
+#
+# These live here, beside the taxonomy they defend, and each takes the
+# exception class so a caller keeps its own. They are the whole of the
+# check: a guard that needs more than a type belongs at its call site,
+# where the reason for it can be written down.
+
+
+def require_str(value: object, name: str, exc: type[AuradefiError]) -> str:
+    """``value`` if it is a ``str``, else raise ``exc``."""
+    if not isinstance(value, str):
+        raise exc(f"{name} must be a string, got {type(value).__name__}")
+    return value
+
+
+def require_int(value: object, name: str, exc: type[AuradefiError]) -> int:
+    """``value`` if it is a real ``int``, else raise ``exc``.
+
+    ``bool`` is refused. It is an ``int`` subclass, so ``True`` would
+    otherwise pass as block 1 and ``False`` as block 0, which is the
+    bool-poisoning defect Phase 0 already fixed once in the wire grammar.
+    """
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise exc(f"{name} must be an integer, got {type(value).__name__}")
+    return value
+
+
+def require_sequence(
+    value: object, name: str, exc: type[AuradefiError]
+) -> tuple[object, ...]:
+    """``value`` as a tuple if it is a non-text sequence, else raise ``exc``.
+
+    ``str`` and ``bytes`` are refused by name even though both are
+    sequences: passing one where a sequence of items is meant iterates
+    per character, which is a silent wrong answer rather than an error.
+    A generator is refused too, because every caller here measures its
+    argument with ``len`` and a consumed iterator cannot be measured
+    twice.
+    """
+    if isinstance(value, (str, bytes, bytearray)) or not isinstance(
+        value, (list, tuple)
+    ):
+        raise exc(
+            f"{name} must be a list or tuple, got {type(value).__name__}"
+        )
+    return tuple(value)

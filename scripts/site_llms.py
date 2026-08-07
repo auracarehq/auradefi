@@ -112,10 +112,12 @@ GROUND_RULES: tuple[str, ...] = (
     "Every failure inherits `auradefi.errors.AuradefiError`, so one `except` "
     "clause catches this library and nothing else.",
 
-    "The gaps are real and documented: no multicall, no on-chain reader for "
-    "the position adapters, no historical prices, no async surface, no "
-    "Solana transaction decode. If the reference does not name a symbol, it "
-    "does not exist. Say so instead of inventing one.",
+    "The gaps are real and documented: no historical prices, no async "
+    "surface, no scheduler, no Solana transaction decode. The EVM node path "
+    "(`EvmRpc`, `Multicall3`, `EvmContractReader`, `scan_logs`) does ship as "
+    "of 0.2.0, and no vector for it was ever recorded from a real node. If "
+    "the reference does not name a symbol, it does not exist. Say so instead "
+    "of inventing one.",
 )
 
 #: Prose published as-is, in reading order. `.env.example` is here because
@@ -285,7 +287,7 @@ def full_txt(base_url: str) -> str:
         "Licence: Apache-2.0\n\n"
         "This file is generated from the repository by scripts/build_site.py "
         "and contains every prose page, every worked example in full, and a "
-        "signature listing of the public surface. The twelve notebooks and "
+        "signature listing of the public surface. The notebooks and "
         "the changelog are not here; both are linked from llms.txt.\n\n"
         "Read this first:\n\n" + "\n".join(
             f"  {number}. {_plain(rule)}"
@@ -370,9 +372,10 @@ goes there.</p>
 <h2>What the model still cannot know</h2>
 <p>Sandbox answers are a recording, so a model can assert them and be right,
 and a live address will not match them. The gaps in
-<a href="index.html">the README</a> are current as of 0.1.2: no
-multicall, one price oracle over six EVM chains, no on-chain reader for the
-position adapters, and no scheduler. A model asked to work around one of
-those will happily write the missing component and present it as ours, so
-check any answer that solves a gap on that list.</p>
+<a href="index.html">the README</a> are the current list: one price oracle
+over six EVM chains, no historical prices, and no scheduler. The EVM node
+path ships, and every vector proving it was written by hand rather than
+recorded from a chain, so a model cannot tell you what mainnet returns at a
+block. A model asked to work around a gap will happily write the missing
+component and present it as ours, so check any answer that solves one.</p>
 """

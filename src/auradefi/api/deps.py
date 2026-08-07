@@ -155,7 +155,10 @@ def _peek_project_id(token: str) -> str | None:
     try:
         payload = json.loads(base64.b64decode(padded, altchars=b"-_", validate=True))
     # binascii.Error is a ValueError; a RecursionError is neither.
-    except (ValueError, UnicodeDecodeError, RecursionError):
+    # UnicodeDecodeError is a ValueError too (via UnicodeError), so naming
+    # it here caught nothing and told a reader this door had one more
+    # entrance than it has. Do not add it back.
+    except (ValueError, RecursionError):
         return None
     project_id = payload.get("project_id") if isinstance(payload, dict) else None
     return project_id if isinstance(project_id, str) else None

@@ -20,7 +20,7 @@ Sandbox data is a recording, so its numbers are constants: 5025 USD of
 holdings and seven transactions. Asking for anything it does not hold raises
 `CassetteMissError`, which names what it does hold.
 
-Eleven task-shaped guides follow. Each is a single file that runs offline without
+Twelve task-shaped guides follow. Each is a single file that runs offline without
 keys, asserts its own output, and prints a readable trace. All of them are
 self-contained, so you can copy a file out, `pip install auradefi`, and run it.
 
@@ -46,6 +46,7 @@ change that points it at real infrastructure.
 | [How do I get told when something changes, and trust what arrives?](09_deliver_signed_webhooks.py) | HMAC signing with the shipped verifier, a pinned retry schedule into a dead letter queue, and replay. | core |
 | [How do I handle a Bitcoin xpub and Solana's token zoo?](10_scan_bitcoin_and_solana.py) | Non-EVM chains: a Bitcoin xpub that never leaves the process, gap-limit scanning, and a Token-2022 mint that breaks `raw / 10**decimals`. | core |
 | [How do I make each error happen on purpose, so I can test my handler?](11_provoke_every_error.py) | Sixteen error types triggered deterministically in three lines each, grouped by whose problem they are, with the `docs_url` each one carries over HTTP. | core |
+| [How do I read a contract straight from a node, with no aggregator?](12_read_a_contract_from_a_node.py) | The EVM node path: keccak selectors, one `eth_call`, a batch matched by id, five reads in one Multicall3 round trip with one revert declared, chunked log scanning, and a shipped position adapter driven over all of it. | core |
 
 Install the extras with `pip install 'auradefi[sql]'` or
 `pip install 'auradefi[api]'`. `scripts/run_examples.sh` skips an example whose
@@ -54,7 +55,7 @@ extra is absent and says so, instead of failing.
 ## How these relate to the rest of the docs
 
 - **examples/** answers "how do I do X", one file per task. You are here.
-- **[`docs/books/`](../docs/books)** holds twelve executable notebooks, one
+- **[`docs/books/`](../docs/books)** holds thirteen executable notebooks, one
   per capability. They go considerably deeper and are run headlessly in CI.
 
 CI executes every example here through `scripts/run_examples.sh`, so an

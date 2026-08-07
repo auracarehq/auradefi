@@ -41,13 +41,19 @@ from typing import TypeVar
 
 import httpx
 
-from auradefi.errors import SourceError, ValidationError
+from auradefi.errors import SourceError, ValidationError, require_int, require_str
 from auradefi.sources.evm.txlist import (
     NormalTxRecord,
     TokenTxRecord,
     parse_normal_row,
     parse_tokentx_row,
 )
+
+#: See ``sources/evm/rpc.py`` for why ``httpx.HTTPError`` alone under-catches
+#: a send: ``InvalidURL`` is not one of its subclasses and a scheme-less url
+#: raises urllib's bare ``ValueError``. Held by
+#: ``tests/style/test_transport_doors_catch_every_httpx_root.py``.
+_SEND_FAILURES = (httpx.HTTPError, httpx.InvalidURL, ValueError)
 
 BASE_URL = "https://api.etherscan.io/v2/api"
 HEAD_BLOCK = 99_999_999
@@ -122,6 +128,7 @@ def _require_valid_page_size(page_size: int) -> None:
     page"; with ``page_size <= 0`` no page is ever shorter, so pagination
     would loop against the endpoint forever.
     """
+    require_int(page_size, "page_size", ValidationError)
     if page_size < 1:
         raise ValidationError(f"page_size must be >= 1, got {page_size}")
 
@@ -196,6 +203,9 @@ def fetch_page(
     envelope, any other status-``"0"`` message (carrying that message),
     or a ``result`` that is not a list of objects.
     """
+    # `base_url` is host configuration and httpx answers a non-str url with
+    # a bare TypeError, which is outside the SourceError this promises.
+    require_str(base_url, "base_url", SourceError)
     # Insertion order IS the wire order. The param sequence is contractual.
     params = {
         "chainid": str(chain_id),
@@ -212,7 +222,7 @@ def fetch_page(
         params["apikey"] = api_key
     try:
         response = client.get(base_url, params=params)
-    except httpx.HTTPError as exc:
+    except _SEND_FAILURES as exc:
         raise SourceError(f"etherscan {action} request failed: {exc!r}") from exc
     if not 200 <= response.status_code < 300:
         raise SourceError(f"etherscan {action} HTTP {response.status_code}")

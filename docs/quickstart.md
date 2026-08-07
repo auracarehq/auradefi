@@ -172,8 +172,9 @@ file that wires all of them and drives the result, and the
 ## What this is not
 
 auradefi is alpha, and the [README](index.html) keeps an explicit list of what
-is absent: no multicall, one price oracle covering six EVM chains, no Bitcoin
-or Solana prices at all, no scheduler, and no on-chain reader for the DeFi
-position adapters. Read that list before you budget work against this.
+is absent: one price oracle covering six EVM chains, no Bitcoin or Solana
+prices at all, no scheduler, and an EVM node path whose vectors were written
+by hand and never recorded from a chain. Read that list before you budget
+work against this.
 Sandbox makes the library easy to try, and the gaps are still there
 afterwards.

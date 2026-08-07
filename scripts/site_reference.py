@@ -59,6 +59,21 @@ SECTIONS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "auradefi.clock:SystemClock",
         "auradefi.clock:FrozenClock",
     )),
+    # The EVM node path (0.2.0). A host reaches for it when the aggregator is
+    # not enough: to read a contract, or to run the position adapters against
+    # a chain instead of against fixtures.
+    ("Reading a chain directly", "One eth_call, five in one round trip, or a "
+     "range of logs.", (
+        "auradefi.sources.evm.rpc:EvmRpc",
+        "auradefi.sources.evm.reader:EvmContractReader",
+        "auradefi.sources.evm.multicall:Multicall3",
+        "auradefi.sources.evm.multicall:Call",
+        "auradefi.sources.evm.multicall:CallResult",
+        "auradefi.sources.evm.logs:scan_logs",
+        "auradefi.sources.evm.logs:LogRecord",
+        "auradefi.sources.evm.codec.keccak:keccak256",
+        "auradefi.sources.evm.codec.abi:selector",
+    )),
     ("Values on the wire", "What you get back, field by field.", (
         "auradefi.money.quantity:Quantity",
         "auradefi.money.fiat:Money",
@@ -110,6 +125,40 @@ PARAM_DOCS: dict[str, dict[str, str]] = {
                       "forgets every connection on restart.",
         "decoder": "Row-format seam. `None` binds the EVM txlist decoder lazily.",
         "sync_page_size": "How many rows to ask a source for per page.",
+    },
+    "EvmRpc.__init__": {
+        "client": "Your `httpx.Client`, injected so a cassette or a mock "
+                  "transport plugs in unchanged. No client is created for you.",
+        "url": "The node endpoint. Host configuration, so it is required and "
+               "never guessed from a chain id.",
+    },
+    "EvmContractReader.__init__": {
+        "rpc": "The `EvmRpc` every read goes through. One `eth_call` per call.",
+        "block_number": "The block every read is pinned at. `None` means "
+                        "`latest`. A report at two blocks builds two readers.",
+    },
+    "EvmContractReader.call": {
+        "address": "The contract, lowercased on the wire.",
+        "fn": "The function NAME, not a signature. Its ABI types come from "
+              "the reader's registry, and an unknown name with arguments is "
+              "refused before any HTTP.",
+        "args": "The arguments, as a tuple, in declaration order.",
+    },
+    "Multicall3.aggregate3": {
+        "calls": "The batch. One `eth_call` covers all of them, and an empty "
+                 "list issues no request at all.",
+        "block_number": "The block the whole batch reads at. `None` means "
+                        "`latest`.",
+    },
+    "scan_logs": {
+        "rpc": "The node to ask.",
+        "from_block": "First block of the INCLUSIVE range.",
+        "to_block": "Last block of the inclusive range.",
+        "address": "One address, several, or `None` for no address filter.",
+        "topics": "Topic slots: a string, a list for an OR, `None` for a "
+                  "wildcard. Empty omits the key.",
+        "chunk_blocks": "Blocks per `eth_getLogs`. Nodes cap the range, and "
+                        "this is how you stay under the cap.",
     },
     "Auradefi.sandbox": {
         "connect": "Whether to return with the sandbox address already "

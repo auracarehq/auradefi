@@ -86,11 +86,15 @@ def _decode_json_segment(segment: str) -> object:
     padded = segment + "=" * (-len(segment) % 4)
     try:
         raw = base64.b64decode(padded, altchars=b"-_", validate=True)
-    except (ValueError, UnicodeEncodeError) as exc:
+    # Both Unicode*Error classes descend from ValueError (via UnicodeError),
+    # so naming either beside it caught nothing while implying the taxonomy
+    # was wider than it is. binascii.Error is a ValueError as well; a
+    # RecursionError is the one root here that is not. Do not add them back.
+    except ValueError as exc:
         raise AuthError(_REJECTED) from exc
     try:
         return json.loads(raw)
-    except (ValueError, UnicodeDecodeError, RecursionError) as exc:
+    except (ValueError, RecursionError) as exc:
         raise AuthError(_REJECTED) from exc
 
 

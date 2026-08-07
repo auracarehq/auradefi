@@ -21,8 +21,26 @@ from decimal import Decimal, InvalidOperation
 
 import httpx
 
-from auradefi.errors import SourceError, ValidationError
+from auradefi.errors import (
+    SourceError,
+    ValidationError,
+    require_sequence,
+    require_str,
+)
 from auradefi.money.fiat import Money
+
+#: Every root a send can raise, which is not the same set as ``httpx.HTTPError``.
+#:
+#: ``httpx.InvalidURL`` descends from ``Exception``, not ``HTTPError``, and
+#: fires on a non-printable character anywhere in the URL, including one that
+#: arrived in a caller-supplied address. A scheme-less url such as
+#: ``localhost:8545``, the likeliest local-node typo, surfaces instead as
+#: urllib's bare ``ValueError("unknown url type")`` from cookie extraction.
+#: A door catching only ``HTTPError`` therefore keeps its documented
+#: ``SourceError`` promise for the network and breaks it for the two most
+#: ordinary configuration mistakes. Verified against httpx 0.28, and held by
+#: ``tests/style/test_transport_doors_catch_every_httpx_root.py``.
+_SEND_FAILURES = (httpx.HTTPError, httpx.InvalidURL, ValueError)
 
 CHUNK_SIZE = 100
 
@@ -99,9 +117,14 @@ class DefiLlamaOracle:
     def __init__(
         self, client: httpx.Client, base_url: str = "https://coins.llama.fi"
     ) -> None:
-        """Bind the injected client and base URL. Performs no I/O."""
+        """Bind the injected client and base URL. Performs no I/O.
+
+        ``base_url`` is refused here because ``.rstrip`` is the first
+        thing to touch it: see :class:`~auradefi.sources.bitcoin.esplora
+        .Esplora`, which has the same door.
+        """
         self._client = client
-        self._base_url = base_url.rstrip("/")
+        self._base_url = require_str(base_url, "base_url", SourceError).rstrip("/")
 
     def usd_prices(self, caip19s: Sequence[str]) -> dict[str, Money]:
         """Current USD price for each priceable input CAIP-19.
@@ -115,6 +138,11 @@ class DefiLlamaOracle:
         Amounts are ``Decimal(str(price))`` wrapped in ``Money(…, 'USD')``.
         A non-2xx response or a malformed body raises ``SourceError``.
         """
+        # `coin_key` reaches straight for `caip19.partition("/")`, so a
+        # non-sequence or a non-str element leaves as AttributeError or
+        # TypeError, outside the SourceError this method documents.
+        for caip19 in require_sequence(caip19s, "caip19s", SourceError):
+            require_str(caip19, "caip19", SourceError)
         ids_by_key: dict[str, list[str]] = {}
         for caip19 in caip19s:
             key = coin_key(caip19)
@@ -140,7 +168,10 @@ class DefiLlamaOracle:
         response's ``coins`` object; ``SourceError`` on non-2xx or a body
         that is not JSON with a ``coins`` mapping."""
         url = f"{self._base_url}/prices/current/{','.join(chunk)}"
-        response = self._client.get(url)
+        try:
+            response = self._client.get(url)
+        except _SEND_FAILURES as exc:
+            raise SourceError(f"DefiLlama request failed: {exc!r}") from exc
         if not response.is_success:
             raise SourceError(
                 f"DefiLlama returned HTTP {response.status_code} for {url}"

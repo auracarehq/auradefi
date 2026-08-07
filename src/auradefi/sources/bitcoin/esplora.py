@@ -28,13 +28,19 @@ from collections.abc import Callable, Sequence
 
 import httpx
 
-from auradefi.errors import SourceError, ValidationError
+from auradefi.errors import SourceError, ValidationError, require_str
 from auradefi.sources.bitcoin.utxo import (
     AddressBalance,
     AddressStats,
     BitcoinScanResult,
     Utxo,
 )
+
+#: See ``sources/evm/rpc.py`` for why ``httpx.HTTPError`` alone under-catches
+#: a send: ``InvalidURL`` is not one of its subclasses and a scheme-less url
+#: raises urllib's bare ``ValueError``. Held by
+#: ``tests/style/test_transport_doors_catch_every_httpx_root.py``.
+_SEND_FAILURES = (httpx.HTTPError, httpx.InvalidURL, ValueError)
 
 _CHAINS = (0, 1)  # BIP44 external then change, in that order (DECISIONS)
 
@@ -79,9 +85,15 @@ class Esplora:
         client: httpx.Client,
         base_url: str = "https://blockstream.info/api",
     ) -> None:
-        """Bind the injected client and base URL. No I/O, no key."""
+        """Bind the injected client and base URL. No I/O, no key.
+
+        ``base_url`` is refused here because ``.rstrip`` is the first
+        thing to touch it, and a ``None`` from an unset environment
+        variable would leave through ``AttributeError`` instead of the
+        ``SourceError`` this module promises.
+        """
         self._client = client
-        self._base_url = base_url.rstrip("/")
+        self._base_url = require_str(base_url, "base_url", SourceError).rstrip("/")
 
     def address_stats(self, address: str) -> AddressStats:
         """``GET {base}/address/{address}`` → chain_stats as AddressStats.
@@ -124,7 +136,7 @@ class Esplora:
         """
         try:
             response = self._client.get(f"{self._base_url}{path}")
-        except httpx.HTTPError as exc:
+        except _SEND_FAILURES as exc:
             raise SourceError(f"esplora request failed: {exc!r}") from exc
         if not 200 <= response.status_code < 300:
             raise SourceError(f"esplora HTTP {response.status_code} for {path}")

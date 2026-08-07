@@ -6,6 +6,11 @@ Grammar (the Phase 0 subset)::
     chain_id  = CAIP-2, e.g. "eip155:1", "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
     namespace = "erc20" | "slip44" | "token"
 
+Both halves must be canonical, not merely well formed. Where a chain
+namespace has a canonical spelling this module knows, the CAIP-2 half is
+validated against it (``eip155:01`` is refused, not read as chain 1); see
+``_CHAIN_ID_VALIDATORS``.
+
 Reference rules per namespace: canonical form feeds the pinned asset-id
 hash (docs/internal/DECISIONS.md), so this is a wire-format contract:
 
@@ -26,10 +31,27 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from auradefi.chains.evm import chain_id_from_caip2
 from auradefi.errors import CaipParseError
 
 # CAIP-2 chain id: lowercase namespace, one colon, alphanumeric reference.
 _CHAIN_ID = re.compile(r"[-a-z0-9]{3,8}:[-_a-zA-Z0-9]{1,32}")
+
+#: Per-namespace canonical-form validators for the CAIP-2 half.
+#:
+#: The generic grammar above is CAIP-2's own, and it is deliberately
+#: permissive: any alphanumeric reference is well formed. That is the wrong
+#: contract for a string that feeds the pinned asset-id hash. ``eip155:01``
+#: and ``eip155:1`` are one chain written two ways, so a token on it minted
+#: two asset ids, and every id derived over one of those (position, ledger
+#: row, transaction) forked with it. The reference half of this module has
+#: refused non-canonical spellings since Phase 0 ("no leading zeros", and
+#: ``slip44:007`` is a pinned refusal); the chain half never did.
+#:
+#: ``chains/evm.py`` already owns the canonical eip155 rule and its
+#: ``[1-9][0-9]*`` pattern, so this calls it rather than restating it. One
+#: definition cannot drift from itself.
+_CHAIN_ID_VALIDATORS = {"eip155": chain_id_from_caip2}
 # Per-namespace reference validators; canonical form feeds the asset-id hash.
 _ERC20_REFERENCE = re.compile(r"0x[0-9a-fA-F]{40}")
 _SLIP44_REFERENCE = re.compile(r"0|[1-9][0-9]*")
@@ -69,6 +91,9 @@ def parse_caip19(value: str) -> Caip19:
         raise CaipParseError(f"not a CAIP-19 (need exactly one '/'): {value!r}")
     if _CHAIN_ID.fullmatch(chain_id) is None:
         raise CaipParseError(f"malformed CAIP-2 chain id in: {value!r}")
+    validator = _CHAIN_ID_VALIDATORS.get(chain_id.partition(":")[0])
+    if validator is not None:
+        validator(chain_id)  # CaipParseError on a non-canonical spelling
     namespace, colon, reference = asset_part.partition(":")
     if not colon:
         raise CaipParseError(f"asset part needs 'namespace:reference': {value!r}")

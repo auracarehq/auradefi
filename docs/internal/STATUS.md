@@ -6,12 +6,173 @@ see [`docs/internal/AGENT_PROMPTS.md`](AGENT_PROMPTS.md) to re-run it.
 
 ## Currently
 
-**All ten phases DONE and 0.1.1 is released.** `.venv/bin/pytest` →
+**0.2.0 phase 11 has landed on `main` and the suite is RED.** The EVM node
+path is built, reviewed, mutation-proven and seam-audited. `.venv/bin/pytest`
+→ **4,204 tests, 4,195 passed, 9 failed**, offline, on a fresh clone with no
+API keys. Not one of the nine is a phase-11 module failing its own tests; the
+detail, including which are inherited and which the phase raised, is under
+*[0.2.0: in progress](#020-in-progress)* below. `pyproject.toml` and
+`__init__.__version__` both still read **0.1.2**, deliberately: the bump and
+the `[0.2.0]` CHANGELOG section belong to the last phase of the release, and
+a version bumped early is a version that lies for seven phases.
+
+Everything from here to the 0.2.0 section describes 0.1.1 and 0.1.2, both of
+which are released and green.
+
+## 0.2.0: in progress
+
+`docs/internal/RELEASE_0.2.0.md` is the spec: eight phases, numbered 11 to
+18, closing the gap between the module layout `SPEC.md` §3.2 declares and the
+tree that shipped (GitHub #1 to #15).
+
+| Phase | Gate | State |
+|---|---|---|
+| 11 | five adapters through a cassette-backed reader at block 20,450,000 | **BUILT, suite red.** `tests/golden/test_phase11_reader.py` (25) green, plus 543 unit tests over the six new modules and 111 seam tests. Nine failures elsewhere, listed below |
+| 12 to 18 | not started | |
+
+### Before phase 12 is started
+
+`RELEASE_0.2.0.md` §13 step 1 requires the orchestrator to stub the phase's
+modules with a docstring and `raise NotImplementedError` in the preparatory
+commit, before the baseline is recorded. Phase 11's prep commit (`178359b`)
+edited the layout inventory and did not stub anything, so the placement gate
+was green at the baseline and every artefact the waves landed flipped it red
+as if an agent had broken it. Land the stubs for phase 12's modules in the
+prep commit, or name both placement directions as expected-transient in every
+work order for it.
+
+### What phase 11 added
+
+`sources/evm/codec/keccak.py` (keccak-f[1600] and `keccak256`, stdlib only,
+because `hashlib.sha3_256` is a different function and no new dependency was
+allowed), `codec/abi.py` (static ABI types, selectors, and Multicall3's two
+dynamic shapes as named special cases), `rpc.py` (JSON-RPC 2.0: single calls
+and a batch matched by `id`), `multicall.py` (Multicall3 `aggregate3` with
+per-call failure declared), `logs.py` (`eth_getLogs` chunked over a range,
+typed rows) and `reader.py` (`EvmContractReader`, bound to the adapter seam
+structurally, over a signature registry carried as data).
+
+Documented in `docs/books/13_evm_node.ipynb` and
+`examples/12_read_a_contract_from_a_node.py`, both executed by CI.
+
+### The claim this phase does NOT support
+
+The spec's *Done when* asks for agreement between a recorded node and the
+hand-written fixtures. That agreement was not obtained and cannot be obtained
+inside this loop. `tests/conftest.py` blocks `socket.connect` for the whole
+suite, no EVM RPC recording exists in `tests/cassettes/`, and two of the
+pinned numbers could never come from a node in any case: the Aave vector uses
+a fabricated holder from SPEC §6.3's worked example, and the rETH exchange
+rate is protocol-global. So `tests/cassettes/phase11_reader.json` is
+hand-authored, its words packed from the integers the existing goldens pin,
+and the gate file says so in its own docstring.
+
+What the golden proves: the selector derivation, the word packing, the tuple
+decode, the block pin and the JSON-RPC path end to end, and that all five
+adapters produce byte-identical `Position` objects through a node path and
+through a dict. Recording a genuine archive node at block 20,450,000 and
+re-pinning every existing golden to what it returns needs network and an
+archive node, and it is a separate human task.
+
+### The nine failures, and whose they are
+
+Eight of them, across six new `tests/style/` pattern gate files written during
+this phase's pattern sweep, are red against code that predates phase 11:
+
+* `test_a_promised_taxonomy_holds_at_the_entry_door.py` (3 tests): public
+  entry points that leak a builtin `TypeError` for a wrong-typed argument,
+  including `EvmRpc(client, url)` with a non-string `url`, which the round-2
+  review finding below names.
+* `test_transport_doors_catch_every_httpx_root.py`: five transport doors
+  (`prices/oracles/defillama.py`, `sources/bitcoin/esplora.py`,
+  `sources/evm/etherscan.py`, `sources/evm/txfetch.py`,
+  `sources/solana/rpc.py`) catch `httpx.HTTPError` and neither
+  `httpx.InvalidURL` nor `ValueError`, so a scheme-less URL escapes a
+  `SourceError` promise.
+* `test_no_except_arm_is_shadowed_by_a_sibling.py`: three unreachable
+  `except` arms (`api/deps.py:158`, `tenancy/tokens.py:89` and `:93`, all
+  `UnicodeDecodeError`/`UnicodeEncodeError` behind `ValueError`).
+* `test_non_canonical_spellings_are_refused.py` (2 tests): `parse_caip19`
+  accepts `eip155:01` and `eip155:0000001` as chain 1.
+* `test_an_empty_collection_argument_is_pinned.py`: `EvmRpc.batch([])` posts
+  an empty JSON-RPC array and its docstring does not say so, while its
+  sibling `Multicall3.aggregate3([])` guards and documents the same case.
+
+The same nine, and only those nine, fail inside the network-less container
+(`docker build --target test` then `docker run --rm --network none`, 4,194
+passed, 1 skipped, 9 failed), so none of them is an artefact of a developer
+machine. `bash scripts/release_check.sh` is PASSED: version agreement, build,
+`twine check`, wheel contents, fresh-venv install, thirteen examples against
+the installed wheel, and all thirteen notebooks executed clean.
+
+The ninth is phase 11's own, raised by the wave-1 seam audit and still open:
+
+* `tests/contract/seams/test_phase11_wave1_node_seams.py::test_both_node_reads_put_the_packages_canonical_address_on_the_wire`.
+  `EvmRpc.eth_call` lowercases its `to` (`rpc.py:201`) and
+  `EvmRpc.eth_get_balance` forwards `address` untouched (`rpc.py:220`), so one
+  `EvmRpc` puts two wire identities for one address on one transport.
+
+### Unresolved phase-11 findings, recorded rather than closed
+
+1. **A source fix with no test holding it.** The round-2 fix for the
+   `eth_call`/`batch` taxonomy leak is unpinned: both new boundary guards can
+   be deleted independently and all 101 tests in
+   `tests/sources/evm/test_rpc.py` stay green. Seven leak cases the fix was
+   written against are absent from the suite. The behaviour is right in the
+   code and nothing stops a later edit reopening it.
+2. **A narrowed `except` reopened a leak.** Dropping the blanket `TypeError`
+   arm from the transport door (`rpc.py:386`) means `EvmRpc(client, None)`
+   raises a bare `TypeError` from httpx, against `_post`'s own docstring and
+   the module's absolute SourceError promise. `EvmRpc(client,
+   os.environ.get("NODE_URL"))` with the variable unset is the ordinary way a
+   caller reaches it.
+3. **The `ContractReader` binding is proven only by `isinstance`.**
+   `runtime_checkable` verifies method NAMES and nothing about the signature,
+   so a host reader declaring `call(self, address, fn, args)` without the
+   default passes every check the package makes and then breaks every
+   zero-argument read inside four of the five adapters, filed as
+   `AdapterFailure` data. The shipped reader matches the protocol exactly;
+   the gap is in what the proof covers. Owner: the phase-4 positions
+   protocol.
+4. **`ResolveContext.block_number` never reaches the reader.**
+   `ContractReader.call` has no block parameter and the reader carries its own
+   pin, so a resolve pinned at a block reads whatever block the reader was
+   built at, with no error on either side. Latent today because nothing under
+   `src/` constructs a reader; it becomes wrong data the moment a host wires
+   them. Owner: whichever phase threads a block through the adapter seam.
+5. **`abi.py` leaks seven malformed inputs as `ValueError`/`TypeError`**
+   despite declaring `ValidationError` as its whole error boundary, so a
+   consumer catching `ValidationError` as instructed still passes them to its
+   caller raw. Reachable as soon as a caller-supplied `calls` list reaches
+   `encode_aggregate3`.
+6. **`logs.py` does not shape-check an inbound `address` or
+   `transactionHash`** while it does check topics in the same row, so a
+   non-compliant node's transaction hash hashes into a well-formed `txn_` id
+   that names nothing.
+7. **The golden gate is thinner than its pin list says.** The mutation proof
+   found eight pins in `tests/golden/test_phase11_reader.py` that no source
+   mutant can move: the batch path and the multicall path are never exercised
+   from the gate (the fixture records nineteen single POSTs and the multicall
+   assertions compare two constants declared in the same module), the
+   cassette carries no error member so the revert path is unreachable, and
+   every `decimals` word and every tick in the fixture is a value where the
+   declared width and its mutant decode identically. Each behaviour IS
+   pinned, in `tests/sources/evm/**` and the seam files, and goes red there
+   under the same mutants. The gate file overstates what it alone proves.
+
+Findings 1, 2, 5 and 6 are code the loop could have fixed and did not, inside
+its round budget. They are open.
+
+## Released state
+
+Everything below is the 0.1.1 and 0.1.2 record, kept as history. All ten
+SPEC §11 phases are DONE. At 0.1.1, `.venv/bin/pytest` →
 **3,247 tests, 3,247 passed, 0 failed** (count from `--junitxml`), offline,
-on a fresh clone with no API keys. All twelve PyBooks execute clean
-(`bash scripts/run_books.sh`) and all eleven examples run green
-(`bash scripts/run_examples.sh`). `pyproject.toml` and
-`__init__.__version__` both read **0.1.1**, which is the version on PyPI.
+on a fresh clone with no API keys, every PyBook executing clean
+(`bash scripts/run_books.sh`) and every example green
+(`bash scripts/run_examples.sh`). 0.1.2 carried that forward at 3,426 tests.
+`pyproject.toml` and `__init__.__version__` read **0.1.2**, which is the
+version on PyPI.
 
 The release gate, version agreement → build → `twine check` → wheel
 contents → fresh-venv install → quickstart and every example against the
@@ -94,20 +255,25 @@ first commit of 0.1.2.
    The gap is now a value you can read rather than a discrepancy you
    reverse-engineer (#16).
 
-2. **`positions/` is fixture-driven, pending a multicall reader.** The
-   `ContractReader` seam ships and every adapter is pinned to
-   block-20,450,000 golden vectors, but no concrete on-chain reader exists
-   in the package: no `eth_call` transport and no multicall batcher. Until
-   one lands, a host must bind its own reader to run the adapters against a
-   live chain. This is the single largest gap between "works" in the README
-   table and "works against mainnet".
+2. **`positions/` was fixture-driven, pending a multicall reader.** Closed
+   by 0.2.0 phase 11, which is on `main` and not yet released: the
+   `eth_call` transport, the multicall batcher and `EvmContractReader` all
+   ship now. What remains open is the part a loop with no network cannot do,
+   and it is stated under *0.2.0: in progress* above: no vector for that path
+   was ever recorded from a real node, and a host still constructs the reader
+   and chooses its block.
 
 Both are stated in the README's *What is not there* section as well, so
 neither can be discovered only by hitting a discrepancy.
 
 ## Unresolved review findings
 
-One, recorded above in full: **`derive_connection_id`'s two `str`
-parameters are silently swappable** and the signature should be
-keyword-only past `tenant_id` (0.1.1 wave-2 seam audit). Harsh-reviewer
-findings that survive 3 fix rounds land here, never silently dropped.
+Harsh-reviewer and seam-audit findings that survive their fix rounds land
+here, never silently dropped.
+
+From 0.1.1 wave 2, recorded above in full: **`derive_connection_id`'s two
+`str` parameters are silently swappable** and the signature should be
+keyword-only past `tenant_id`.
+
+From 0.2.0 phase 11: seven, listed with their evidence under
+*0.2.0: in progress*, plus the nine red tests that phase leaves behind.

@@ -179,6 +179,9 @@ decoder needs an entry to exist before a connection can be made.
 The decoder is replaceable via `decoder=`, but the shipped one handles EVM
 native txlist rows only.
 
-Position adapters need a `ContractReader` that you supply. No `eth_call`
-transport and no multicall ship in this package, which is the largest gap
-between working and working against mainnet.
+Position adapters need a `ContractReader`, and one now ships:
+`auradefi.sources.evm.reader.EvmContractReader`, over
+`auradefi.sources.evm.rpc.EvmRpc`. You still construct and bind it, including
+the block it reads at, and no vector in this repository has ever been
+recorded from a real node, so treat your first live run as the reconciliation
+it is.

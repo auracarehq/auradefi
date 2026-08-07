@@ -163,6 +163,14 @@ MALFORMED = [
     "/erc20:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",  # empty chain id
     "eip155/erc20:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",  # chain id missing ':'
     USDC_ETH + "/extra",  # a second '/'
+    # The CHAIN half, canonical too. Both of these parsed as chain 1 until
+    # 0.2.0 phase 11's pattern sweep, so USDC on Ethereum had three asset
+    # ids depending on how the caller spelled the chain, and every id
+    # derived over one of them forked with it. chains/evm.py had refused
+    # the same spellings since Phase 0; this half never asked it.
+    "eip155:01/erc20:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",  # chain 1, leading zero
+    "eip155:0000001/erc20:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",  # chain 1, padded
+    "eip155:01/slip44:60",  # same, on the native asset
 ]
 
 

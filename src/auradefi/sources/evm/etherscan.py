@@ -36,8 +36,14 @@ from dataclasses import dataclass
 import httpx
 
 from auradefi.chains.evm import chain_id_from_caip2
-from auradefi.errors import SourceError
+from auradefi.errors import SourceError, require_str
 from auradefi.money.quantity import Quantity
+
+#: See ``sources/evm/rpc.py`` for why ``httpx.HTTPError`` alone under-catches
+#: a send: ``InvalidURL`` is not one of its subclasses and a scheme-less url
+#: raises urllib's bare ``ValueError``. Held by
+#: ``tests/style/test_transport_doors_catch_every_httpx_root.py``.
+_SEND_FAILURES = (httpx.HTTPError, httpx.InvalidURL, ValueError)
 
 _NO_TRANSACTIONS = "No transactions found"
 _NATIVE_DECIMALS = 18
@@ -102,10 +108,16 @@ class EtherscanV2:
         base_url: str = "https://api.etherscan.io/v2/api",
         page_size: int = 1000,
     ) -> None:
-        """Bind the injected client and request parameters. No I/O."""
+        """Bind the injected client and request parameters. No I/O.
+
+        ``base_url`` is refused here rather than at the send. It is host
+        configuration, an unset environment variable arrives as ``None``,
+        and httpx answers a non-str url with a bare ``TypeError`` that no
+        ``except AuradefiError`` catches.
+        """
         self._client = client
         self._api_key = api_key
-        self._base_url = base_url
+        self._base_url = require_str(base_url, "base_url", SourceError)
         self._page_size = page_size
 
     def balances(self, chain_id: str, address: str) -> list[BalanceRecord]:
@@ -126,7 +138,7 @@ class EtherscanV2:
         ascending by lowercased contract address.
         """
         reference = chain_id_from_caip2(chain_id)  # ValidationError pre-HTTP
-        address = address.lower()
+        address = require_str(address, "address", SourceError).lower()
 
         records: list[BalanceRecord] = []
         wei = self._native_wei(reference, address)
@@ -168,7 +180,7 @@ class EtherscanV2:
             params = {**params, "apikey": self._api_key}
         try:
             response = self._client.get(self._base_url, params=params)
-        except httpx.HTTPError as exc:
+        except _SEND_FAILURES as exc:
             raise SourceError(f"etherscan request failed: {exc!r}") from exc
         if not 200 <= response.status_code < 300:
             raise SourceError(f"etherscan HTTP {response.status_code}")

@@ -23,10 +23,10 @@ Two properties this file proves rather than asserts in prose:
 
 Chain reads go through ONE seam: `call(address, fn, args)`. This file binds
 a dict of recorded answers, which is also how the shipped adapters are
-tested. **No concrete on-chain reader ships in the package**: there is no
-`eth_call` transport and no multicall batcher, so running these adapters
-against mainnet means writing that `call` yourself (README, *What is not
-there*).
+tested. A concrete reader ships too, `EvmContractReader` over `EvmRpc`, and
+`examples/12_read_a_contract_from_a_node.py` drives this same adapter through
+it. You still choose the node and the block, and no vector in this repository
+was ever recorded from a real chain (README, *What is not there*).
 """
 
 from __future__ import annotations

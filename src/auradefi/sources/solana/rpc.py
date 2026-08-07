@@ -30,8 +30,14 @@ from dataclasses import dataclass
 import httpx
 
 from auradefi.chains.solana import validate_address
-from auradefi.errors import SourceError
+from auradefi.errors import SourceError, require_int, require_str
 from auradefi.sources.solana import spl
+
+#: See ``sources/evm/rpc.py`` for why ``httpx.HTTPError`` alone under-catches
+#: a send: ``InvalidURL`` is not one of its subclasses and a scheme-less url
+#: raises urllib's bare ``ValueError``. Held by
+#: ``tests/style/test_transport_doors_catch_every_httpx_root.py``.
+_SEND_FAILURES = (httpx.HTTPError, httpx.InvalidURL, ValueError)
 
 DEFAULT_URL = "https://api.mainnet-beta.solana.com"
 
@@ -89,9 +95,14 @@ class SolanaRpc:
     """
 
     def __init__(self, client: httpx.Client, url: str = DEFAULT_URL) -> None:
-        """Bind the injected client and endpoint URL. No I/O."""
+        """Bind the injected client and endpoint URL. No I/O.
+
+        ``url`` is refused here, not at the send: it is host
+        configuration, an unset environment variable arrives as ``None``,
+        and httpx answers a non-str url with a bare ``TypeError``.
+        """
         self._client = client
-        self._url = url
+        self._url = require_str(url, "url", SourceError)
 
     def get_balance(self, address: str) -> int:
         """The address's native balance in lamports.
@@ -167,6 +178,7 @@ class SolanaRpc:
                 malformed.
         """
         validate_address(address)  # ValidationError pre-HTTP
+        require_int(limit, "limit", SourceError)
         records: list[SignatureRecord] = []
         before: str | None = None
         while True:
@@ -206,7 +218,7 @@ class SolanaRpc:
         payload = {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
         try:
             response = self._client.post(self._url, json=payload)
-        except httpx.HTTPError as exc:
+        except _SEND_FAILURES as exc:
             raise SourceError(f"solana rpc request failed: {exc!r}") from exc
         if not 200 <= response.status_code < 300:
             raise SourceError(f"solana rpc HTTP {response.status_code}")

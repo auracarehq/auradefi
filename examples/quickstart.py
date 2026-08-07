@@ -26,6 +26,7 @@ Each section maps to one SPEC phase, and to a guide that goes deeper:
     7  Solana Token-2022                examples/10
     8  webhook signing                  examples/09
     9  cost basis and PnL               examples/08
+    11 an EVM node of your own          examples/12
 """
 
 from __future__ import annotations
@@ -367,6 +368,79 @@ before = pnl_at(trades, "fifo", T0 + 3 * DAY - 1, marks)
 assert before.realized == Money(Decimal("0"), "USD") and len(before.open_lots) == 3
 print(f"  1 ms before the sale: realised {before.realized}, {len(before.open_lots)} open lots: "
       "any instant is answerable, nothing is pre-computed")
+
+
+# -------------------------------------------------------------- phase 11
+section("phase 11: an EVM node path, no aggregator in the way")
+
+import httpx
+
+from auradefi.errors import SourceError
+from auradefi.sources.evm.codec.abi import selector
+from auradefi.sources.evm.codec.keccak import keccak256
+from auradefi.sources.evm.multicall import MULTICALL3_ADDRESS, Call, Multicall3
+from auradefi.sources.evm.reader import EvmContractReader
+from auradefi.sources.evm.rpc import EvmRpc, block_tag
+
+# hashlib's sha3_256 is not keccak256 (the padding byte differs), and no new
+# dependency was allowed, so keccak-f[1600] is in the package. The published
+# empty-string vector is how you know which hash you are holding.
+assert keccak256(b"").hex() == (
+    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+)
+print(f"  keccak256(b'') = {keccak256(b'').hex()[:24]}…")
+print(f"  balanceOf(address) -> selector 0x{selector('balanceOf(address)').hex()}")
+
+# A stand-in node, so this file still touches nothing. Point EvmRpc at a URL
+# with a real httpx.Client and every line below is unchanged.
+QUICKSTART_BLOCK = 20_450_000
+USDC_TOKEN = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+DEAD_ADDRESS = "0x000000000000000000000000000000000000dead"
+_DECIMALS_WORD = "0x" + f"{6:064x}"
+_AGGREGATE3_RETURN = "0x" + "".join(
+    f"{value:064x}" for value in (0x20, 2, 0x40, 0xC0, 1, 0x40, 32, 6, 0, 0x40, 0)
+)
+
+
+def _stand_in_node(request: httpx.Request) -> httpx.Response:
+    params = json.loads(request.content)["params"]
+    if params[0]["to"] == MULTICALL3_ADDRESS:
+        result = _AGGREGATE3_RETURN
+    elif params[0]["to"] == USDC_TOKEN:
+        result = _DECIMALS_WORD
+    else:
+        result = "0x"          # no code at that address, so nothing to decode
+    return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "result": result})
+
+
+node_client = httpx.Client(transport=httpx.MockTransport(_stand_in_node))
+node_rpc = EvmRpc(node_client, "https://evm-node.invalid/rpc")
+node_reader = EvmContractReader(node_rpc, block_number=QUICKSTART_BLOCK)
+assert node_reader.call(USDC_TOKEN, "decimals") == 6
+print(f"  EvmContractReader at block {QUICKSTART_BLOCK}: USDC decimals="
+      f"{node_reader.call(USDC_TOKEN, 'decimals')}, one eth_call, block pinned")
+
+# An empty result is DECLARED and never read as zero: a call to an address
+# holding no code would otherwise report as a balance of nothing owned.
+try:
+    node_reader.call(DEAD_ADDRESS, "decimals")
+    raise SystemExit("an empty result must not decode")
+except SourceError as node_failure:
+    print(f"  empty eth_call result -> {type(node_failure).__name__}, never 0")
+
+# Multicall3 with allowFailure: one reverting call comes back declared and
+# its neighbours keep their answers, all in one round trip.
+batched = Multicall3(node_rpc).aggregate3(
+    [Call(USDC_TOKEN, bytes.fromhex("313ce567")),
+     Call(DEAD_ADDRESS, bytes.fromhex("313ce567"))],
+    block_number=QUICKSTART_BLOCK,
+)
+assert [result.success for result in batched] == [True, False]
+assert batched[1].data == b""
+print(f"  aggregate3 of 2 in one eth_call: {sum(r.success for r in batched)} "
+      f"answered, {sum(not r.success for r in batched)} declared failure")
+print("  the reader IS the adapter seam from phase 4: examples/12 drives a")
+print("  shipped position adapter through it, over the node, end to end")
 
 
 # --------------------------------------------------------- optional extras

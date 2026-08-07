@@ -9,10 +9,14 @@ It is a library first and a service second. A Python host imports `auradefi`
 directly and pays no serialisation or network cost. The HTTP API is a thin
 shell over the same importable core.
 
-> Status: alpha, and 0.1.2 is the release to use. Every planned capability
-> is implemented. The suite is 3,426 tests green offline on a fresh clone with no
-> API keys, all twelve notebooks execute clean, and every example under
-> [`examples/`](examples) runs against the published wheel.
+> Status: alpha, and 0.1.2 is the release to use. It is 3,426 tests green
+> offline on a fresh clone with no API keys, its notebooks execute clean, and
+> every example under [`examples/`](examples) runs against the published
+> wheel. Work towards 0.2.0 is on `main` ahead of that release: the EVM node
+> path landed first (a JSON-RPC client, a Multicall3 batcher, a log scanner
+> and a concrete on-chain reader), so this page describes a tree that is not
+> yet a release. [`STATUS.md`](docs/internal/STATUS.md) carries the live gate
+> state, including which gates are red today.
 >
 > Do not use 0.1.0. A separate adversarial review of it found nineteen
 > verified defects, of which five were security and four were silent data
@@ -28,7 +32,7 @@ shell over the same importable core.
 > [`docs/internal/SPEC.md`](docs/internal/SPEC.md) is the design contract.
 
 **[Documentation site →](https://auradefi.info/)** carries the
-examples, the twelve executable notebooks and the full reference, rendered
+examples, the thirteen executable notebooks and the full reference, rendered
 with every example's real output.
 
 ## Install
@@ -47,7 +51,7 @@ git clone https://github.com/auracarehq/auradefi
 cd auradefi && bash scripts/bootstrap.sh
 .venv/bin/pytest                           # the whole suite, offline, no keys
 .venv/bin/python examples/quickstart.py    # every capability, end to end
-bash scripts/run_examples.sh               # all twelve examples
+bash scripts/run_examples.sh               # all thirteen examples
 ```
 
 ## Examples
@@ -71,6 +75,7 @@ stale example fails the build.
 | [`09_deliver_signed_webhooks.py`](examples/09_deliver_signed_webhooks.py) | signing, the pinned retry schedule, replay |
 | [`10_scan_bitcoin_and_solana.py`](examples/10_scan_bitcoin_and_solana.py) | an xpub that never leaves the process, and Token-2022 |
 | [`11_provoke_every_error.py`](examples/11_provoke_every_error.py) | every error on purpose, so you can test your handler |
+| [`12_read_a_contract_from_a_node.py`](examples/12_read_a_contract_from_a_node.py) | eth_call, a batch, five reads in one round trip, and logs |
 
 [`examples/README.md`](examples/README.md) annotates the index, and the
 [documentation site](https://auradefi.info/examples/) renders
@@ -124,7 +129,8 @@ own outputs, plus a gate test under `tests/`.
 | EVM balances to holdings, exact-`Decimal` USD totals, unpriced assets named | Etherscan V2 source + DefiLlama prices; [`05_holdings`](docs/books/05_holdings.ipynb) |
 | Tenancy: org/project/end-user, scoped `adk_` keys, `authEndpoint` JWT mint, three-window quota, audit log | the isolation gate actively tries to leak; [`06_tenancy`](docs/books/06_tenancy.ipynb) |
 | Rich transactions: `parts[]`/`acts[]`, fees as siblings carrying `borne_by`, derived `type`, ledger bridge, reorg + resurrection | EVM only, one act per transaction; [`07_transactions`](docs/books/07_transactions.ipynb) |
-| DeFi positions: adapter protocol, drill-down, group totals + health factor, signed synthetic-Holdings projection | Uniswap v2/v3, Aave v3, Lido/Rocket Pool; fixture-driven, see below; [`08_positions`](docs/books/08_positions.ipynb) |
+| DeFi positions: adapter protocol, drill-down, group totals + health factor, signed synthetic-Holdings projection | Uniswap v2/v3, Aave v3, Lido/Rocket Pool; [`08_positions`](docs/books/08_positions.ipynb) |
+| EVM node path: `keccak256`, a static ABI codec, JSON-RPC single calls and id-matched batches, Multicall3 `aggregate3` with per-call failure declared, chunked `eth_getLogs`, and `EvmContractReader` as the adapters' seam | Ethereum-shaped chains, static ABI types only, no async; [`13_evm_node`](docs/books/13_evm_node.ipynb) |
 | Embedding: `from auradefi import Auradefi`, host-owned session, budgeted two-phase sync, 26-metric scalar projection | chain-scoped connection ids, restart resume enumerated from the state port, one connection's failure contained to its own row (0.1.1 #18/#21/#24/#26); [`09_embedding`](docs/books/09_embedding.ipynb), [`02_embed_in_your_backend.py`](examples/02_embed_in_your_backend.py) |
 | Bitcoin: pure-Python BIP32 xpub derivation, gap-20 scan, confirmed-only UTXO balances | p2wpkh + Esplora only; the extended key never reaches HTTP; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
 | Solana: SPL + Token-2022 balances, ScaledUiAmount carried both ways, signature history | balances only, no decode; [`10_bitcoin_solana`](docs/books/10_bitcoin_solana.ipynb) |
@@ -140,12 +146,24 @@ Rule #10 applies to the absences too.
   I/O path is exercised against committed recordings. Pointing a source at the
   real Etherscan, Esplora or Solana RPC needs your own keys and endpoints,
   and CI has not reconciled the output against an incumbent.
-- Positions are fixture-driven. The `ContractReader` seam ships and every
-  adapter is pinned to block-20,450,000 golden vectors, but no concrete
-  on-chain reader ships. The package has no `eth_call` transport and no
-  multicall batcher, so a host must supply its own reader to run the adapters
-  against a live chain.
-- There is no multicall anywhere, so token balances cost one request each.
+- The EVM node path has never met a real node. `EvmContractReader`,
+  `EvmRpc`, `Multicall3` and `scan_logs` ship and the five position adapters
+  resolve through them, but every vector that proves it is a hand-authored
+  cassette: the block-20,450,000 words were packed from the integers the
+  existing goldens pin, not recorded from an archive node, and
+  `tests/golden/test_phase11_reader.py` says so in its own docstring. What is
+  proven is the selector derivation, the word packing, the tuple decode, the
+  block pin and the JSON-RPC path end to end. Agreement with mainnet state at
+  that block is not proven by anything here.
+- The codec is static types only: `uint<N>`, `int<N>`, `address` and `bool`,
+  plus Multicall3's own two dynamic shapes as named special cases. No
+  `string`, no `bytes`, no arrays and no nested tuples, and it raises on them
+  instead of guessing. Every function the shipped adapters call fits, and a
+  contract of yours that does not will be refused rather than mis-encoded.
+- Nothing in the package constructs an `EvmContractReader` for you. It is
+  wired by a host, and the block a `ResolveContext` names is not threaded
+  into the reader: the reader carries its own pin, chosen at construction, so
+  a host that wants a report at block N builds the reader at block N.
 - One price oracle (DefiLlama), current prices only. There is no fallback
   feed and no historical price service: `prices/historian.py` and
   `prices/store.py` are declared in the module layout and absent, as are the
@@ -217,7 +235,7 @@ Start here:
 - [Bring your own](https://auradefi.info/bring-your-own.html):
   your API, your database, your prices, with every port and its methods
 - [Guides](https://auradefi.info/examples/index.html):
-  [`examples/`](examples), twelve single files that run offline
+  [`examples/`](examples), thirteen single files that run offline
 - [API reference](https://auradefi.info/reference/index.html):
   signatures, parameters, return fields, exceptions
 - [HTTP API](https://auradefi.info/http.html): Plaid's wire
@@ -231,7 +249,7 @@ Start here:
 
 Also in the repository:
 
-- [`docs/books/`](docs/books) holds twelve executable notebooks, run
+- [`docs/books/`](docs/books) holds thirteen executable notebooks, run
   headlessly in CI.
 - [`CHANGELOG.md`](CHANGELOG.md) records what changed per release, including
   the 0.1.1 upgrade note.
