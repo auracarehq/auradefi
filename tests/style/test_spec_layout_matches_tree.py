@@ -47,12 +47,6 @@ DECLARED_BUT_ABSENT = frozenset(
         # project/ ships only scalar.py; the Plaid envelope lives in api/wire.py.
         "project/plaid.py",
         "project/native.py",
-        # No historical price service and no price store: marks are the caller's.
-        "prices/historian.py",
-        "prices/store.py",
-        "prices/oracles/coingecko.py",
-        "prices/oracles/manual.py",
-        "prices/oracles/onchain_amm.py",
         # decode/ is pipeline-only: no rule engine, no per-protocol decoders,
         # so acts[] is always one act and protocol is always None.
         "decode/rules.py",

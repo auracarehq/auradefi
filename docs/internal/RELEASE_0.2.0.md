@@ -304,6 +304,14 @@ DECISIONS.md, and test the boundary.
 test proves it by counting transport calls, the way
 `tests/contract/test_embedding.py` proves its no-op.
 
+`coingecko.py` is **keyless by default and degrades to stated-absent** without a
+key, the way the Etherscan key already works. No key configured means that
+oracle is not in the chain, said out loud, never silently skipped. It is also
+the weakest of the three: CoinGecko and DefiLlama list substantially the same
+assets, so a failover between them covers "one is down" and does nothing for
+"neither lists this token". The two that change what the package can do are the
+other two, and `onchain_amm.py` is the one that needs no vendor at all.
+
 `onchain_amm.py` reads a pool through phase 11's `reader.py`, which is why this
 phase follows that one. It prices in the pool's quote asset and converts, and
 every step of that conversion is exact `Decimal` or `Fraction`, never float.
